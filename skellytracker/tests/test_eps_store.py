@@ -357,8 +357,7 @@ def test_a_wheel_member_that_leaves_the_folder_is_refused(fake_pack, server, ep_
 def test_a_long_store_path_is_refused_with_the_reason(fake_pack, tmp_path, monkeypatch):
     root = tmp_path / ("s" * (store.PATH_LIMIT - len(str(tmp_path)) - 40))
     monkeypatch.setenv(store.STORE_VARIABLE, str(root))
-    failures = {key: failure for key, *failure in installer.install(fake_pack(), verify=False).failed}
-    code, message = failures["cuda"]
+    (code, message), = [failure[1:] for failure in installer.install(fake_pack(), verify=False).failed]  # the refused component is a warning
     assert code == "path-guard" and store.STORE_VARIABLE in message and not (root / "cuda-cu13").exists()
 
 
@@ -465,6 +464,14 @@ def test_path_guard():
     assert store.STORE_VARIABLE in reason and str(os.sep) not in reason.replace(store.STORE_VARIABLE, "")
 
 
+def test_an_installed_pack_with_a_file_path_over_the_limit_is_not_ready():
+    catalog = catalog_module.load_catalog()
+    pack = catalog.pack("cuda")
+    store.write_json(store.pack_dir(pack["id"], pack["version"]) / "pack.json", {"files": [["d/" + "x" * store.PATH_LIMIT, 1, "0" * 64]]})
+    state, code, reason = store.pack_state(catalog, "cuda", gpu(), "gpu:10de:2484:0")
+    assert (state, code) == ("not_ready", "path-guard") and store.STORE_VARIABLE in reason
+
+
 @pytest.mark.parametrize("ep_key", ["cuda", "directml"])
 def test_a_verdict_key_changes_only_with_the_catalog_entry_of_its_own_ep(ep_key):
     """ADR-YPH2: a comment, an other EP row and the other blocks of the catalog keep a stored verdict; the own EP row,
@@ -491,16 +498,17 @@ def test_a_verdict_key_changes_only_with_the_catalog_entry_of_its_own_ep(ep_key)
         assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(ep_name="Other")) != same
 
 
-def test_a_new_version_of_the_decoder_component_keeps_the_verdict_key_of_its_ep():
+@pytest.mark.parametrize("ep_key", ["cuda", "trt-rtx"])
+def test_a_new_version_of_the_decoder_component_keeps_the_verdict_key_of_its_ep(ep_key):
     """ADR-88ZB: the EP verification does not test the GPU JPEG decoder, so a new version of the component (its catalog
-    row and its lock rows) keeps the verdict key of `cuda`. A new version of the pack still gives a new key."""
+    row and its lock rows) keeps the verdict key of each EP that uses it. A new version of the pack still gives a new key."""
     catalog = catalog_module.load_catalog()
 
     def key(change) -> str:
         data, lock = copy.deepcopy(catalog.data), copy.deepcopy(catalog.lock)
         change(data, lock)
         edited = catalog_module.EpCatalog(data, lock, revision="edited")
-        return store.verdict_key(edited, edited.pack("cuda"), gpu(), "gpu:10de:2484:0", "26100")
+        return store.verdict_key(edited, edited.pack(ep_key), gpu(), "gpu:10de:2484:0", "26100")
 
     def new_component(data, lock):
         (component,) = data["components"]
@@ -509,6 +517,6 @@ def test_a_new_version_of_the_decoder_component_keeps_the_verdict_key_of_its_ep(
             row["wheels"][0].update(sha256="0" * 64)
 
     same = key(lambda data, lock: None)
-    assert catalog.pack("cuda")["component"] == "gpu-jpeg-cu13"
+    assert catalog.pack(ep_key)["component"] == "gpu-jpeg-cu13"
     assert key(new_component) == same
-    assert key(lambda data, lock: data["eps"]["cuda"]["packs"][0].update(version="0.3.0")) != same
+    assert key(lambda data, lock: data["eps"][ep_key]["packs"][0].update(version="0.3.0")) != same
