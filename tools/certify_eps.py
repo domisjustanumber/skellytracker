@@ -40,7 +40,7 @@ on each camera; a target of the second environment runs there, in a child proces
 in the running mode ``video`` with the span ``pipeline.run``: the start time (the sessions, with the
 TensorRT RTX engine build), the first call, and the median and p95 of the timed calls. The peak VRAM
 is the largest VRAM of this process in a ``LiveSampler`` sample after each call. Then
-``certification._wide_run()`` compares the EP with the CPU EP on the test image with the catalog
+``certification._wide_run()`` compares the EP with the CPU EP on the test image, in a child process, with the catalog
 ``thresholds``. The timings and the VRAM are ``record-only``. The agreement is ``pass`` or ``fail``.
 It is ``record-only`` on a GPU where the result of section 3 does not count.
 """
@@ -120,7 +120,8 @@ def test_builtin(key: str, device_key: str | None = None) -> dict:
     except Exception as error:  # noqa: BLE001 - a finding with a fixed code
         return {"result": "fail", "reason_code": type(error).__name__}
     return {"result": "pass" if verdict.ok else "fail", "reason_code": None if verdict.ok else f"probe-{verdict.level.lower()}-failed",
-            "probe": {"ok": verdict.ok, "level": verdict.level, "max_abs_diff": verdict.max_abs_diff}}
+            "probe": {"ok": verdict.ok, "level": verdict.level, "max_abs_diff": verdict.max_abs_diff,
+                      "exit_reason_code": verdict.exit_reason_code}}
 
 
 def test_pack(key: str, wheel_dir: str | None, work: Path) -> dict:

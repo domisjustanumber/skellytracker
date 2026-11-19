@@ -77,7 +77,7 @@ def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None,
     def verify(keys, level, force, device_key=None):
         calls["verify"].append((keys[0], device_key))
         ok = (verify_ok or {}).get(device_key, True)
-        return (SimpleNamespace(ok=ok, level="L3", max_abs_diff=0.0 if ok else 0.5),)
+        return (SimpleNamespace(ok=ok, level="L3", max_abs_diff=0.0 if ok else 0.5, exit_reason_code="hung-at-exit" if device_key else None),)
 
     monkeypatch.setattr(eps, "verify", verify)
     monkeypatch.setattr(store, "read_manifest", lambda pack_id, version: {"wheels": [["a.whl", "ab" * 32]]})
@@ -317,6 +317,8 @@ def test_section_3_opts_in_and_records_directml_on_each_gpu_as_record_only_off_a
     assert results["directml@gpu:10de:2484:0"] == results["directml@gpu:8086:a780:0"] == "record-only" and found["result"] == "pass"
     assert ("directml", "gpu:8086:a780:0") in calls["verify"] and found["details"]["eps"]["directml@gpu:8086:a780:0"]["result"] == "fail"
     assert found["details"]["pipeline_targets"] == [{"key": "directml", "device_key": "gpu:10de:2484:0", "counts": False}]
+    passed = found["details"]["eps"]["directml@gpu:10de:2484:0"]  # a hang at exit is a fact of the details; the probe still passes
+    assert passed["result"] == "pass" and passed["probe"]["exit_reason_code"] == "hung-at-exit"
 
 
 def test_section_3_counts_directml_on_an_amd_gpu(work, monkeypatch):

@@ -89,7 +89,7 @@ SUITE_VERSION = 1
 RESULTS = ("pass", "fail", "not-run", "record-only")
 EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
 NOTES_LIMIT = 2000
-EXIT_GRACE_SECONDS = 20  # time a child gets to exit after its complete result; then the suite kills it (`hung-at-exit`)
+EXIT_GRACE_SECONDS = 20  # time a child gets to exit after its complete result (`hung-at-exit`); the package has the same value
 
 
 @dataclass(frozen=True)

@@ -13,6 +13,7 @@ from skellytracker.core import eps
 from skellytracker.core.eps import _verify_child, recommendation, registration, session, state, store, verification
 from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.errors import EpRequestError, EpUnavailableError, SessionCreationError, VRAMExhaustionError
+from skellytracker.tests import child_fakes
 from skellytracker.tests.hw_fakes import GIB, fake_pack, gpu, host
 
 CUDA, TRT, CPU = "CUDAExecutionProvider", "NvTensorRTRTXExecutionProvider", "CPUExecutionProvider"
@@ -356,6 +357,15 @@ def test_a_child_that_ends_with_no_result_gives_the_reason(monkeypatch):
     monkeypatch.setattr(_verify_child, "main", exit_with_127)
     result = verification.run_child({"level": "L2"})
     assert result["ok"] is False and "127" in result["reason"]
+
+
+def test_a_child_that_hangs_after_its_result_keeps_the_result(monkeypatch):
+    monkeypatch.setattr(_verify_child, "main", child_fakes.verify_result_then_hang)
+    result = verification.run_child({"level": "L3"}, grace=0.5)
+    assert result == {"level": "L3", "ok": True, "reason": None, "max_abs_diff": 0.0, "exit_reason_code": "hung-at-exit"}
+    monkeypatch.setattr(_verify_child, "main", child_fakes.hang)
+    result = verification.run_child({"level": "L3"}, timeout=1.0)
+    assert result["ok"] is False and result["exit_reason_code"] is None and "did not end in 1 s" in result["reason"]
 
 
 def exit_with_127(job, connection):

@@ -155,7 +155,11 @@ class RegisteredEp:
 
 @dataclass(frozen=True)
 class Verdict:
-    """The result of one verification of one EP. `level` is the highest level that ran."""
+    """The result of one verification of one EP. `level` is the highest level that ran.
+
+    `exit_reason_code` is `hung-at-exit` or `crashed` when the child process gave its result and then did
+    not exit cleanly. The result stays. Else it is None.
+    """
 
     ep_key: str
     level: Literal["L2", "L3"]
@@ -165,6 +169,7 @@ class Verdict:
     pack_version: str | None = None
     reason: str | None = None
     max_abs_diff: float | None = None
+    exit_reason_code: str | None = None
 
 
 @dataclass(frozen=True)

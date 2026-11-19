@@ -9,11 +9,16 @@
 
 An EP pack is ready when it is installed, current, registers and lists a device. A pack with no
 L3 pass stays usable, with one warning line for each process. Do not call `verify()` in a daemonic
-worker process: it starts a child process.
+worker process: it starts a child process. `spawn_child()` runs each child of `eps` that loads an EP
+library: the probe of `verify()` and the image run of `certify()`.
 """
 
 import multiprocessing
-from collections.abc import Sequence
+import os
+import signal
+import sys
+import time
+from collections.abc import Callable, Sequence
 
 from skellytracker.core.eps import _verify_child, store
 from skellytracker.core.eps.catalog import load_catalog
@@ -23,35 +28,122 @@ from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.host import probe_host
 
 TIMEOUT_SECONDS = 180.0  # the first TensorRT RTX session compiles the model
+EXIT_GRACE_SECONDS = 20.0  # time a child gets to exit after its result (`hung-at-exit`); tools/certify_platform.py has the same value
 
 
-def child_failure_reason(exit_code: int | None) -> str:
+def child_failure_reason(exit_code: int | None, timeout: float = TIMEOUT_SECONDS) -> str:
     if exit_code is None:
-        return f"the verification process did not end in {TIMEOUT_SECONDS:.0f} s"
+        return f"the verification process did not end in {timeout:.0f} s"
     if exit_code == 127:
         return "a library of the pack is missing or not complete (exit code 127)"
     return f"the verification process ended with the exit code {exit_code}"
 
 
-def run_child(job: dict) -> dict:
-    """Run one verification job in a `spawn` child. A child that ends with no result gives a failed result."""
+def _child_main(target, args: tuple, connection) -> None:
+    """The entry of each child of `spawn_child()`. On POSIX the child leads its own process group, so a stop gets its children too."""
+    if os.name == "posix":
+        os.setpgrp()
+    target(*args, connection)
+
+
+def _stop_tree(process) -> None:
+    """Kill the child and its children."""
+    if sys.platform == "win32":
+        import psutil
+
+        try:
+            children = psutil.Process(process.pid).children(recursive=True)
+        except psutil.Error:
+            children = []
+        for child in children:
+            try:
+                child.kill()
+            except psutil.Error:
+                pass
+    elif os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+    process.kill()
+    process.join()
+
+
+def spawn_child(target, args: tuple, *, timeout: float, grace: float = EXIT_GRACE_SECONDS, cancel=None,
+                progress: Callable[[str], None] | None = None) -> tuple[dict | None, str | None, int | None]:
+    """Run `target(*args, connection)` in a `spawn` child. Give `(result, problem, exit_code)`.
+
+    The child sends each progress step as a `str` and then its result as one `dict`. `progress` gets each step in
+    this process. `cancel` is an object with `is_set()`, for example a `threading.Event`. The child is stopped,
+    with its process tree, after `timeout` s with no result, within about 0.1 s after `cancel` is set, and
+    `grace` s after its result when it does not exit. `problem` is a fixed code: None, `timed-out`, `cancelled`,
+    `crashed` (an exit code that is not 0), `no-result` (exit code 0 and no result) or, with a result,
+    `hung-at-exit` or `crashed`. A child that gave its result keeps it.
+    """
     context = multiprocessing.get_context("spawn")
     receiver, sender = context.Pipe(duplex=False)
-    process = context.Process(target=_verify_child.main, args=(job, sender))
+    process = context.Process(target=_child_main, args=(target, args, sender))
     process.start()
     sender.close()
-    result = None
+    started, result, done_at, problem, closed = time.monotonic(), None, None, None, False
     try:
-        if receiver.poll(TIMEOUT_SECONDS):
-            result = receiver.recv()
-    except (EOFError, OSError):
-        pass
-    process.join(10)
-    if process.is_alive():
-        process.kill()
-        process.join()
-        return {"level": job["level"], "ok": False, "reason": child_failure_reason(None), "max_abs_diff": None}
-    return result or {"level": job["level"], "ok": False, "reason": child_failure_reason(process.exitcode), "max_abs_diff": None}
+        while True:
+            if result is None and not closed:
+                try:
+                    if receiver.poll(0.1):
+                        message = receiver.recv()
+                        if isinstance(message, dict):
+                            result, done_at = message, time.monotonic()
+                        elif progress is not None:
+                            progress(message)
+                        continue
+                except (EOFError, OSError):
+                    closed = True
+            else:
+                process.join(0.1)
+            if not process.is_alive():
+                break
+            now = time.monotonic()
+            if cancel is not None and cancel.is_set() and result is None:
+                problem = "cancelled"
+            elif result is None and now - started > timeout:
+                problem = "timed-out"
+            elif result is not None and now - done_at > grace:
+                problem = "hung-at-exit"
+            if problem:
+                _stop_tree(process)
+                break
+        while result is None and not closed:  # a result sent just before the exit
+            try:
+                if not receiver.poll(0):
+                    break
+                message = receiver.recv()
+                result = message if isinstance(message, dict) else None
+            except (EOFError, OSError):
+                break
+    finally:
+        if process.is_alive():  # an error of `progress`, or Ctrl+C
+            _stop_tree(process)
+        receiver.close()
+    exit_code = process.exitcode if problem is None else None
+    if problem is None and exit_code != 0:
+        problem = "crashed"
+    elif problem is None and result is None:
+        problem = "no-result"
+    return result, problem, exit_code
+
+
+def run_child(job: dict, *, timeout: float = TIMEOUT_SECONDS, grace: float = EXIT_GRACE_SECONDS) -> dict:
+    """Run one verification job in a `spawn` child. A child that ends with no result gives a failed result.
+
+    A child that gave its result and then did not exit cleanly keeps the result, and `exit_reason_code` is
+    `hung-at-exit` or `crashed`. Else `exit_reason_code` is None.
+    """
+    result, problem, exit_code = spawn_child(_verify_child.main, (job,), timeout=timeout, grace=grace)
+    if result is None:
+        reason = child_failure_reason(None if problem == "timed-out" else exit_code, timeout)
+        return {"level": job["level"], "ok": False, "reason": reason, "max_abs_diff": None, "exit_reason_code": None}
+    return {**result, "exit_reason_code": problem}
 
 
 def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: str | None = None,
@@ -85,5 +177,6 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
                                 "atol": float(row.get("l3_atol", 1e-4))})
             store.write_verdict(stored_key, record)
         verdicts.append(Verdict(key, record["level"], record["ok"], stored_key, pack["id"] if pack else None,
-                                pack["version"] if pack else None, record.get("reason"), record.get("max_abs_diff")))
+                                pack["version"] if pack else None, record.get("reason"), record.get("max_abs_diff"),
+                                record.get("exit_reason_code")))
     return tuple(verdicts)

@@ -70,7 +70,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     GPU that section 3 tested does not list `directml`.
   - Section 1 still checks a certification tag. Evidence needs no tag now: the report records the
     version and the commit of each package ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md)
-    item 4; item 3 of the [certification build list](#certification-build-list)).
+    item 4; item 2 of the [certification build list](#certification-build-list)).
 - **EP certification.** Three items of [ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)
   stay open:
   - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.
@@ -179,27 +179,27 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 
 [ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md),
 [ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) and
-[ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided and not built. Build in this
-order:
+[ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided and not built. The
+one-image comparison already runs in a child process. Build in this order:
 
-1. The one-image comparison of `certify()` in a child process (the `shortcut:` comment of
-   `_wide_run` in `core/eps/certification.py` asks for it). Keep a hang at the exit of
-   `verification.run_child` as its own reason, with the result.
-2. The package-wide `certify(level, progress, cancel)` and `certify_plan(level)`. The quick level
-   runs on the pipeline config of the caller.
-3. The report in the format `skellycertify.report/1.0.0`, with the version and the commit of the
+1. The package-wide `certify(level, progress, cancel)` and `certify_plan(level)`. The quick level
+   runs on the pipeline config of the caller. `cancel` must also stop the child of the L3 probe:
+   today only the child of the one-image comparison stops.
+2. The report in the format `skellycertify.report/1.0.0`, with the version and the commit of the
    package and no git at run time, and the list of the reason codes of this package. Cut the suite
    to sections 1 to 5.
-4. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC), and
-   `recommend()` skips an EP that failed on this PC. A local pass writes the field-test opt-in: then
-   change the sentence of `skellytracker/AGENTS.md` that names the writers of the opt-in.
-5. The hand-in list in the EP store and the exit notice.
-6. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
+3. The flags of `PackStatus` (not certified, passed on this PC, failed on this PC), and
+   `recommend()` skips an EP that failed on this PC. An EP with no reviewed row is usable only after
+   a whole quick check passes ([ADR-21BK](entries/21BK-quick-check-local-pass-and-hand-in.md)
+   item 2). A local pass writes the field-test opt-in: then change the sentence of
+   `skellytracker/AGENTS.md` that names the writers of the opt-in.
+4. The hand-in list in the EP store and the exit notice.
+5. Progress and cancel for an install from the Windows ML catalog, and a remove call with a command
    of `skellytracker-eps` for a catalog package that this package installed. It never removes a
    package that was on the PC before.
-7. The PyInstaller hook of ONNX Runtime.
-8. The passive record, the shadow comparison and the calibration of its limit.
-9. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
+6. The PyInstaller hook of ONNX Runtime.
+7. The passive record, the shadow comparison and the calibration of its limit.
+8. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
    The name of the field or the value is not decided.
 
 CI runs `test_eps_session.py` on no Linux runner: `if: runner.os != 'Linux'` in

@@ -3,6 +3,8 @@
 import copy
 import json
 import socket
+import threading
+import time
 import types
 
 import numpy as np
@@ -15,7 +17,7 @@ from skellytracker.core.eps.catalog import EpCatalog
 from skellytracker.core.eps.records import InstallPlan, InstallResult, PlannedPack, Verdict
 from skellytracker.core.errors import EpUnavailableError
 from skellytracker.core.system.runtime import probe_runtime
-from skellytracker.tests import hw_fakes
+from skellytracker.tests import child_fakes, hw_fakes
 from skellytracker.tests.hw_fakes import gpu, host
 from skellytracker.tests.test_eps_store import ep_store  # noqa: F401 - fixture
 
@@ -121,6 +123,7 @@ def test_a_setup_failure_is_not_run_and_keeps_the_prompt(rtx_host, monkeypatch, 
     def no_network(*args, **kwargs):
         raise DownloadError("offline", "no network")
 
+    monkeypatch.setattr(verification, "spawn_child", in_process)
     monkeypatch.setattr(pipelines, "get_pipeline", lambda key: types.SimpleNamespace(available=True))
     monkeypatch.setattr(certification._download, "fetch", no_network)
     monkeypatch.setattr(certification.store, "cache_root", lambda: tmp_path / "cache")
@@ -130,8 +133,47 @@ def test_a_setup_failure_is_not_run_and_keeps_the_prompt(rtx_host, monkeypatch, 
     monkeypatch.setattr(pipelines, "get_pipeline", lambda key: types.SimpleNamespace(available=False))
     done = eps.certify("trt-rtx", wide=True, out=tmp_path / "r.json")  # a normal install has no ONNX file
     report = json.loads(done.report_json)
-    assert done.ok and report["result"] == "pass" and report["wide"] == {"ran": False, "reason_code": "models-missing"}
+    assert done.ok and report["result"] == "pass"
+    assert report["wide"] == {"ran": False, "reason_code": "models-missing", "exit_reason_code": None}
     assert [offer.prompt for offer in eps.status().certify_offers] == [False]
+
+
+def in_process(target, args, *, progress=None, **limits):
+    """`verification.spawn_child()` in this process, so that the monkeypatches of a test reach the target."""
+    sent = []
+    target(*args, types.SimpleNamespace(send=lambda message: progress(message) if isinstance(message, str) else sent.append(message),
+                                        close=lambda: None))
+    return sent[-1], None, 0
+
+
+def test_a_wide_child_that_crashes_gives_a_fixed_reason_and_the_parent_writes_the_report(rtx_host, monkeypatch, tmp_path):
+    probe(monkeypatch)
+    monkeypatch.setattr(certification, "_wide_child", child_fakes.crash_in_the_ep_step)  # a real child: os._exit(5) in the step `ep`
+    steps = []
+    done = eps.certify("trt-rtx", wide=True, out=tmp_path / "r.json", progress=steps.append)
+    report = json.loads(done.report_json)
+    assert not done.ok and done.wide_ok is False and report["result"] == "fail" and done.reason_code == "crashed"
+    assert report["wide"] == {"ran": True, "ok": False, "reason_code": "crashed", "exit_code": 5}
+    assert steps == ["probe", "cpu", "ep", "report"]
+
+
+def test_a_wide_child_that_hangs_after_its_result_keeps_it(monkeypatch):
+    monkeypatch.setattr(certification, "_wide_child", child_fakes.result_then_hang)
+    steps, started = [], time.monotonic()
+    found = certification._wide_run("trt-rtx", {}, steps.append, grace=0.5)
+    assert found == {"ran": True, "ok": True, "reason_code": None, "exit_reason_code": "hung-at-exit"}
+    assert steps == ["download", "cpu", "ep"] and time.monotonic() - started < 30
+
+
+def test_a_wide_child_with_no_result_times_out_or_is_cancelled(monkeypatch):
+    monkeypatch.setattr(certification, "_wide_child", child_fakes.hang)
+    started = time.monotonic()
+    assert certification._wide_run("trt-rtx", {}, lambda step: None, timeout=1.0) == {"ran": False, "ok": False, "reason_code": "timed-out"}
+    assert time.monotonic() - started < 15
+    cancel, set_at = threading.Event(), []
+    threading.Timer(1.0, lambda: (set_at.append(time.monotonic()), cancel.set())).start()
+    found = certification._wide_run("trt-rtx", {}, lambda step: None, cancel=cancel)
+    assert found == {"ran": False, "ok": False, "reason_code": "cancelled"} and time.monotonic() - set_at[0] < 2
 
 
 def test_a_stored_answer_ends_with_a_pack_upgrade(rtx_host, monkeypatch):
@@ -214,18 +256,18 @@ def test_wide_run_with_fakes(rtx_host, monkeypatch, tmp_path):
     codes = []
     monkeypatch.setattr(pipelines, "start_pipeline", lambda config, execution_provider, **k: FakeRun(execution_provider, codes))
     steps = []
-    found = certification._wide_run("trt-rtx", settings, steps.append)
+    found = certification._image_run("trt-rtx", settings, steps.append)
     assert found["ok"] and found["ran"] and steps == ["download", "cpu", "ep"] and found["warnings"] == []
     assert found["models"] == [{"key": "rtmw", "version": "1", "size": "m", "precision": "fp16", "execution_provider": "trt-rtx", "device": None}]
     codes.append(certification.PARTIAL_PLACEMENT)
-    found = certification._wide_run("trt-rtx", settings, steps.append)
+    found = certification._image_run("trt-rtx", settings, steps.append)
     assert not found["ok"] and found["reason_code"] == "partial-placement" and found["warnings"] == ["ep_partial_placement"]
     devices = []  # the device key goes to the EP run only, not to the CPU EP run (ADR-Z5X7)
     monkeypatch.setattr(pipelines, "start_pipeline",
                         lambda config, execution_provider, device=None, **k: devices.append(device) or FakeRun(execution_provider, []))
-    assert certification._wide_run("directml", settings, steps.append, "gpu:8086:a780:0")["ok"] and devices == [None, "gpu:8086:a780:0"]
+    assert certification._image_run("directml", settings, steps.append, "gpu:8086:a780:0")["ok"] and devices == [None, "gpu:8086:a780:0"]
     monkeypatch.setattr(pipelines, "get_pipeline", lambda key: types.SimpleNamespace(available=False))
-    assert certification._wide_run("trt-rtx", settings, steps.append) == {"ran": False, "reason_code": "models-missing"}
+    assert certification._image_run("trt-rtx", settings, steps.append) == {"ran": False, "reason_code": "models-missing"}
 
 
 def test_the_cli_asks_only_a_person_at_a_terminal(rtx_host, monkeypatch, capsys):

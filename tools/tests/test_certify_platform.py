@@ -419,3 +419,10 @@ def test_the_report_records_the_telemetry_folder_before_and_after_as_booleans(tm
     text = out.read_text(encoding="utf-8")
     assert cp.report_data(text)["telemetry_database"] == {"before": False, "after": True}
     assert "Telemetry folder of ONNX Runtime: before no, after yes." in text
+
+
+def test_the_suite_and_the_package_give_a_child_the_same_grace_time():
+    """The frame imports no package module, so it keeps its own copy of the value."""
+    from skellytracker.core.eps import verification
+
+    assert cp.EXIT_GRACE_SECONDS == verification.EXIT_GRACE_SECONDS

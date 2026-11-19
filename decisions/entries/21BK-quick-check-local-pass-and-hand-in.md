@@ -6,7 +6,8 @@
 
 [ADR-P0JZ](P0JZ-certify-contract-in-each-package.md) holds the contract, the validity and the two
 layers. Built today: `verify()` at L3 and the image run `_wide_run` of `core/eps/certification.py`,
-in the process, on `yolox-rtmw-wholebody`. The other parts are not built.
+each in a child process, on `yolox-rtmw-wholebody`. A child that hangs after its result keeps the
+result, with `hung-at-exit`. The other parts are not built.
 
 1. **Quick check of an EP.** The app asks the user first. Then a child process runs the L3 probe
    and one test image through the pipeline that the user selected, on the EP and on the CPU EP. It
@@ -21,7 +22,13 @@ in the process, on `yolox-rtmw-wholebody`. The other parts are not built.
    changes the second sentence of item 2 of [ADR-Z5X7](Z5X7-field-test-state-and-directml.md)
    ("Only `skellytracker-eps install KEY --field-test` and the certify suite write it."): a local
    quick pass also writes the opt-in. `recommend()` still never gives a field-test EP
-   ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md) item 4).
+   ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md) item 4). An EP with no reviewed row is usable
+   on a PC only after the whole quick check passes there: the L3 probe and the image run. This also
+   applies to an EP that is not `field-test`. This replaces the sentence of item 15 of
+   [ADR-MF2R](MF2R-ep-store-install-and-certification.md) "A probe pass makes the EP usable on that
+   host before a review." After the answer "later" on the EP prompt, the app asks again the next
+   time that the user selects that EP. This replaces "later (ask again at the next start)" of item 14
+   of [ADR-MF2R](MF2R-ep-store-install-and-certification.md) for this prompt.
 3. **Failures.** A hard failure is a non-finite output, a crash, a hang or two unclean exits in a
    row. It marks the EP as failed on that PC, and `recommend()` skips it. A disagreement rate above
    a limit only gives a warning after the recording, and offers a re-run on the CPU EP. The app

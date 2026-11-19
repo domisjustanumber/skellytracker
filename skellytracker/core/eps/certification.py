@@ -1,7 +1,8 @@
 """`certify()`: test one EP on this host, and write a report file. The report does not leave the host.
 
 The probe is `verify()` at level L3. The wider run is the pipeline of `certification.pipeline` of
-the EP catalog on one public test image, on the EP and on the CPU EP of this host. The report holds
+the EP catalog on one public test image, on the EP and on the CPU EP of this host. Each runs in its
+own `spawn` child process, so an EP that ends or hangs its process gives a report. The report holds
 versions, the GPU model and results. It holds no hostname, no path, no serial number and no user id.
 A failure is a fixed reason code, because an error text can hold a path.
 
@@ -14,6 +15,7 @@ probe only.
 
 import json
 import re
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -30,6 +32,7 @@ from skellytracker.core.system.runtime import probe_runtime
 REPORT_SCHEMA = "skellytracker.eps.certification/1"
 PARTIAL_PLACEMENT = "ep_partial_placement"  # the warning code of the pipeline runtime; `_runtime` is private
 SCORE_MARGIN = 0.1  # not calibrated: fp16 noise near `score_min` must not fail a good EP
+WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
 
 
 def reports_dir() -> Path:
@@ -131,13 +134,49 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
     return {**found, "ok": True}
 
 
-def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None) -> dict:
+def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None, *,
+              cancel: threading.Event | None = None, timeout: float = WIDE_TIMEOUT_SECONDS,
+              grace: float = verification.EXIT_GRACE_SECONDS) -> dict:
+    """Run `_image_run()` in a `spawn` child, so that an EP that ends or hangs the process gives a reason code.
+
+    This process loads no EP library and no pipeline for it. `progress` gets the steps of the child. A child
+    that gives no result gives `ok` false and the reason code `timed-out`, `cancelled`, `crashed` (with
+    `exit_code`) or `no-result`. `ran` is true when the child got to the step `ep`, except for `cancelled`.
+    An error in the child gives its exception class name as the reason code. A result keeps
+    `exit_reason_code`: None, or `hung-at-exit` or `crashed` when the child did not exit cleanly after it.
+    """
+    steps = []
+
+    def relay(step: str) -> None:
+        steps.append(step)
+        progress(step)
+
+    found, problem, exit_code = verification.spawn_child(_wide_child, (key, settings, device_key), timeout=timeout,
+                                                         grace=grace, cancel=cancel, progress=relay)
+    ran = steps[-1:] == ["ep"]
+    if found is None:
+        return {"ran": ran and problem != "cancelled", "ok": False, "reason_code": problem,
+                **({"exit_code": exit_code} if problem == "crashed" else {})}
+    if "error" in found:
+        found = {"ran": ran, "ok": False, "reason_code": found["error"]}
+    return {**found, "exit_reason_code": problem}
+
+
+def _wide_child(key: str, settings: dict, device_key: str | None, connection) -> None:
+    """The child of `_wide_run()`: it sends each step, then the result, or `{"error": <exception class name>}`."""
+    try:
+        result = _image_run(key, settings, connection.send, device_key)
+    except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+        result = {"error": type(error).__name__}
+    connection.send(result)
+    connection.close()
+
+
+def _image_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None) -> dict:
     """Run the certification pipeline on the test image on the CPU EP and on the EP `key`, and compare.
 
-    `device_key` selects the GPU of the EP run; with None, the run uses the default GPU of the EP.
-
-    shortcut: the run is in this process, so an EP that ends the process writes no report; move it to a child
-    process before an EP with no evidence on any host is offered.
+    `device_key` selects the GPU of the EP run; with None, the run uses the default GPU of the EP. It runs in
+    the child of `_wide_run()`.
     """
     import cv2
     import numpy as np
@@ -170,19 +209,23 @@ def _wide_run(key: str, settings: dict, progress: Callable[[str], None], device_
 
 
 def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
-            progress: Callable[[str], None] | None = None) -> CertifyResult:
+            progress: Callable[[str], None] | None = None, cancel: threading.Event | None = None) -> CertifyResult:
     """Test the plugin EP `key` on this host, and write the report file. It sends nothing.
 
     - The probe always runs: `verify()` at level L3, in a child process. A pass makes the EP `ready`
       on this host.
-    - `wide`: also run the certification pipeline on the test image, on the EP and on the CPU EP.
-      It downloads the test image, and it needs the ONNX files of the pipeline. Ask the user before
-      a call with `wide`: `CertifyOffer.seconds` gives the time.
+    - `wide`: also run the certification pipeline on the test image, on the EP and on the CPU EP, in
+      a child process. It downloads the test image, and it needs the ONNX files of the pipeline. Ask
+      the user before a call with `wide`: `CertifyOffer.seconds` gives the time.
     - `out`: the report file. With None, the file is in the folder `reports` of the EP store.
     - `progress`: a callable that gets the name of each step: `probe`, `download`, `cpu`, `ep`, `report`.
+    - `cancel`: a `threading.Event`. When it is set, the run of the wider child stops within
+      about a second. The probe runs to its end. A cancelled run gives `not-run` with `cancelled`.
 
     It does not raise for an EP that fails: the report then holds the result `fail` or `not-run`
-    and the reason code. A built-in EP and an EP with no GPU on this host raise `EpUnavailableError`.
+    and the reason code. `exit_reason_code` of `probe` and of `wide` is `hung-at-exit` or `crashed`
+    when that child gave its result and then did not exit cleanly; the result stays. A built-in EP
+    and an EP with no GPU on this host raise `EpUnavailableError`.
     """
     progress = progress or (lambda step: None)
     catalog, host = load_catalog(), probe_host()
@@ -197,19 +240,20 @@ def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
         progress(name)
 
     step("probe")
-    probe = {"ok": False, "level": None, "max_abs_diff": None, "reason_code": None}
+    probe = {"ok": False, "level": None, "max_abs_diff": None, "reason_code": None, "exit_reason_code": None}
     outcome = "not-run"
     try:
         (verdict,) = verification.verify([key], force=True)
         probe.update(ok=verdict.ok, level=verdict.level, max_abs_diff=verdict.max_abs_diff,
-                     reason_code=None if verdict.ok else f"probe-{verdict.level.lower()}-failed")
+                     reason_code=None if verdict.ok else f"probe-{verdict.level.lower()}-failed",
+                     exit_reason_code=verdict.exit_reason_code)
         outcome = "pass" if verdict.ok else "fail"
     except Exception as error:  # noqa: BLE001 - a setup failure, for example a pack that is not installed or stale
         probe["reason_code"] = type(error).__name__
     wide_result = {"ran": False}
     if wide and outcome == "pass":
         try:
-            wide_result = _wide_run(key, catalog.data["certification"], step)
+            wide_result = _wide_run(key, catalog.data["certification"], step, cancel=cancel)
         except Exception as error:  # noqa: BLE001 - before the step `ep`, it is a setup failure: the EP did not run
             wide_result = {"ran": steps[-1] == "ep", "ok": False, "reason_code": type(error).__name__}
         if wide_result["ran"] and not wide_result["ok"]:
