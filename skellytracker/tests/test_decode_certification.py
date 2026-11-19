@@ -19,7 +19,7 @@ from pathlib import Path
 import pytest
 
 from skellytracker.core.decode import certification
-from skellytracker.core.decode.certification import REASONS, RESULTS, run_jpeg_certification
+from skellytracker.core.decode.certification import REASONS, RESULTS, run_jpeg_certification, run_jpeg_quick_checks
 
 NAMES = [
     "cpu_decode.baseline_420", "cpu_decode.baseline_422", "cpu_decode.baseline_444", "cpu_decode.progressive", "cpu_decode.grayscale",
@@ -121,6 +121,38 @@ def test_an_ep_with_no_gpu_frame_path_runs_no_gpu_check_and_has_no_gpu_decode_by
         assert (by_name[name]["result"], by_name[name]["reason"]) == ("not-run", reason), by_name[name]
 
 
+@pytest.mark.parametrize("ep_key", ["cpu", "directml"])
+def test_the_quick_checks_have_the_check_form_and_do_not_run_on_an_ep_with_no_gpu_frame_path(ep_key: str) -> None:
+    called: list[str] = []
+    checks = run_jpeg_quick_checks(ep_key, progress=called.append)
+    json.dumps(checks, allow_nan=False)
+    assert [check["name"] for check in checks] == ["jpeg-decode", "jpeg-preprocess"] == called
+    assert all(set(check) == {"name", "result", "reason", "numbers", "warnings", "detail"} for check in checks)
+    assert [(check["result"], check["reason"]) for check in checks] == [("not-run", "no_gpu_decode_on_ep"), ("not-run", "ep_not_present")]
+
+
+def test_a_device_that_the_ep_cannot_use_gives_not_run_and_each_ep_session_gets_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.eps import session
+
+    calls: list[dict] = []
+    real = session.build_session
+
+    def spy(model: object, **kwargs: object) -> object:
+        calls.append(kwargs)
+        return real(model, **kwargs)
+
+    monkeypatch.setattr(session, "build_session", spy)
+    monkeypatch.setattr(certification, "PIPELINE_KEY", "no-such-pipeline@skellytracker")  # fast: no pipeline check is a GPU check here
+    result = run_jpeg_certification("directml", device_key="gpu:ffff:ffff:0")
+    by_name = {check["name"]: check for check in result["checks"]}
+    for name in GPU_CHECKS:
+        reason = "no_gpu_decode_on_ep" if name.startswith("gpu_decode.") else "ep_not_present"
+        assert (by_name[name]["result"], by_name[name]["reason"]) == ("not-run", reason), by_name[name]
+    assert {call["device_key"] for call in calls if call["execution_provider"] == "directml"} == {"gpu:ffff:ffff:0"}
+    assert {call["device_key"] for call in calls if call["execution_provider"] == "cpu"} == {None}
+    assert result["facts"]["device"] is None
+
+
 def test_the_import_loads_no_onnxruntime_no_onnx_and_no_nvidia_module() -> None:
     code = ("import sys; import skellytracker.core.decode.certification; "
             "print(sorted(m for m in ('onnxruntime', 'onnx', 'nvidia') if m in sys.modules))")
@@ -138,17 +170,34 @@ def test_on_each_nvidia_ep_no_check_fails(ep_key: str) -> None:
 
 
 @pytest.mark.gpu
+@pytest.mark.parametrize("ep_key", ["cuda", "trt-rtx"])
+def test_on_each_nvidia_ep_both_quick_checks_pass(ep_key: str) -> None:
+    checks = run_jpeg_quick_checks(ep_key)
+    if checks[1]["reason"] == "ep_not_present":
+        pytest.skip(f"{ep_key} is not installed")
+    assert [(check["name"], check["result"]) for check in checks] == [("jpeg-decode", "pass"), ("jpeg-preprocess", "pass")], checks
+
+
+@pytest.mark.gpu
 def test_on_directml_with_the_opt_in_in_a_private_store_no_check_fails(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from skellytracker.core.eps import store
+    from skellytracker.core.eps.catalog import load_catalog
+    from skellytracker.core.eps.recommendation import ep_gpus
+    from skellytracker.core.system.host import probe_host
 
     monkeypatch.setenv(store.STORE_VARIABLE, str(tmp_path / "eps"))
     monkeypatch.setenv(store.CACHE_VARIABLE, str(tmp_path / "ep-cache"))
     store.opt_in_field_test("directml")
-    result = run_jpeg_certification("directml")
+    usable = ep_gpus(load_catalog(), "directml", probe_host())
+    if not usable:
+        pytest.skip("no GPU of this host can use directml")
+    device_key = usable[0][0]  # the default GPU of the EP, given explicitly
+    result = run_jpeg_certification("directml", device_key=device_key)
     by_name = {check["name"]: check for check in result["checks"]}
     if by_name["preprocess_graph_amd_ep.yolox_person"]["reason"] == "ep_not_present":
         pytest.skip("directml is not usable here")
     assert [check for check in result["checks"] if check["result"] == "fail"] == []
     assert result["facts"]["ep"]["state"] == "builtin"
+    assert result["facts"]["device"] == {"device_key": device_key, "device_name": usable[0][1].name}
     assert by_name["preprocess_graph_amd_ep.device_handover"]["result"] == "pass"
     assert all(by_name[name]["reason"] == ("no_gpu_decode_on_ep" if name.startswith("gpu_decode.") else "ep_not_present") for name in GPU_CHECKS if name.startswith(("gpu_decode.", "preprocess_graph_ep.")))

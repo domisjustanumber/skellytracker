@@ -54,6 +54,7 @@ PIPELINE_KEY = "yolox-rtmw-wholebody@skellytracker"
 PIPELINE_FRAMES = 8
 PIPELINE_SPANS = ("frame.decode", "person.preprocess", "wholebody.preprocess")
 PIPELINE_WARNINGS = ("preprocessed_on_cpu", "jpeg_decoded_on_cpu")
+QUICK_CHECKS = {"gpu_decode.baseline_422": "jpeg-decode", "preprocess_graph_ep.yolox_person": "jpeg-preprocess"}  # the checks of `run_jpeg_quick_checks` and their names there
 _PATH = re.compile(r"(?<![\w.])(?:[A-Za-z]:[\\/]|\\\\|~[\\/]|/(?=\w))[^\s'\",;)]*")
 
 
@@ -65,8 +66,15 @@ class _Stop(Exception):
         self.result, self.reason, self.detail = result, reason, detail
 
 
-def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str], None] | None = None) -> dict:
+def run_jpeg_certification(ep_key: str | None = None, *, device_key: str | None = None,
+                           progress: Callable[[str], None] | None = None) -> dict:
     """Run each check on this machine and return `{"schema", "ep_key", "facts", "checks"}`: JSON-able data only.
+
+    `device_key` selects the GPU of each session and pipeline run on `ep_key`, as in `build_session()`.
+    With None, the run uses the default GPU of the EP. A GPU that the EP cannot use gives `not-run`
+    with the reason `ep_not_present` for each check that needs a session on the EP. `facts["device"]` gives the
+    `device_key` and the `device_name` of the GPU of the run, or None when no check opened a session
+    on a GPU.
 
     `ep_key` is the EP of the GPU checks and of the pipeline checks. Only the NVIDIA EPs `cuda` and
     `trt-rtx` have a GPU JPEG decode. The checks `gpu_decode.*`, `preprocess_graph_ep.*` and
@@ -83,6 +91,24 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
     A check that fails or raises does not stop the next check. A timing number is always
     `record-only`.
     """
+    return _certify(ep_key, device_key, progress)
+
+
+def run_jpeg_quick_checks(ep_key: str, *, device_key: str | None = None, progress: Callable[[str], None] | None = None) -> list[dict]:
+    """Run the two quick checks of the GPU frame path on `ep_key` and return them: `jpeg-decode`, then `jpeg-preprocess`.
+
+    Each item has the form of an item of `run_jpeg_certification()["checks"]`. `jpeg-decode` is the
+    check `gpu_decode.baseline_422`, and `jpeg-preprocess` is the check
+    `preprocess_graph_ep.yolox_person`. They need no ONNX model file. On an EP other than `cuda` and
+    `trt-rtx`, both give `not-run`: `jpeg-decode` with `no_gpu_decode_on_ep`, and `jpeg-preprocess`
+    with `ep_not_present`. A check that raises gives `fail` with `raised`. A failed check
+    stops only the GPU frame path, not the EP.
+    """
+    return _certify(ep_key, device_key, progress, quick=True)["checks"]
+
+
+def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str], None] | None, quick: bool = False) -> dict:
+    """The checks of both entry points. With `quick`, only the checks of `QUICK_CHECKS`, with their new names, and no facts."""
     import cv2
     import numpy as np
 
@@ -91,6 +117,10 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
     state: dict[str, Any] = {}  # the shared sessions and the GPU decoder of the run
     gpu_ep = ep_key if ep_key in GPU_FRAME_EPS else None
     amd_ep = ep_key if ep_key in AMD_EPS else None
+
+    def device_of(execution_provider: str) -> str | None:
+        """The chosen GPU for a session or a run on `ep_key`; the checks on the CPU EP take none."""
+        return device_key if execution_provider == ep_key else None
 
     def picture(width: int, height: int, seed: int = 0) -> np.ndarray:
         """Gradients, noise and shapes, blurred: a JPEG of it is not trivial, and each pixel position differs."""
@@ -196,7 +226,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
             from skellytracker.core.errors import EpRequestError, EpUnavailableError
 
             try:
-                state[key] = build_session(model_bytes(), execution_provider=execution_provider)[1]
+                state[key] = build_session(model_bytes(), execution_provider=execution_provider, device_key=device_key)[1]
             except (EpRequestError, EpUnavailableError):  # also a key that is not in the EP catalog, for example `amdgpu`
                 state[key] = None
         if state[key] is None:
@@ -296,7 +326,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         from skellytracker.core.eps.session import build_session
 
         graph = build_preprocess_graph(model, SIDECAR_SIZE, "fp32", sources, batch)
-        return build_session(graph.SerializeToString(), execution_provider=execution_provider)
+        return build_session(graph.SerializeToString(), execution_provider=execution_provider, device_key=device_of(execution_provider))
 
     def feeds_of(model: Any, sources: list, index: list[int], rois: list[Any]) -> tuple[list[np.ndarray], dict]:
         from skellytracker.core.detectors.processing.pre.graph import affine_crop_theta
@@ -357,7 +387,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
                                            [oh.make_tensor_value_info("y", TensorProto.FLOAT, None)], inits),
                              opset_imports=[oh.make_opsetid("", 17)])
         tiny.ir_version = 9
-        return build_session(tiny.SerializeToString(), execution_provider=execution_provider)[0]
+        return build_session(tiny.SerializeToString(), execution_provider=execution_provider, device_key=device_of(execution_provider))[0]
 
     def handover() -> dict:
         from skellytracker.core.eps.session import run_bound, run_preprocess, upload_frame
@@ -516,7 +546,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         if not get_pipeline(PIPELINE_KEY).available:
             raise _Stop("models_not_available", f"the ONNX files of {PIPELINE_KEY} are not on this machine")
         try:
-            check_start(execution_provider)
+            check_start(execution_provider, device=device_of(execution_provider))
         except (EpRequestError, EpUnavailableError):
             raise _Stop("ep_not_present", f"the EP {execution_provider!r} is not installed or not usable") from None
         config = load_pipeline(PIPELINE_KEY)
@@ -524,7 +554,7 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         events: list[dict] = []
         outputs, arrays = [], []
         with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider=execution_provider,
-                            preprocess=preprocess, timing_sink=events.append) as run:
+                            device=device_of(execution_provider), preprocess=preprocess, timing_sink=events.append) as run:
             for i in range(PIPELINE_FRAMES):
                 result = run.process(Frame(jpeg(picture(1280, 720, 40 + i), "422"), frame_index=i))
                 boxes, points = result["boxes"], result["wholebody"]
@@ -628,12 +658,17 @@ def run_jpeg_certification(ep_key: str | None = None, *, progress: Callable[[str
         ("pipeline_amd_ep.auto_cpu_preprocess_no_warning", amd_scored(lambda: amd_preprocess_place("auto"))),
         ("pipeline_amd_ep.repeat_equal", amd_scored(amd_repeat_equal)),
     ]
+    if quick:
+        checks = [(QUICK_CHECKS[name], check) for name, check in checks if name in QUICK_CHECKS]
     try:
-        facts = _facts(ep_key)
+        facts = None if quick else _facts(ep_key)
         results = [_run_check(name, check, progress) for name, check in checks]
     finally:
         if state.get("decoder") is not None:
             state["decoder"].close()
+    if facts is not None:
+        report = state.get(f"report:{gpu_ep or amd_ep}")
+        facts["device"] = None if report is None else {"device_key": report.device_key, "device_name": report.device_name}
     return {"schema": SCHEMA, "ep_key": ep_key, "facts": facts, "checks": results}
 
 
