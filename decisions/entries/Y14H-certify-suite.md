@@ -20,21 +20,22 @@
    section. The platform gets no single verdict.
 5. **Child processes.** Each section runs in its own child process with a time limit. A crash, a
    non-zero exit, an output that is not one JSON object and a timeout are findings with the exit code
-   and the seconds. On a timeout the suite kills the whole process tree. The suite then continues and
-   writes the report.
+   and the seconds. On a timeout the suite kills the whole process tree. A child that printed its
+   object keeps it, with a `record-only` check `exit`. The suite then continues and writes the
+   report.
 6. **Consent.** Before a run, the suite shows the time of each section, the total and each download
    with its size. It asks one time. `--yes` skips the question. With no terminal and no `--yes`, it
    stops. At the end, only at a terminal, it asks the yes/no questions of the sections and one
    optional note. The note prompt tells the user not to write personal details. The report has no
    name or contact field.
 7. **Work folder.** The suite keeps each download and its own EP store in `.certify-work/` of the
-   clone. It deletes that folder at the end, also after a failure or Ctrl+C. It keeps the report. It
-   installs or changes no system software and needs no administrator rights. Items 11 and 12 are
-   the exceptions.
+   clone. It deletes that folder at the end, also after a failure, Ctrl+C, SIGTERM or SIGHUP. An old
+   folder that does not delete stops the run. It keeps the report. It installs or changes no system
+   software and needs no administrator rights. Items 11 and 12 are the exceptions.
 8. **Privacy.** The report holds no hostname, no user name, no absolute path, no serial number, no bus
-   address and no camera frame. It holds hardware and software facts only: model names, PCI and USB
-   ids, driver and package versions and the OS label. Text from an OS tool goes through an allowlist
-   of fields. A scrub also removes the user name, the home folder and the hostname from each string.
+   address and no camera frame. It holds hardware and software facts only. Text from an OS tool goes
+   through an allowlist of fields. A scrub also removes the user name, the home folder and the
+   hostname from each string. A name that is also a word of a public fact stays, except in the note.
 9. **Section 2.** It records the values of skellytracker and of each OS tool side by side and flags
    each difference. A difference does not fail it: the result is `record-only`. It fails only when
    `probe_host()` raises.
@@ -46,16 +47,16 @@
     10.2). If that EP does not load on ONNX Runtime 1.30.0, the suite records the failure and runs
     the MIGraphX parts in a second environment on ONNX Runtime 1.29. The report gives the ORT version
     of each result. An AMD EP is in a field-test state until one reviewed report for the OS passes
-    sections 3 and 4. Until then, only the suite or an explicit install option installs it, and the
-    app never offers it. The app offers DirectML for AMD GPUs only. The suite records the DirectML
-    result on each GPU. The Windows AMD EP package is the one system change of the suite. The consent
-    text names it. The suite removes it at the end if the suite installed it.
+    sections 3 and 4. Until then, the app never offers it
+    ([ADR-Z5X7](Z5X7-field-test-state-and-directml.md)). The app offers DirectML for AMD GPUs only.
+    The suite records the DirectML result on each GPU. The Windows AMD EP package is the one system
+    change of the suite ([ADR-XSE7](XSE7-amd-eps-in-the-field-test.md)).
 12. **Model files.** The suite downloads them into the git-ignored model folder from a list (file, URL,
     sha256) in the `certification` block of the EP catalog. It deletes its downloads at the end. The
     sidecars do not change. The files go in a public Hugging Face repository of freemocap.
 13. **Evidence.** A report is evidence only from a clean checkout of a certification tag with all
-    sections run. Else the report has a top-level field and a line that say so. The suite is complete
-    before its first tag: no tag before each section exists.
+    sections run, and the Python and the packages of `uv.lock`. Else a top-level field and a line say
+    so. No tag before each section exists.
 14. **Hand-in.** The volunteer attaches the report to a GitHub issue of this repository (issue
     template). No email. An accepted report is committed whole in a folder of this
     repository. It is the evidence for the sections that are not EPs. A person still writes the EP
@@ -70,7 +71,6 @@
 
 - The maintainer has one Windows host with one NVIDIA GPU. Volunteers give the evidence for other
   hardware ([ADR-MF2R](MF2R-ep-store-install-and-certification.md)).
-- A child process for each section keeps the report when an EP ends a process.
 
 ## Evidence
 

@@ -363,9 +363,15 @@ def host_facts(host) -> dict:
                       "vram_mib": None if gpu.vram_total_bytes is None else gpu.vram_total_bytes // MIB} for gpu in host.gpus]}
 
 
+def error_sources(lines) -> list[str]:
+    """The source tag of each `probe_errors` line (`<source>: <message>`): a report holds no error text."""
+    return [line.split(":", 1)[0] for line in lines]
+
+
 def host_record(host) -> dict:
-    """The `probe_host()` record without the bus address, the LUID, the GPU UUID and the container ids."""
+    """The `probe_host()` record without the bus address, the LUID, the GPU UUID, the container ids and the error texts."""
     record = dataclasses.asdict(host)
+    record["probe_errors"] = error_sources(host.probe_errors)
     for gpu in record["gpus"]:
         for field in ("key", "pci_bus_id", "luid"):
             gpu.pop(field)
@@ -416,7 +422,7 @@ def section_hardware(work: Path) -> dict:
         environment = probe_environment()
         details["skellytracker"]["environment"] = {"python": dataclasses.asdict(environment.python), "frozen": environment.frozen,
                                                    "package_count": len(environment.packages),
-                                                   "probe_errors": list(environment.probe_errors)}
+                                                   "probe_errors": error_sources(environment.probe_errors)}
         try:
             details["skellytracker"]["eps"] = eps_record(host)
             checks.append({"name": "eps-state", "result": "pass", "reason_code": None})

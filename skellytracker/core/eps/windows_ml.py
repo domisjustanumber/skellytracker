@@ -8,14 +8,19 @@ store keeps one record for each such key in `windows-ml.json`.
   downloads nothing.
 - `install(key)` makes the package of the EP ready (`ensure_ready`). For a package that is not on
   the PC, Windows downloads and installs it. Call it only after the opt-in and the consent of the
-  user. The record holds `was_present` (the catalog state before the call), the package family that
-  the catalog reports, and `packages_installed`: the full name of each package of that family that
-  the call added for the current user (`Get-AppxPackage` before and after the call).
+  user. The record holds `was_present` (the catalog state before the call, or a package of the
+  family in the list before the call), the package family that the catalog reports, and
+  `packages_installed`: the full name of each package of that family that the call added for the
+  current user (`Get-AppxPackage` before and after the call). With `was_present`, the list is empty,
+  also when the call updated the package to a new full name.
+  The `pending` record of a call that did not end holds `packages_before`: each full name before.
 - `register(key)` registers the library of a package that is on the PC with ONNX Runtime. It never
   downloads: a package that is not on the PC raises `EpUnavailableError`.
 - `remove_installed(record)` removes each package of `packages_installed` of a record for the current
   user (`Remove-AppxPackage <PackageFullName>`, no administrator rights), and never an other package.
-  The certify suite calls it at the end of a run. No `skellytracker-eps` command calls it.
+  For a `pending` record it removes each package of the family that the catalog gives now and that
+  is not in `packages_before`. The certify suite calls it at the end of a run. No
+  `skellytracker-eps` command calls it.
 
 The catalog gives the package family and the version only after `ensure_ready`, and only on a new
 enumeration: the provider object of the call keeps the empty values.
@@ -100,21 +105,52 @@ def remove_package(full_name: str, family: str) -> str | None:
     return None
 
 
+def _catalog_family(ep_name: str) -> str | None:
+    """The package family that a new enumeration of the catalog gives for the EP now; None when it gives none."""
+    try:
+        with _lock:
+            provider = _provider(ep_name)
+        return (provider.package_family_name or None) if provider is not None else None
+    except Exception:  # noqa: BLE001 - no catalog, or a Windows build with no Windows ML: the family is not known
+        return None
+
+
 def remove_installed(record: dict) -> list[dict]:
-    """Remove each package that `install()` added (`packages_installed` of its record), and never an other package.
+    """Remove each package that `install()` added, and never an other package.
 
     One row for each package: `{"package", "result", "reason_code"}`, with `result` `pass` or `fail`.
-    A record of an install that did not end (`pending`) gives one `fail` row with `package-unknown`:
-    the package family is not known, so nothing is removed. So does a record of a package that was
-    not on the PC with no package in the list. A package that was on the PC before is not in the
-    list, so it gives no row.
+    A record whose `ep_name` is not a Windows ML EP of the EP catalog gives one `fail` row with
+    `record-refused`. A record with `was_present` gives no row: a package of a family that was on
+    the PC before is never removed. The family is the one that the catalog gives now, else the one
+    of the record; each full name must be of that family (`remove_package`). A `pending` record (an
+    install that did not end) removes each package of that family that is not in `packages_before`.
+    With no family from the catalog or no `packages_before`, it gives one `fail` row with
+    `package-unknown`, and so does a record that is not pending and has no package in the list.
     """
-    if record.get("pending") or not (record.get("was_present") or record.get("packages_installed")):
-        return [{"package": None, "result": "fail", "reason_code": "package-unknown"}]
-    rows = []
-    for full_name in record.get("packages_installed") or ():
+    unknown = [{"package": None, "result": "fail", "reason_code": "package-unknown"}]
+    if record.get("ep_name") not in {row.get("ep_name") for row in load_catalog().data["eps"].values() if row.get("windows_ml")}:
+        return [{"package": None, "result": "fail", "reason_code": "record-refused"}]
+    if record.get("was_present"):
+        return []
+    family = _catalog_family(record["ep_name"])
+    if record.get("pending"):
+        before = record.get("packages_before")
+        if family is None or not isinstance(before, list):
+            return unknown
+        if any(family_of(name) == family for name in before):
+            return []
         try:
-            code = remove_package(full_name, record.get("package_family_name") or "")
+            names = sorted(name for name, of in installed_packages().items() if of == family and name not in before)
+        except (OSError, subprocess.SubprocessError):
+            return unknown
+    else:
+        names, family = record.get("packages_installed") or [], family or record.get("package_family_name") or ""
+        if not names:
+            return unknown
+    rows = []
+    for full_name in names:
+        try:
+            code = remove_package(full_name, family)
         except (OSError, subprocess.SubprocessError):
             code = "package-not-removed"
         rows.append({"package": full_name, "result": "fail" if code else "pass", "reason_code": code})
@@ -151,7 +187,8 @@ def install(key: str) -> dict:
         except (OSError, subprocess.SubprocessError) as error:
             raise EpUnavailableError(f"The packages of this PC are not known, so the suite cannot remove the package later: "
                                      f"{sanitize_text(str(error))[:200]}") from error
-        _write_record(key, {"ep_name": ep_name, "was_present": was_present, "pending": True, "installed_at": int(time.time())})
+        _write_record(key, {"ep_name": ep_name, "was_present": was_present, "pending": True, "packages_before": sorted(before),
+                            "installed_at": int(time.time())})
         try:
             provider.ensure_ready()
         except OSError as error:
@@ -159,8 +196,10 @@ def install(key: str) -> dict:
                                      f"{sanitize_text(str(error))[:500]}") from error
         ready = _provider(ep_name) or provider  # a new enumeration gives the version and the family
         family = ready.package_family_name
-        added = sorted(name for name, of in installed_packages().items() if family and of == family and name not in before)
-        record = {"ep_name": ep_name, "version": ready.version, "package_family_name": family, "was_present": was_present,
+        # never a package of a family that was on the PC before, also when `ensure_ready` updated it to a new full name
+        present = was_present or family in before.values()
+        added = [] if present else sorted(name for name, of in installed_packages().items() if family and of == family and name not in before)
+        record = {"ep_name": ep_name, "version": ready.version, "package_family_name": family, "was_present": present,
                   "packages_installed": added, "installed_at": int(time.time())}
     _write_record(key, record)
     return record

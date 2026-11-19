@@ -13,11 +13,19 @@ You do not need to know the project. You need about 10 minutes and a terminal.
   on Windows with an AMD GPU, Windows downloads and installs the Windows ML package of each AMD EP
   that the Windows ML catalog offers for your GPU. The plan on the screen names each EP. At the
   end, the suite removes each package that it installed, also after a failure or after Ctrl+C. It
-  never removes a package that was on your machine before. If a removal fails, the report has a
-  `fail` check `remove-<package>` with the full package name, and the terminal tells you how to
-  remove the package.
+  never removes a package that was on your machine before, also when Windows updates that package
+  during the run. If a removal fails, the report has a `fail` check `remove-<package>` with the
+  full package name, and the terminal tells you how to remove the package.
+- If the run stops while Windows installs such a package, the suite removes the package at the end
+  when the Windows ML catalog gives its package family. Windows can finish an install after the
+  suite has ended. The suite does not remove such a package. To see the Windows ML packages of your
+  user account, run this command in PowerShell: `Get-AppxPackage -Name "*WinML*"`.
 - The suite keeps its files in the folder `.certify-work/` of your clone. It deletes that folder
-  at the end. It also deletes it after a failure or after Ctrl+C.
+  at the end. It also deletes it after a failure, after Ctrl+C, and when the process gets SIGTERM
+  or SIGHUP. If you close the terminal window on Windows, Windows stops the suite with no cleanup.
+  The next run then removes what the earlier run left.
+- If the folder `.certify-work/` of an earlier run cannot be deleted, the suite stops before it
+  runs anything. Delete the folder by hand, then run the suite again.
 - The suite uses its own EP store. It does not read or change the EP store, the EP cache or the
   model cache of your user account.
 - The suite downloads these files. The plan on the screen shows the exact sizes before anything
@@ -117,7 +125,9 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 7. JPEG encode and decode speed | Not in this version. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
-suite records that and goes on.
+suite records that and goes on. If a section wrote its complete result before it crashed or
+stopped, the section keeps that result. It then has the extra check `exit` with the result
+`record-only` and the reason `crashed` or `timed-out`.
 
 ## Read the summary table
 
@@ -134,9 +144,13 @@ row for each section. The result of a section is one of these:
 A `fail` is useful to the project. Do not run the suite again to get a `pass`. Send the report
 as it is.
 
-A report is valid as evidence only when it comes from a clean checkout of a tag and all sections
-ran. A report from a modified clone, from a clone with no tag or from a run with `--only` says
+A report is valid as evidence only when it comes from a clean checkout of a tag, all sections
+ran, and section 1 found the Python version and the package versions of `uv.lock`. A report from a
+modified clone, from a clone with no tag, from a run with `--only` or with other versions says
 `Not valid as evidence` and gives the reasons. The project keeps such a report as a record only.
+
+If a cleanup step at the end fails, for example the delete of a downloaded file, the report has a
+`Cleanup` table with a `fail` row for that step.
 
 DirectML on a GPU that is not an AMD GPU is `record-only`. This is normal.
 
@@ -167,7 +181,10 @@ and USB ids, driver and package versions, the OS label and the results of the te
 
 The report never holds a host name, a user name, a path, a serial number, a bus address or a
 camera frame. The suite also removes your user name, your home folder, the clone folder and your
-host name from each text before it writes the report.
+host name from each text before it writes the report. An exception: a user name or a host name
+that is also a word of a public fact, for example `ubuntu` in `Ubuntu 24.04 LTS` or `home` in
+`Windows 11 Home`, stays in the report fields. The report then gives only the number of such
+names. The suite always removes these names from your notes line.
 
 You must still read the report before you send it. The suite cannot find every personal detail.
 Your notes line is the one place where you write free text.

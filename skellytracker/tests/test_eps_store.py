@@ -26,6 +26,12 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         server = self.server
         server.requests.append((self.headers.get("Range"), self.headers.get("If-Range")))
+        if self.path.lstrip("/") in server.redirects:
+            self.send_response(302)
+            self.send_header("Location", server.redirects[self.path.lstrip("/")])
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if server.statuses:
             self.send_response(server.statuses.pop(0))
             self.send_header("Retry-After", "0")
@@ -62,7 +68,7 @@ class Handler(BaseHTTPRequestHandler):
 @pytest.fixture
 def server():
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    httpd.files, httpd.requests, httpd.statuses = {"file.bin": DATA}, [], []
+    httpd.files, httpd.requests, httpd.statuses, httpd.redirects = {"file.bin": DATA}, [], [], {}
     httpd.ranges, httpd.etag, httpd.drop_after = True, '"v1"', None
     httpd.url = f"http://127.0.0.1:{httpd.server_address[1]}/"
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -164,6 +170,18 @@ def test_only_https_and_loopback_http(tmp_path):
     for url in ("http://example.com/x.whl", "ftp://127.0.0.1/x.whl", "file:///x.whl"):
         with pytest.raises(_download.DownloadError):
             _download.fetch(url, SHA, tmp_path / "x.part")
+
+
+def test_a_redirect_to_a_url_that_is_not_https_is_an_error(server, tmp_path):
+    server.redirects["moved.bin"] = "http://example.invalid/file.bin"
+    with pytest.raises(_download.DownloadError) as caught:
+        _download.fetch(server.url + "moved.bin", SHA, tmp_path / "x.part", sleep=lambda seconds: None)
+    assert caught.value.code == "http-error" and len(server.requests) == 1  # refused at once: no request to the new host, no retry
+    server.redirects["local.bin"] = server.url + "file.bin"  # loopback http to loopback http: a local test index
+    assert _download.sha256_of(_download.fetch(server.url + "local.bin", SHA, tmp_path / "y.part", sleep=lambda s: None)) == SHA
+    with pytest.raises(_download.DownloadError, match="from https to http"):
+        _download.HttpsRedirectHandler().redirect_request(urllib.request.Request("https://files.example/a"), None, 302, "Found", {},
+                                                          "http://127.0.0.1/a")
 
 
 def test_trust_store_order_and_system_proxy(monkeypatch):

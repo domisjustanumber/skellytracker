@@ -286,5 +286,14 @@ certification:
   # pinned to one commit of the repository. The list `models` is not here yet: its address waits for a decision of the user.
   # The second environment of the suite, in its work folder, for an EP of `eps` that does not load on `ort_core`. Only that
   # environment sets `SKELLYTRACKER_EP_ORT_FALLBACK` to this version, and the EP store then accepts it. A pass there is
-  # evidence that the EP works. It does not certify the EP for `ort_core` (ADR-XSE7). `bytes` is the size of the wheel.
-  ort_fallback: {package: onnxruntime, version: "1.29.0", bytes: 23136817, eps: [migraphx]}
+  # evidence that the EP works. It does not certify the EP for `ort_core` (ADR-XSE7). `bytes` and `sha256` are the size and
+  # the sha256 of the cp313 manylinux_2_28 x86_64 wheel from PyPI: the one platform of an EP of `eps`. The suite installs the
+  # environment in hash-checking mode. `build_backend` is the build backend of the editable install of the checkout there,
+  # with the sha256 of its wheel from PyPI. It must satisfy `[build-system] requires` of `pyproject.toml`.
+  ort_fallback:
+    package: onnxruntime
+    version: "1.29.0"
+    bytes: 23136817
+    sha256: e2128f31f449e922c62dbe5d8b6b7b079f0bcaf2d56a102fa203cb6e5bb5ab19
+    build_backend: {package: flit-core, version: "3.12.0", sha256: e7a0304069ea895172e3c7bb703292e992c5d1555dd1233ab7b5621b5b69e62c}
+    eps: [migraphx]

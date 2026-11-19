@@ -176,9 +176,41 @@ def test_an_install_that_did_not_end_removes_nothing_and_is_not_installed(monkey
     with pytest.raises(EpUnavailableError, match="did not install"):
         windows_ml.install("amdgpu")
     record = store.windows_ml_installs()["amdgpu"]
-    assert record["pending"] is True and windows_ml.remove_installed(record) == [
+    assert record["pending"] is True and windows_ml.remove_installed(record) == [  # the catalog gives no family yet
         {"package": None, "result": "fail", "reason_code": "package-unknown"}]
     assert REMOVED == [] and next(r for r in eps.status().eps if r.key == "amdgpu").state == "not_installed"
+    provider.package_family_name = provider.family  # Windows finished the deployment: a new enumeration gives the family
+    assert windows_ml.remove_installed(record) == [{"package": provider.full_name, "result": "pass", "reason_code": None}]
+    assert REMOVED == [provider.full_name] and "Other.App_1.0.0.0_x64__" + PUBLISHER in PACKAGES
+    assert windows_ml.remove_installed({**record, "packages_before": None}) == [
+        {"package": None, "result": "fail", "reason_code": "package-unknown"}]  # a record with no list from before
+
+
+def test_a_package_of_a_family_that_was_on_the_pc_is_never_removed(monkeypatch, ep_store, fake_windowsml):  # noqa: F811
+    """User rule (ADR-XSE7): an update of a present package by `ensure_ready` and a pending record of it remove nothing."""
+    on(monkeypatch, "win_amd64", host(RADEON))
+    present = fake_windowsml["m"] = FakeProvider("MIGraphXExecutionProvider", "NotReady", "1.8.65.0")
+    newer = present.full_name.replace("1.8.65.0", "1.9.0.0")
+    present.ensure_ready = lambda: (PACKAGES.pop(present.full_name), PACKAGES.__setitem__(newer, present.family),
+                                    setattr(present, "package_family_name", present.family))
+    record = windows_ml.install("migraphx")
+    assert (record["was_present"], record["packages_installed"]) == (True, [])
+    assert windows_ml.remove_installed(record) == [] and newer in PACKAGES and REMOVED == []
+    assert windows_ml.remove_installed({**record, "pending": True, "packages_before": []}) == []  # no `package-unknown` row
+    hidden = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent", "2.0.0.0")
+    PACKAGES[hidden.full_name.replace("2.0.0.0", "1.0.0.0")] = hidden.family  # the catalog said NotPresent, but the family is here
+    record = windows_ml.install("amdgpu")
+    assert (record["was_present"], record["packages_installed"]) == (True, [])
+    assert windows_ml.remove_installed(record) == [] and hidden.full_name in PACKAGES and REMOVED == []
+
+
+def test_a_record_of_an_ep_that_is_not_a_windows_ml_ep_is_refused(monkeypatch, ep_store, fake_windowsml):  # noqa: F811
+    on(monkeypatch, "win_amd64", host(RADEON))
+    other = "Other.App_1.0.0.0_x64__" + PUBLISHER
+    record = {"ep_name": "CUDAExecutionProvider", "was_present": False, "package_family_name": "Other.App_" + PUBLISHER,
+              "packages_installed": [other]}
+    assert windows_ml.remove_installed(record) == [{"package": None, "result": "fail", "reason_code": "record-refused"}]
+    assert other in PACKAGES and REMOVED == []
 
 
 def test_windows_ml_register_never_downloads(monkeypatch, ep_store, fake_windowsml):  # noqa: F811

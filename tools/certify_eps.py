@@ -58,10 +58,9 @@ from pathlib import Path
 
 import subprocess
 
-from certify_platform import check, outcome
+from certify_platform import MODEL_ROOT, check, outcome  # the frame deletes listed files only inside MODEL_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
 REMOVE_LIST = "remove-at-end.json"  # the frame deletes each file of this list at the end of the run
 WARMUP_CALLS, TIMED_CALLS, CAMERA_COUNTS = 10, 100, (1, 3, 6)  # about 60 s for section 4 with two GPU EPs on an RTX 3070
 MIB = 2**20
@@ -214,7 +213,10 @@ def build_fallback_env(work: Path, fallback: dict) -> Path:
     """The Python of the second environment in the work folder: the locked packages with the fallback ONNX Runtime pin.
 
     It changes no file of the checkout: `uv export` reads `uv.lock`, and the project is an editable install of the
-    checkout. It raises `RuntimeError` with a fixed reason code.
+    checkout. Each index package is hash-checked: the locked packages with the hashes of `uv.lock` and the fallback
+    pin with its `sha256` (`--require-hashes`), and the build backend of the editable install with the hash of
+    `build_backend` (a build constraint: uv refuses an editable install in `--require-hashes` mode). It raises
+    `RuntimeError` with a fixed reason code.
     """
     import re
 
@@ -233,15 +235,21 @@ def build_fallback_env(work: Path, fallback: dict) -> Path:
             raise RuntimeError(f"uv-{args[0]}-failed")
         return done.stdout
 
-    requirements = run("export", "--frozen", "--no-hashes", "--no-emit-project", "--no-dev")
-    pinned, count = re.subn(rf"^{re.escape(fallback['package'])}==[^ ;\n]+", f"{fallback['package']}=={fallback['version']}",
+    requirements = run("export", "--frozen", "--no-emit-project", "--no-dev")
+    package, backend = fallback["package"], fallback["build_backend"]
+    # one entry: `NAME==VERSION ; MARKER \` and its `--hash=` lines; the marker stays, the version and the hashes change
+    entry = rf"^{re.escape(package)}==[^ ;\n]+(?P<marker>[^\\\n]*?)[ \t]*\\\n(?:[ \t]+--hash=\S+[ \t]*\\?\n)+"
+    pinned, count = re.subn(entry, lambda m: f"{package}=={fallback['version']}{m['marker']} \\\n    --hash=sha256:{fallback['sha256']}\n",
                             requirements, flags=re.MULTILINE)
     if count != 1:
         raise RuntimeError("no-ort-pin")
     (work / "fallback-requirements.txt").write_text(pinned, encoding="utf-8")
+    (work / "fallback-build.txt").write_text(f"{backend['package']}=={backend['version']} --hash=sha256:{backend['sha256']}\n",
+                                             encoding="utf-8")
     run("venv", "--python", sys.executable, str(folder))
-    run("pip", "install", "--python", str(python), "-r", str(work / "fallback-requirements.txt"))
-    run("pip", "install", "--python", str(python), "--no-deps", "-e", str(REPO_ROOT))
+    run("pip", "install", "--python", str(python), "--require-hashes", "-r", str(work / "fallback-requirements.txt"))
+    run("pip", "install", "--python", str(python), "--no-deps", "--build-constraints", str(work / "fallback-build.txt"),
+        "-e", str(REPO_ROOT))
     return python
 
 
@@ -251,13 +259,26 @@ def run_fallback(work: Path, *args: str) -> dict:
     from skellytracker.core.eps.catalog import load_catalog
 
     fallback = load_catalog().data["certification"]["ort_fallback"]
+
+    def finding(result: str, code: str) -> dict:  # a fixed code on this one check: the other results of the section stay
+        return {"result": result, "reason_code": code, "ort_version": fallback["version"]}
+
     try:
         python = build_fallback_env(work, fallback)
     except RuntimeError as error:
-        return {"result": "not-run", "reason_code": str(error), "ort_version": fallback["version"]}
-    done = subprocess.run([str(python), "-B", str(Path(__file__).resolve()), "--fallback", *args, "--work", str(work)],  # noqa: S603
-                          cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
-                          check=False, env={**os.environ, store.FALLBACK_VARIABLE: fallback["version"]})
+        return finding("not-run", str(error))
+    except subprocess.TimeoutExpired:
+        return finding("not-run", "build-timed-out")
+    except OSError:
+        return finding("not-run", "build-failed")
+    try:
+        done = subprocess.run([str(python), "-B", str(Path(__file__).resolve()), "--fallback", *args, "--work", str(work)],  # noqa: S603
+                              cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=1800,
+                              check=False, env={**os.environ, store.FALLBACK_VARIABLE: fallback["version"]})
+    except subprocess.TimeoutExpired:
+        return finding("fail", "timed-out")
+    except OSError:
+        return finding("fail", "not-started")
     lines = [line for line in done.stdout.splitlines() if line.strip()]
     try:
         found = json.loads(lines[-1])
@@ -542,3 +563,5 @@ if __name__ == "__main__":  # the child of the second environment: `--fallback e
     parser.add_argument("--work", type=Path, required=True)
     args = parser.parse_args()
     print(json.dumps(fallback_main(args.fallback[0], args.fallback[1], args.work)), flush=True)
+    sys.stderr.flush()
+    os._exit(0)  # the result is out: the interpreter teardown of a GPU EP must not crash or hang this child

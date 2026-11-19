@@ -1,6 +1,7 @@
 """The download engine of the EP store. It uses only the standard library.
 
-- Only `https`. `http` is accepted only for the loopback host, for a local index of a test.
+- Only `https`. `http` is accepted only for the loopback host, for a local index of a test. A
+  redirect obeys the same rule, and a redirect from `https` to an other scheme is an error.
 - The sha256 of the lock is the gate. A file with a different sha256 is deleted.
 - A download that stops keeps its partial file. The next call resumes it with a byte range. If the
   server does not resume, the download starts again from byte 0.
@@ -66,6 +67,17 @@ def check_url(url: str) -> None:
         raise DownloadError("http-error", f"the URL is not https: {parts.scheme}://{parts.hostname}")
 
 
+class HttpsRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """A redirect must go to an URL that `check_url` accepts, and never from `https` to an other scheme."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # `newurl` is absolute: urllib joins it first
+        scheme = urllib.parse.urlsplit(newurl).scheme
+        if urllib.parse.urlsplit(req.full_url).scheme == "https" and scheme != "https":
+            raise DownloadError("http-error", f"a redirect from https to {scheme}")
+        check_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def sha256_of(path: Path) -> str:
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
@@ -124,7 +136,7 @@ def fetch(url: str, sha256: str, part: Path, *, cancel: threading.Event | None =
     check_url(url)
     part.parent.mkdir(parents=True, exist_ok=True)
     if opener is None:
-        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context()))
+        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context()), HttpsRedirectHandler())
     failures, mismatches = 0, 0
     while True:
         try:

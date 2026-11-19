@@ -177,7 +177,10 @@ def test_the_second_environment_pins_the_fallback_ort_and_installs_the_checkout(
 
     def run(args, **kwargs):
         commands.append(args[1:])
-        out = "numpy==2.3.1\nonnxruntime==1.30.0 ; sys_platform == 'linux'\nonnxruntime-windowsml==1.30.0.1 ; sys_platform == 'win32'\n"
+        out = ("numpy==2.3.1 \\\n    --hash=sha256:" + "1" * 64 + "\n"
+               "onnxruntime==1.30.0 ; sys_platform == 'linux' \\\n    --hash=sha256:" + "2" * 64 + " \\\n    --hash=sha256:" + "3" * 64 + "\n"
+               "    # via skellytracker\n"
+               "onnxruntime-windowsml==1.30.0.1 ; sys_platform == 'win32' \\\n    --hash=sha256:" + "4" * 64 + "\n")
         return SimpleNamespace(returncode=0, stdout=out if args[1] == "export" else "")
 
     monkeypatch.setattr(ce.subprocess, "run", run)
@@ -186,12 +189,31 @@ def test_the_second_environment_pins_the_fallback_ort_and_installs_the_checkout(
     python = ce.build_fallback_env(tmp_path, fallback)
     assert python.parent.parent == tmp_path / "ort-1.29.0" and [c[0] for c in commands] == ["export", "venv", "pip", "pip"]
     pinned = (tmp_path / "fallback-requirements.txt").read_text(encoding="utf-8")
-    assert "\nonnxruntime==1.29.0 ; sys_platform == 'linux'\n" in pinned and "onnxruntime-windowsml==1.30.0.1" in pinned and "1.30.0 ;" not in pinned
-    assert commands[-1][-3:] == ["--no-deps", "-e", str(ce.REPO_ROOT)] and "--frozen" in commands[0]
+    assert (f"\nonnxruntime==1.29.0 ; sys_platform == 'linux' \\\n    --hash=sha256:{fallback['sha256']}\n    # via skellytracker\n"
+            in pinned and "onnxruntime-windowsml==1.30.0.1" in pinned and "1.30.0 ;" not in pinned)
+    assert "2" * 64 not in pinned and "3" * 64 not in pinned and "1" * 64 in pinned and "4" * 64 in pinned
+    assert "--no-hashes" not in commands[0] and "--frozen" in commands[0] and "--require-hashes" in commands[2]
+    assert commands[-1][-2:] == ["-e", str(ce.REPO_ROOT)] and "--no-deps" in commands[-1]  # uv refuses `-e` with --require-hashes
+    build = commands[-1][commands[-1].index("--build-constraints") + 1]
+    assert Path(build).read_text(encoding="utf-8") == f"flit-core==3.12.0 --hash=sha256:{fallback['build_backend']['sha256']}\n"
     monkeypatch.delenv("UV")
     monkeypatch.setattr(ce.shutil, "which", lambda name: None)
     with pytest.raises(RuntimeError, match="no-uv"):
         ce.build_fallback_env(tmp_path / "other", fallback)
+
+
+@pytest.mark.parametrize(("stage", "error", "expected"), [
+    ("build", ce.subprocess.TimeoutExpired("uv", 900), ("not-run", "build-timed-out")),
+    ("build", OSError("disk full"), ("not-run", "build-failed")),
+    ("run", ce.subprocess.TimeoutExpired("python", 1800), ("fail", "timed-out")),
+    ("run", OSError("no python"), ("fail", "not-started"))])
+def test_a_timeout_or_an_os_error_of_the_second_environment_is_a_code_of_its_one_check(tmp_path, monkeypatch, stage, error, expected):
+    def raise_error(*args, **kwargs):
+        raise error
+
+    monkeypatch.setattr(ce, "build_fallback_env", raise_error if stage == "build" else lambda work, fallback: tmp_path / "python")
+    monkeypatch.setattr(ce.subprocess, "run", raise_error)
+    assert ce.run_fallback(tmp_path, "eps", "migraphx") == {"result": expected[0], "reason_code": expected[1], "ort_version": "1.29.0"}
 
 
 def test_core_mismatch_accepts_the_fallback_ort_only_in_the_second_environment(monkeypatch):
@@ -258,6 +280,7 @@ def test_the_frame_removes_the_package_of_section_3_also_after_a_crash(tmp_path,
     packages = {added: "AMD.WinML.EP_8wekyb3d8bbwe", kept: "Other.App_8wekyb3d8bbwe"}
     removed = []
     monkeypatch.setattr(windows_ml, "installed_packages", lambda: dict(packages))
+    monkeypatch.setattr(windows_ml, "_catalog_family", lambda ep_name: None)  # no Windows ML catalog: the family of the record
     monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: removed.append(name) or packages.pop(name) is not None)
     monkeypatch.setattr(cp, "windows_ml_offer", lambda: ["AMDGPUExecutionProvider"])
     record = {"amdgpu": {"ep_name": "AMDGPUExecutionProvider", "version": "1.8.65.0", "package_family_name": "AMD.WinML.EP_8wekyb3d8bbwe",
@@ -363,7 +386,7 @@ def test_a_downloaded_model_with_the_right_hash_is_placed_and_removed_at_the_end
     found = ce.fetch_models([{"path": "detectors/m.onnx", "url": "https://example.invalid/m.onnx", "sha256": SHA, "bytes": len(DATA)}],
                             root, work)
     assert found[0]["state"] == "downloaded" and (root / "detectors" / "m.onnx").read_bytes() == DATA
-    cp.remove_listed(work)
+    assert cp.remove_listed(work, root) == []
     assert not (root / "detectors" / "m.onnx").exists()
 
 
@@ -385,7 +408,7 @@ def test_a_model_already_present_is_kept_and_a_wrong_file_is_not_touched(work, t
     models.append({"path": "../escape.onnx", "url": "https://example.invalid/x", "sha256": SHA, "bytes": 1})
     found = ce.fetch_models(models, root, work)
     assert [f["state"] for f in found] == ["present", "wrong-file", "refused"]
-    cp.remove_listed(work)
+    assert cp.remove_listed(work, root) == []
     assert (root / "good.onnx").read_bytes() == DATA and (root / "wrong.onnx").read_bytes() == b"mine"
 
 

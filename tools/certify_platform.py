@@ -11,15 +11,21 @@ A volunteer runs this command in a clone at a certification tag (decision Y14H).
 2. asks for consent one time. ``--yes`` skips the question. With no terminal on stdin and no
    ``--yes``, it stops and runs nothing;
 3. runs each section in its own child process (this script with the hidden flag ``--section N``),
-   with the time limit of the section. A child prints one JSON object on its last stdout line. A
-   non-zero exit is ``crashed``, an output that is not such an object is ``bad-output`` and a child
-   over its time limit is ``timed-out``: the suite kills the whole process tree. Each of these is a
-   ``fail`` with the exit code and the seconds, and the suite goes on;
+   with the time limit of the section. A child prints one JSON object on its last stdout line and
+   ends with ``os._exit``, so that the teardown of a GPU EP cannot crash or hang it. A child over
+   its time limit is ``timed-out``: the suite kills the whole process tree. With no such object, a
+   non-zero exit is ``crashed``, a timeout ``timed-out`` and an other output ``bad-output``: a ``fail``
+   with the exit code and the seconds. A child that printed the object and then exited non-zero or
+   timed out keeps its result, with the extra ``record-only`` check ``exit`` (``crashed`` or
+   ``timed-out``). The suite goes on;
 4. asks the yes/no questions of the sections and one optional free-text note, only when stdin is a
    terminal;
-5. deletes its work folder ``.certify-work/`` (git ignores it), also after a failure or Ctrl+C,
-   and writes the report. The default report is ``certify-report-<UTC time>.md`` in the current
-   folder. The tool prints its path.
+5. deletes its work folder ``.certify-work/`` (git ignores it), also after a failure, Ctrl+C,
+   SIGTERM or SIGHUP, and writes the report. Each cleanup step that fails is a row of ``cleanup``
+   in the report, and the report is still written. The default report is
+   ``certify-report-<UTC time>.md`` in the current folder. The tool prints its path. At the start,
+   the suite first acts on the records of a work folder that an earlier run left, then deletes it.
+   If it cannot delete it, the suite stops with exit code 1 and runs nothing.
 
 The report has a summary table (section, result, one-line reason), the details of each section and,
 last, the same data as one fenced JSON block (``report_data()`` reads it). The schema id is
@@ -28,7 +34,10 @@ last, the same data as one fenced JSON block (``report_data()`` reads it). The s
 evidence only from a clean checkout of a tag with all sections run. The report holds no hostname,
 no user name, no absolute path, no serial number and no bus address: each section takes OS facts
 through an allowlist of fields, and ``scrub()`` removes the user name, the home folder, the checkout
-folder and the hostname from each string. The suite needs no administrator rights. On Windows with
+folder and the hostname from each string. A user name or a hostname that is also a word of a public
+fact (``report_words()``) stays in the report fields, and the report records only the count; the
+notes are scrubbed with each word. A report is valid as evidence only when section 1 also found the
+Python and the packages of ``uv.lock``. The suite needs no administrator rights. On Windows with
 an AMD GPU, the one system change is the Windows ML package of each AMD EP that the catalog offers:
 the consent names the EP, and at the end the frame removes each package that section 3 installed
 (``remove_windows_packages``), also after a crash, a timeout or Ctrl+C. A package that stays is a
@@ -39,7 +48,8 @@ folder: the suite installs and tests the EP packs in its own EP store, and uses 
 store or EP cache of the user. The suite writes ``options.json`` (for example ``--wheel-dir``) into
 the work folder, and the result of each section as ``section-<N>.json``: a later section reads an
 earlier result there. At the end it deletes each file of ``remove-at-end.json`` of the work folder:
-a section lists each file that it downloads outside the work folder, for example a model file.
+a section lists each file that it downloads outside the work folder, for example a model file. It
+deletes only a path inside the model folder ``skellytracker/core/model_zoo/``.
 
 Sections 3 and 4 are in ``tools/certify_eps.py``, section 5 is in ``tools/certify_jpeg.py``. Sections 6
 and 7 are placeholders: their result is ``not-run`` with the reason code ``not-built``.
@@ -66,10 +76,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
+MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
 REPORT_SCHEMA = "skellytracker.certify-suite/1"
 SUITE_VERSION = 1
 RESULTS = ("pass", "fail", "not-run", "record-only")
-EXIT_OK, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 2, 6  # the exit codes of `skellytracker-eps`
+EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
 NOTES_LIMIT = 2000
 
 
@@ -225,6 +236,7 @@ def section_checkout(work: Path, root: Path = REPO_ROOT) -> dict:
 
 def onnx_stack_facts() -> dict:
     sys.path.insert(0, str(REPO_ROOT))
+    import certify_hardware  # the directory of this script is on sys.path
     import skellytracker
     from skellytracker.core.eps import evidence
     from skellytracker.core.eps.catalog import load_catalog
@@ -234,7 +246,8 @@ def onnx_stack_facts() -> dict:
     return {"skellytracker": skellytracker.__version__,
             "ort_distributions": dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True)),
             "ort_version": runtime.ort_version, "windowsml": runtime.windowsml_version, "ep_names": list(runtime.ep_names),
-            "catalog_revision": catalog.revision, "set_hash": evidence.set_hash(catalog), "probe_errors": list(runtime.probe_errors)}
+            "catalog_revision": catalog.revision, "set_hash": evidence.set_hash(catalog),
+            "probe_errors": certify_hardware.error_sources(runtime.probe_errors)}  # the source tags only: no error text
 
 
 # --------------------------------------------------------------------------------------------
@@ -312,7 +325,8 @@ def default_command(section: Section, work: Path) -> list[str]:
     return [sys.executable, str(SCRIPT), "--section", str(section.number), "--work", str(work)]
 
 
-def kill_tree(process: subprocess.Popen) -> None:
+def kill_tree(process: subprocess.Popen) -> str | None:
+    """Kill the child and its children, and give the whole stdout of the child (`communicate` loses none after a timeout)."""
     if sys.platform == "win32":
         subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], capture_output=True, check=False)  # noqa: S603, S607
     else:
@@ -321,7 +335,7 @@ def kill_tree(process: subprocess.Popen) -> None:
         except ProcessLookupError:
             pass
     process.kill()
-    process.communicate()
+    return process.communicate()[0]
 
 
 def child_env(work: Path) -> dict:
@@ -370,44 +384,78 @@ def add_cleanup(results: list[dict], rows: list[dict]) -> None:
                   "PowerShell removes a package with: Remove-AppxPackage <full name>.", file=sys.stderr)
 
 
-def remove_listed(work: Path) -> None:
-    """Delete each file that a section put on the remove list of the work folder, for example a downloaded model file."""
+def remove_listed(work: Path, root: Path | None = None) -> list[dict]:
+    """Delete each file that a section put on the remove list of the work folder, for example a downloaded model file.
+
+    It accepts only a path that resolves inside the model root (`MODEL_ROOT`). It never raises: a refused path or a
+    file that does not go is a `fail` cleanup row, with no path.
+    """
+    root = (root or MODEL_ROOT).resolve()
     try:
         listed = json.loads((work / "remove-at-end.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return
-    for path in listed:
-        Path(path).unlink(missing_ok=True)
+        return []
+    rows = []
+    for path in listed if isinstance(listed, list) else ():
+        try:
+            target = Path(path).resolve()
+            if not target.is_relative_to(root) or target == root:
+                rows.append(check("remove-listed-file", "fail", "outside-model-root"))
+                continue
+            target.unlink(missing_ok=True)
+        except (OSError, TypeError, ValueError) as error:
+            rows.append(check("remove-listed-file", "fail", type(error).__name__))
+    return rows
+
+
+def cleanup_step(rows: list[dict], name: str, step: Callable[[], object]) -> None:
+    """Run one cleanup step. An error is a `fail` cleanup row, never an exception: the next step and the report still run."""
+    try:
+        step()
+    except Exception as error:  # noqa: BLE001
+        rows.append(check(name, "fail", type(error).__name__))
+
+
+def parse_result(stdout: str | None) -> dict | None:
+    """The result object on the last non-empty stdout line of a child, or None."""
+    lines = [line for line in (stdout or "").splitlines() if line.strip()]
+    try:
+        data = json.loads(lines[-1])
+    except (IndexError, ValueError):
+        return None
+    return data if isinstance(data, dict) and data.get("result") in RESULTS else None
 
 
 def run_section(section: Section, command: list[str], env: dict | None = None) -> dict:
-    """Run one section in a child process. Each failure of the child is a finding; only Ctrl+C raises."""
+    """Run one section in a child process. Each failure of the child is a finding; only Ctrl+C raises.
+
+    A child that printed a complete result object keeps it, also when it then exits non-zero or hangs
+    to the time limit: the section gets the extra check `exit`, `record-only`, with `crashed` or
+    `timed-out`, and its own result does not change. With no complete result object, the section is
+    `fail` with `crashed`, `timed-out` or `bad-output`.
+    """
     started = time.monotonic()
     process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, text=True, encoding="utf-8",  # noqa: S603
                                errors="replace", cwd=REPO_ROOT, start_new_session=sys.platform != "win32", env=env)
     try:
         stdout, _ = process.communicate(timeout=section.timeout_seconds)
+        problem = None if process.returncode == 0 else ("crashed", f"the child process exited with {process.returncode}")
+        exit_code = process.returncode
     except subprocess.TimeoutExpired:
-        kill_tree(process)
-        return finding(section, "fail", "timed-out", f"stopped after the time limit of {section.timeout_seconds} s",
-                       seconds=round(time.monotonic() - started, 1))
+        stdout = kill_tree(process)
+        problem, exit_code = ("timed-out", f"stopped after the time limit of {section.timeout_seconds} s"), None
     except KeyboardInterrupt:
         kill_tree(process)
         raise
     seconds = round(time.monotonic() - started, 1)
-    if process.returncode:
-        return finding(section, "fail", "crashed", f"the child process exited with {process.returncode}",
-                       seconds=seconds, exit_code=process.returncode)
-    lines = [line for line in stdout.splitlines() if line.strip()]
-    try:
-        data = json.loads(lines[-1])
-        if not (isinstance(data, dict) and data.get("result") in RESULTS):
-            raise ValueError
-    except (IndexError, ValueError):
-        return finding(section, "fail", "bad-output", "the child process printed no result object", seconds=seconds, exit_code=0)
+    data = parse_result(stdout)
+    if data is None:
+        code, summary = problem or ("bad-output", "the child process printed no result object")
+        return finding(section, "fail", code, summary, seconds=seconds, exit_code=exit_code)
+    extra = [check("exit", "record-only", problem[0], exit_code=exit_code)] if problem else []
     return {**finding(section, data["result"], data.get("reason_code"), str(data.get("summary", ""))),
-            "checks": data.get("checks", []), "details": data.get("details", {}), "questions": data.get("questions", []),
-            "seconds": seconds, "exit_code": 0}
+            "checks": [*data.get("checks", []), *extra], "details": data.get("details", {}), "questions": data.get("questions", []),
+            "seconds": seconds, "exit_code": exit_code}
 
 
 def private_terms() -> tuple[list[str], list[str]]:
@@ -417,7 +465,48 @@ def private_terms() -> tuple[list[str], list[str]]:
         words.add(getpass.getuser())
     except Exception:  # noqa: BLE001, S110 - no user name is fine
         pass
+    words |= {word[: -len(".local")] for word in words if word and word.lower().endswith(".local")}  # the short macOS host name
     return [str(REPO_ROOT), sys.prefix, str(Path.home())], sorted(word for word in words if word)
+
+
+PUBLIC_KEYS = {"result", "reason_code", "reasons", "state", "status", "catalog_status", "key", "ep", "name", "os_label",
+               "os_version", "cpu_name", "system", "release", "version", "machine"}  # suite vocabulary and public host facts
+
+
+def host_facts_text() -> list[str]:
+    """The public OS facts of this host from the standard library: `platform` and, on Linux, the os-release fields."""
+    facts = [platform.system(), platform.release(), platform.version(), platform.machine()]
+    try:
+        facts += list(platform.freedesktop_os_release().values())
+    except (AttributeError, OSError):
+        pass
+    return facts
+
+
+def report_words(words: list[str], data, public: list[str]) -> list[str]:
+    """The words to scrub from the report fields: each word of `words` that no public text holds as a word.
+
+    The public text is `public` (the vocabulary of the suite and the OS facts of this host) and each string under a
+    key of `PUBLIC_KEYS` in `data` (results, reason codes, EP keys, catalog status values, section and check names,
+    the OS label, the CPU and GPU names). So a host name `ubuntu` or a user name `test` does not delete the facts
+    `Ubuntu 24.04.1 LTS` or `field-test`. The notes of the volunteer are always scrubbed with all words.
+    """
+    texts = list(public)
+
+    def walk(value, key=None):
+        if isinstance(value, dict):
+            texts.extend(name for name in value if isinstance(name, str))
+            for name, item in value.items():
+                walk(item, name)
+        elif isinstance(value, list | tuple):
+            for item in value:
+                walk(item, key)
+        elif isinstance(value, str) and key in PUBLIC_KEYS:
+            texts.append(value)
+
+    walk(data)
+    text = "\n".join(texts)
+    return [word for word in words if not re.search(rf"(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])", text, re.IGNORECASE)]
 
 
 PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\|/(?:home|Users)/)[^\s\"'|,;]*")
@@ -434,7 +523,7 @@ def scrub(value, paths: list[str], words: list[str]):
     for path in sorted(filter(None, paths), key=len, reverse=True):
         for form in {path, path.replace("\\", "/"), path.replace("/", "\\")}:
             value = re.sub(re.escape(form), "<path>", value, flags=re.IGNORECASE)
-    for word in words:
+    for word in sorted(words, key=len, reverse=True):  # `host.local` before `host`
         value = re.sub(rf"(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])", "<private>", value, flags=re.IGNORECASE)
     return PATH_PATTERN.sub("<path>", value)
 
@@ -443,9 +532,11 @@ def evidence_state(results: list[dict], selected: set[int], sections: tuple[Sect
     """Valid as evidence only from a clean checkout of a tag, with all sections selected and none interrupted."""
     first = next((r for r in results if r["number"] == 1), None)
     facts = (first or {}).get("details", {}).get("checkout") or {}
+    failed = {c.get("name") for c in (first or {}).get("checks", ()) if c.get("result") == "fail"}
     reasons = [code for code, bad in (
         ("section-1-not-run", not facts), ("no-tag", facts and facts.get("tag") is None),
-        ("modified-tree", facts and facts.get("clean") is not True), ("partial-run", selected != {s.number for s in sections}),
+        ("modified-tree", facts and facts.get("clean") is not True), ("python-differs", "python" in failed),
+        ("packages-differ", "packages" in failed), ("partial-run", selected != {s.number for s in sections}),
         ("interrupted", any(r["reason_code"] == "interrupted" for r in results))) if bad]
     return {"valid": not reasons, "reasons": reasons, "tag": facts.get("tag"), "commit": facts.get("commit")}
 
@@ -488,6 +579,9 @@ def render(data: dict) -> str:
               f"**Not valid as evidence:** {', '.join(proof['reasons'])}. The report is kept as a record only."), "",
              "| Section | Result | Reason |", "|---|---|---|"]
     lines += [f"| {r['number']}. {cell(r['name'])} | {r['result']} | {cell(r['summary'] or r['reason_code'])} |" for r in data["sections"]]
+    if data.get("cleanup"):
+        lines += ["", "Cleanup:", "", "| Check | Result | Reason |", "|---|---|---|",
+                  *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason_code'])} |" for c in data["cleanup"])]
     for r in data["sections"]:
         lines += ["", f"## {r['number']}. {r['name']}", "",
                   f"Result: **{r['result']}**" + (f", reason `{r['reason_code']}`" if r["reason_code"] else "")
@@ -577,9 +671,15 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
         if not answer.strip().lower().startswith("y"):
             print("Nothing ran.")
             return EXIT_NO_CONSENT
-    results, interrupted, answers, notes = [], False, [], None
-    add_cleanup([], remove_windows_packages(work))  # the packages of a run whose frame did not end
-    shutil.rmtree(work, ignore_errors=True)  # a folder from a run that did not finish
+    results, interrupted, answers, notes, cleanup = [], False, [], None, []
+    # a work folder of a run whose frame did not end: its packages, its listed files, then the folder
+    cleanup_step(cleanup, "remove-windows-packages", lambda: add_cleanup([], remove_windows_packages(work)))
+    cleanup += remove_listed(work)
+    shutil.rmtree(work, ignore_errors=True)
+    if work.exists():
+        print(f"The folder {work.name}/ of an earlier run cannot be deleted, for example because a program holds a file in it. "
+              "Delete it by hand, then run the suite again. Nothing ran.", file=sys.stderr)
+        return EXIT_FAILURE
     work.mkdir(parents=True)
     (work / "options.json").write_text(json.dumps(options or {}), encoding="utf-8")
     try:
@@ -609,16 +709,19 @@ def run_suite(sections: tuple[Section, ...], selected: set[int], out: Path, *, y
                 notes = ask("Notes (Enter to skip): ").strip()[:NOTES_LIMIT] or None
             except (KeyboardInterrupt, EOFError):
                 pass
-    finally:
-        add_cleanup(results, remove_windows_packages(work))  # also after a crash, a timeout or Ctrl+C of section 3
-        remove_listed(work)
+    finally:  # each step survives an error of an other step, and the report is still written
+        cleanup_step(cleanup, "remove-windows-packages", lambda: add_cleanup(results, remove_windows_packages(work)))
+        cleanup += remove_listed(work)
         shutil.rmtree(work, ignore_errors=True)
         if work.exists():
+            cleanup.append(check("delete-work-folder", "fail", "not-deleted"))
             print(f"Could not delete {work.name}/ completely: delete it by hand.", file=sys.stderr)
     data = {"schema": REPORT_SCHEMA, "suite_version": SUITE_VERSION, "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "selected": sorted(selected), "evidence": evidence_state(results, selected, sections), "sections": results,
-            "answers": answers, "notes": notes}
-    data = scrub(data, *private_terms())
+            "cleanup": cleanup, "answers": answers, "notes": None}
+    paths, words = private_terms()
+    kept = report_words(words, data, [*RESULTS, *(s.name for s in sections), *host_facts_text()])
+    data = {**scrub(data, paths, kept), "notes": scrub(notes, paths, words), "scrub": {"exempted_terms": len(words) - len(kept)}}
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(render(data), encoding="utf-8", newline="\n")
     print(f"Report written to {out}")
@@ -629,6 +732,20 @@ def child(number: int, work: Path) -> int:
     section = next(s for s in SECTIONS if s.number == number)
     print(json.dumps(section.run(work)), flush=True)
     return 0
+
+
+def stop_on_signals() -> None:
+    """Make SIGTERM, SIGHUP and SIGBREAK (Ctrl+Break on Windows) take the path of Ctrl+C, so that the cleanup runs.
+
+    shortcut: closing the console window on Windows sends CTRL_CLOSE_EVENT, which Python does not map to a signal; Windows
+    then ends the process with no cleanup. The next run removes what the record of the work folder names.
+    """
+    def interrupt(signum, frame):
+        raise KeyboardInterrupt
+
+    for name in ("SIGTERM", "SIGHUP", "SIGBREAK"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), interrupt)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -654,8 +771,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.wheel_dir is not None and not args.wheel_dir.is_dir():
         parser.error("--wheel-dir takes a folder")
     options = {"wheel_dir": str(args.wheel_dir.resolve())} if args.wheel_dir else {}
+    stop_on_signals()
     return run_suite(SECTIONS, selected, out, yes=args.yes, options=options)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    code = main()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)  # the output is out: the interpreter teardown of a GPU EP must not crash or hang a section child

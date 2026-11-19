@@ -137,6 +137,137 @@ def test_the_scrub_removes_the_user_name_the_home_folder_and_the_hostname():
     assert clean["e"] == "gpu:10de:2484:0" and clean["c"] == 5 and clean["f"] == f"{user}x stays"
 
 
+def test_a_cleanup_error_is_a_row_and_the_work_folder_and_the_report_still_go(tmp_path, monkeypatch):
+    """An error of one cleanup step must not skip the next step or the report."""
+    root, outside = tmp_path / "zoo", tmp_path / "keep.bin"
+    (root / "a-directory").mkdir(parents=True)  # unlink of a directory raises
+    (root / "model.onnx").write_bytes(b"m")
+    outside.write_bytes(b"k")
+    monkeypatch.setattr(cp, "MODEL_ROOT", root)
+    listed = json.dumps([str(root / "a-directory"), str(root / "model.onnx"), str(outside), str(root / ".." / "keep.bin")])
+    writer = ("import pathlib, sys; pathlib.Path(sys.argv[1], 'remove-at-end.json').write_text(sys.argv[2]); "
+              "print('{\"result\": \"pass\"}')")
+
+    def broken(work):
+        raise RuntimeError("no catalog")
+
+    monkeypatch.setattr(cp, "remove_windows_packages", broken)
+    out, work = tmp_path / "r.md", tmp_path / "w"
+    code = cp.run_suite(sections()[:1], {1}, out, yes=True, work=work, interactive=False,
+                        command=lambda s, w: [PY, "-c", writer, str(w), listed])
+    text = out.read_text(encoding="utf-8")
+    data = cp.report_data(text)
+    assert code == cp.EXIT_OK and not work.exists() and not (root / "model.onnx").exists() and outside.exists()
+    reasons = [(c["name"], c["reason_code"]) for c in data["cleanup"]]
+    assert ("remove-windows-packages", "RuntimeError") in reasons and reasons.count(("remove-listed-file", "outside-model-root")) == 2
+    assert len([r for r in reasons if r[0] == "remove-listed-file" and r[1] != "outside-model-root"]) == 1  # the directory
+    assert "| remove-windows-packages | fail | RuntimeError |" in text
+
+
+def test_a_child_with_a_complete_result_and_a_bad_exit_keeps_its_result(tmp_path):
+    result = json.dumps(PASSING)
+    commands = {1: [PY, "-c", f"import sys; print({result!r}, flush=True); sys.exit(3)"],
+                2: [PY, "-c", f"import time; print({result!r}, flush=True); time.sleep(60)"],
+                3: [PY, "-c", "import sys; print('half a line', flush=True); sys.exit(3)"], 4: emit(PASSING)}
+    _, out, _ = run(tmp_path, commands, timeout=3)
+    found = {r["number"]: r for r in cp.report_data(out.read_text(encoding="utf-8"))["sections"]}
+    assert (found[1]["result"], found[1]["exit_code"], found[1]["details"]) == ("pass", 3, {"count": 1})
+    assert found[1]["checks"][-1] == {"name": "exit", "result": "record-only", "reason_code": "crashed", "exit_code": 3}
+    assert (found[2]["result"], found[2]["checks"][-1]["reason_code"], found[2]["exit_code"]) == ("pass", "timed-out", None)
+    assert (found[3]["result"], found[3]["reason_code"]) == ("fail", "crashed") and found[3]["checks"] == []
+
+
+def test_a_section_child_ends_with_os_exit_after_its_result(tmp_path):
+    """A teardown that crashes after the result (here an atexit hook with exit code 7) must not change the exit code."""
+    script = Path(cp.__file__).resolve()
+    code = (f"import atexit, os, runpy, sys; atexit.register(os._exit, 7); "
+            f"sys.argv = [{str(script)!r}, '--section', '6', '--work', {str(tmp_path)!r}]; "
+            f"sys.path.insert(0, {str(script.parent)!r}); runpy.run_path({str(script)!r}, run_name='__main__')")
+    done = subprocess.run([PY, "-B", "-c", code], capture_output=True, text=True, timeout=120, check=False)  # noqa: S603
+    assert done.returncode == 0 and json.loads(done.stdout.splitlines()[-1])["reason_code"] == "not-built"
+
+
+def test_a_stale_work_folder_that_cannot_be_deleted_stops_the_run_before_any_section(tmp_path, monkeypatch, capsys):
+    def never(section, work):
+        raise AssertionError("nothing may run")
+
+    out, work = tmp_path / "r.md", tmp_path / "w"
+    work.mkdir()
+    monkeypatch.setattr(cp.shutil, "rmtree", lambda path, ignore_errors=False: None)  # for example a file that a program holds open
+    code = cp.run_suite(sections(), {1}, out, yes=True, work=work, command=never, interactive=False)
+    assert code == cp.EXIT_FAILURE and not out.exists() and "Delete it by hand" in capsys.readouterr().err
+
+
+def test_a_stale_remove_list_is_acted_on_at_the_start_only_inside_the_model_root(tmp_path, monkeypatch):
+    root = tmp_path / "zoo"
+    root.mkdir()
+    (root / "left.onnx").write_bytes(b"m")
+    (tmp_path / "mine.txt").write_bytes(b"k")
+    monkeypatch.setattr(cp, "MODEL_ROOT", root)
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "remove-at-end.json").write_text(json.dumps([str(root / "left.onnx"), str(tmp_path / "mine.txt")]))
+    out = tmp_path / "r.md"
+    cp.run_suite(sections()[:1], {1}, out, yes=True, work=work, interactive=False, command=lambda s, w: emit(PASSING))
+    assert not (root / "left.onnx").exists() and (tmp_path / "mine.txt").exists()
+    assert [c["reason_code"] for c in cp.report_data(out.read_text(encoding="utf-8"))["cleanup"]] == ["outside-model-root"]
+
+
+def test_sigterm_sighup_and_sigbreak_take_the_path_of_ctrl_c():
+    import signal
+
+    names = [name for name in ("SIGTERM", "SIGHUP", "SIGBREAK") if hasattr(signal, name)]
+    before = {name: signal.getsignal(getattr(signal, name)) for name in names}
+    try:
+        cp.stop_on_signals()
+        for name in names:
+            with pytest.raises(KeyboardInterrupt):
+                signal.getsignal(getattr(signal, name))(getattr(signal, name), None)
+    finally:
+        for name, handler in before.items():
+            signal.signal(getattr(signal, name), handler)
+
+
+def test_section_1_python_or_package_differences_make_the_report_not_evidence():
+    facts = {"tag": "certify-1", "commit": "c" * 40, "clean": True}
+    first = {"number": 1, "reason_code": None, "details": {"checkout": facts},
+             "checks": [cp.check("python", "fail", "python-mismatch"), cp.check("packages", "fail", "packages-differ")]}
+    result = cp.evidence_state([first], {1}, sections()[:1])
+    assert result["valid"] is False and result["reasons"] == ["python-differs", "packages-differ"]
+    first["checks"] = [cp.check("python", "pass"), cp.check("packages", "pass")]
+    assert cp.evidence_state([first], {1}, sections()[:1])["valid"] is True
+
+
+def test_a_common_host_or_user_name_does_not_delete_public_facts_but_the_notes_are_always_scrubbed(tmp_path, monkeypatch):
+    data = {"sections": [{"name": "Hardware probe", "result": "pass", "summary": "Ubuntu 24.04.1 LTS, field-test pass",
+                          "details": {"host": {"os_label": "Ubuntu 24.04.1 LTS", "cpu_name": "AMD Ryzen 9"},
+                                      "eps": [{"key": "migraphx", "catalog_status": "field-test"}],
+                                      "os": {"version": "#45-Ubuntu SMP PREEMPT_DYNAMIC", "label": "Windows 11 Home 26H2"}},
+                          "checks": [{"name": "os_label", "result": "pass", "reason_code": None}]}]}
+    words = ["ubuntu", "test", "home", "zz" + "planted"]
+    kept = cp.report_words(words, data, ["Windows 11 Home"])
+    assert kept == ["zz" + "planted"]
+    clean = cp.scrub(data, [], kept)
+    assert clean["sections"][0]["summary"] == "Ubuntu 24.04.1 LTS, field-test pass"
+    assert clean["sections"][0]["details"]["os"]["label"] == "Windows 11 Home 26H2"
+    assert cp.scrub("ubuntu at home, test", [], words) == "<private> at <private>, <private>"  # the notes: each word
+    monkeypatch.setattr(cp, "private_terms", lambda: ([], ["ubuntu", "zz" + "planted"]))
+    monkeypatch.setattr(cp, "host_facts_text", lambda: ["Ubuntu 24.04.1 LTS"])
+    answers = ["y", "ubuntu box of zz" + "planted"]
+    _, out, _ = run(tmp_path, {1: emit(PASSING)}, selected={1}, yes=True, interactive=True, ask=lambda _: answers.pop(0))
+    report = cp.report_data(out.read_text(encoding="utf-8"))
+    assert report["scrub"] == {"exempted_terms": 1} and report["notes"] == "<private> box of <private>"
+
+
+def test_the_short_macos_host_name_is_scrubbed_with_and_without_local(monkeypatch):
+    host = "Doms" + "-MacBook-Pro"
+    monkeypatch.setattr(cp.socket, "gethostname", lambda: host + ".local")
+    monkeypatch.setattr(cp.platform, "node", lambda: host + ".local")
+    _, words = cp.private_terms()
+    assert host in words and host + ".local" in words
+    assert cp.scrub([f"{host}.local", host, f"made on {host}"], [], words) == ["<private>", "<private>", "made on <private>"]
+
+
 def test_a_placeholder_child_prints_not_built(capsys):
     assert cp.main(["--section", "6"]) == 0
     assert json.loads(capsys.readouterr().out)["reason_code"] == "not-built"

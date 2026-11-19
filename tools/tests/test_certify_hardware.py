@@ -16,6 +16,19 @@ CIM_VIDEO = json.dumps([
      "DriverVersion": "32.0.16.1088", "AdapterRAM": 4293918720}])
 
 
+def test_the_host_record_keeps_only_the_source_of_each_probe_error():
+    """A report holds no error text (ADR-Y14H item 4): only the source tag before the first `:`."""
+    import dataclasses
+
+    from skellytracker.tests.hw_fakes import gpu, host
+
+    probed = dataclasses.replace(host(gpu()), probe_errors=("nvml: NVMLError_LibraryNotFound: libnvidia-ml.so.1 not found",
+                                                            "dxgi: OSError: [WinError 5] access denied"))
+    record = ch.host_record(probed)
+    assert record["probe_errors"] == ["nvml", "dxgi"] and "pci_bus_id" not in record["gpus"][0]
+    assert ch.error_sources(["loaded modules: PermissionError: x", "plain"]) == ["loaded modules", "plain"]
+
+
 def test_cim_video_keeps_the_ids_and_drops_the_instance_path():
     facts = ch.parse_cim_video(CIM_VIDEO)
     assert facts["non_pci_adapters"] == ["Virtual Display"]

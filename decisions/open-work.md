@@ -33,14 +33,16 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     - The removal of a Windows ML package that the suite installs is built (item 5 of
       [ADR-XSE7](entries/XSE7-amd-eps-in-the-field-test.md)) and
       rehearsed with the TensorRT RTX package of the catalog. Still open: the removal of an AMD
-      package; a crash during `ensure_ready()` leaves `package-unknown`; whether Windows downloads a
-      package again after a removal or uses a local copy; and a `skellytracker-eps` command that
+      package; the removal after a crash during `ensure_ready()` (a new enumeration must give the
+      package family; a deployment that Windows ends after the cleanup stays); whether Windows
+      downloads a package again after a removal or uses a local copy; and a `skellytracker-eps` command that
       removes a package that `install KEY --field-test` installed (the command `remove` takes pack
       ids and `--all` only).
     - Linux with an AMD GPU and ROCm 10.0, 10.1 or 10.2: the pack choice, the install, the
       registration with the RUNPATH of 10.1 and 10.2, the preload of 10.0 (the second ONNX Runtime
       core), the probe on ONNX Runtime 1.30.0, and the second environment on 1.29.0 (`uv export`,
-      the editable install, the child run, the sizes). A host with no ROCm: `rocm-missing` and the
+      the install in hash-checking mode, the editable install with the build constraint, the child
+      run, the sizes). A host with no ROCm: `rocm-missing` and the
       CPU only.
     - Windows with an AMD GPU: the EPs that the catalog offers for the GPU (`AMDGPUExecutionProvider`
       needs Windows ML 2.5.96 and an AMD driver 24.12.1 or later), `ensure_ready()` of a package

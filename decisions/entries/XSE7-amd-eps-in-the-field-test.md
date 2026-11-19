@@ -9,7 +9,7 @@ This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) with the field-te
 
 1. **Keys.** `migraphx` and `amdgpu` are `field-test` EP keys. On Linux, `migraphx` is a pack. On
    Windows, `migraphx` and `amdgpu` come from the Windows ML catalog: the EP row names the platform
-   in `windows_ml`, with `ep_name` and the floor `requires: {vendor: amd}`. Such an EP has no pack.
+   in `windows_ml`, with `ep_name` and the floor `requires: {vendor: amd}`.
 2. **Linux packs.** One pack for each ROCm release: `onnxruntime-ep-migraphx` `1.0.0+rocm10.0.0`,
    `+rocm10.1.0` and `+rocm10.2.0` (cp313) with `migraphx-libs` 2.17.0, 2.18.0 and 2.19.0, from the
    two AMD indexes. `pack()` takes the pack whose `requires.rocm` is the release of
@@ -19,22 +19,24 @@ This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) with the field-te
    `preload_ort_core: true`, the core library of the installed `onnxruntime`.
 3. **ORT claim.** `vendor_tested: ["1.29", "1.29"]`. On 1.30.0 an opted-in pack is `untested-ort`:
    usable, with a warning.
-4. **Windows ML route** (`core/eps/windows_ml.py`). `find_eps()` enumerates. `install(key)` lists
-   the packages of the current user (`Get-AppxPackage`), writes a `pending` record, calls
-   `ensure_ready()`, and enumerates again for the version and the package family. The record in
-   `windows-ml.json` of the EP store holds `was_present` and `packages_installed`: each package of
-   that family that the call added. `register(key)` registers `library_path` under `ep_name`, and
-   refuses a package that is not on the PC. With no record or a `pending` record, the state is
+4. **Windows ML route** (`core/eps/windows_ml.py`). `install(key)` lists the packages of the
+   current user (`Get-AppxPackage`), writes a `pending` record with that list (`packages_before`),
+   calls `ensure_ready()`, and enumerates again for the version and the family. The record in
+   `windows-ml.json` of the EP store holds `was_present` (from the catalog, or a package of the
+   family in the list) and `packages_installed`: each package of the family that the call added,
+   none with `was_present`. `register(key)` registers `library_path` under `ep_name`, and refuses a
+   package that is not on the PC. With no record or a `pending` record, the state is
    `not_installed`. `skellytracker-eps install KEY --field-test` asks one question, then installs.
    No command removes the package.
 5. **Removal.** `remove_installed(record)` removes each package of `packages_installed` with
-   `Remove-AppxPackage <PackageFullName>` for the current user, with no administrator rights. It
-   refuses a full name that is not of the family that the catalog reported, and it tries one time.
-   A package that was on the PC before is never in the list. A `pending` record, or a record with
-   `was_present: false` and an empty list, removes nothing and gives `package-unknown`. A removal
-   that fails gives `package-not-removed`.
-6. **Set hash.** Only `ready` packs are in the set hash. A `field-test` pack enters it when a person
-   moves it to `ready`, and the set then needs new evidence. A pack `component` is not in it:
+   `Remove-AppxPackage <PackageFullName>` for the current user, with no administrator rights, in one
+   try. It refuses a full name that is not of the family that the catalog gives now, else of the
+   record. `was_present` removes nothing and gives no row. An `ep_name` that is not a Windows ML EP
+   of the catalog gives `record-refused`. A `pending` record removes each package of the family of a
+   new enumeration that is not in `packages_before`. No family, or no list, gives `package-unknown`.
+   A failure gives `package-not-removed`.
+6. **Set hash.** Only `ready` packs are in the set hash. A `field-test` pack enters it at the move to
+   `ready`, and the set then needs new evidence. A pack `component` is not in it:
    section 5 of the suite is its evidence.
 7. **Hardware classes.** `amd-windows`: `amdgpu`, `migraphx`, `directml`, `cpu`. `amd-linux`:
    `migraphx`, `cpu`. `recommend()` gives `cpu`.
@@ -44,11 +46,12 @@ This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) with the field-te
    is a check `remove-<package>` of section 3. A failure fails section 3. The consent text names
    the EP, because the catalog gives the package name only after the install.
 9. **Suite, Linux, second environment.** When `migraphx` fails on 1.30.0 for a reason other than
-   `probe-l3-failed` or its download, the suite builds `.certify-work/ort-1.29.0` with `uv export
-   --frozen`, the one pin `onnxruntime==1.29.0` of `certification.ort_fallback`, and an editable
-   install of the checkout. The child runs with `SKELLYTRACKER_EP_ORT_FALLBACK=1.29.0`, and only
-   then the EP store accepts that version. Sections 3 and 4 record it as `migraphx@ort-1.29.0`, with
-   `ort_version` and `certifies_version_set: false`. Each result records its `ort_version`.
+   `probe-l3-failed` or its download, the suite builds `.certify-work/ort-1.29.0` with hash checks:
+   `uv export --frozen`, the pin `onnxruntime==1.29.0` with the `sha256` of
+   `certification.ort_fallback`, and an editable install of the checkout with the hash of
+   `build_backend`. The child runs with `SKELLYTRACKER_EP_ORT_FALLBACK=1.29.0`, and only
+   then the EP store accepts that version. Sections 3 and 4 record it as `migraphx@ort-1.29.0` with
+   `certifies_version_set: false`. Each result records its `ort_version`.
 
 ## Reason
 
@@ -61,10 +64,8 @@ This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) with the field-te
 
 ## Consequences
 
-- No result on AMD hardware exists. Each AMD code path is proven by tests with fakes only. The
-  catalog route (install, registration, probe and removal) ran on one PC with the NVIDIA TensorRT
-  RTX EP of the catalog.
-- A crash during `ensure_ready()` gives `package-unknown`, and nothing is removed.
+- No result on AMD hardware exists. Tests with fakes prove each AMD code path.
+- A deployment that Windows ends after the cleanup stays on the PC.
 - The ORT 1.29 core and the second core of the 10.0 pack in one process are not tested.
 - `PackStatus.source` has the values `amd` and `windows-ml`.
 
@@ -73,7 +74,7 @@ This entry builds item 11 of [ADR-Y14H](Y14H-certify-suite.md) with the field-te
 2026-11-18. [XSE7-amd-eps-evidence.md](../evidence/XSE7-amd-eps-evidence.md) gives each item.
 
 - **AMD packs**, read as data: the AMD index pages, the wheel metadata and the link tables of the
-  three ROCm packs, and the one `onnxruntime` 1.29 wheel for cp313 on Linux.
+  three ROCm packs, and the `onnxruntime` 1.29 cp313 Linux wheel (its sha256 checked).
 - **Windows ML catalog route**, run with the TensorRT RTX package of the catalog on a PC with no
   AMD GPU (`scripts/xse7_windows_ml_rehearsal.py`). A package on the PC stays. A package that the
   install added goes, with no administrator rights.
