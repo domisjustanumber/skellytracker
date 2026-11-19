@@ -302,7 +302,7 @@ def not_built(work: Path) -> dict:
 SECTIONS = (
     Section(1, "Checkout and versions", 10, 120, section_checkout),
     Section(2, "Hardware probe", 20, 300, section_hardware),
-    # 3: on an RTX 3070 host, 40 s with the download of 1.07 GB on a fast link, 15 s from --wheel-dir; the limit allows a slow link
+    # 3: on an RTX 3070 host, 40 s with the download of 1.12 GB on a fast link, 15 s from --wheel-dir; the limit allows a slow link
     Section(3, "EPs: install, verify and certify", 60, 2400, section_eps, eps_downloads),
     # 4: about 115 s on a host with an RTX 3070 and an Intel UHD 770 (DirectML on each GPU); the limit allows a slow
     # TensorRT RTX engine build on each camera count

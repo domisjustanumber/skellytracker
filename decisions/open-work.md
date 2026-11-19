@@ -19,10 +19,15 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   590.48.01 or later. It replaces `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh`
   ([ADR-Y14H](entries/Y14H-certify-suite.md) item 16). The change of the items 2 and 3 of N6E8 lands
   only after this run passes. Then write the result in the Evidence section of N6E8.
-- **Certify suite.** [ADR-Y14H](entries/Y14H-certify-suite.md): the frame and sections 1 to 4 are
-  built. Sections 3 and 4 are in `tools/certify_eps.py`. These items stay open:
-  - Sections 5 to 7. Each is a placeholder with `not-run` and `not-built` in `SECTIONS` of
+- **Certify suite.** [ADR-Y14H](entries/Y14H-certify-suite.md): the frame and sections 1 to 5 are
+  built. Sections 3 and 4 are in `tools/certify_eps.py`, section 5 is in `tools/certify_jpeg.py`.
+  These items stay open:
+  - Sections 6 and 7. Each is a placeholder with `not-run` and `not-built` in `SECTIONS` of
     `tools/certify_platform.py`.
+  - Run the Windows ML rehearsal `decisions/scripts/xse7_windows_ml_rehearsal.py` again on the
+    current code. The recorded run used the code before the removal rewrite of commit 1bd2417f
+    ([ADR-ZGF5](entries/ZGF5-certify-measurements-of-2026-11-18.md) item 5). Its registration and
+    L3 probe step needs the GPU.
   - Sections 3 and 4 ran on one Windows host with an NVIDIA GPU and an Intel iGPU only. No run on
     Linux, on macOS (`coreml`), on a host with an AMD GPU or on a laptop with two GPUs.
   - The AMD EPs (item 11) are built ([ADR-XSE7](entries/XSE7-amd-eps-in-the-field-test.md)), and
@@ -69,8 +74,10 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   stay open:
   - Check the `thresholds` of the `certification` block of `ep_catalog.yaml` on more hosts and images.
     One RTX 3070 with `cuda` and `trt-rtx` on one image gave the values of 2026-11-18 (item 16).
-  - Write the `maintainer` rows of `ep_evidence.yaml` for the current set hash on Windows and on
-    Linux. Until then, `tools/onnx_stack.py check` fails for each NVIDIA pack (item 18).
+    [ADR-ZGF5](entries/ZGF5-certify-measurements-of-2026-11-18.md) gives the spread of 10 runs.
+  - Write the `maintainer` rows of `ep_evidence.yaml` for the current set hash on Linux. The two
+    Windows rows are written. Until then, `tools/onnx_stack.py check` fails for each NVIDIA pack on
+    Linux (item 18).
   - Later stage: send a report. The user decided a relay that opens an issue in a public intake
     repository of the freemocap organisation, with no login. Until then, nothing leaves the host.
   - Before a field-test EP ([ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md)) moves to

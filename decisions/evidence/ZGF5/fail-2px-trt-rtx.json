@@ -1,0 +1,71 @@
+{
+ "schema": "skellytracker.eps.certification/1",
+ "created_utc": "2026-11-18T19:58:22Z",
+ "result": "fail",
+ "reason_code": "keypoints-differ",
+ "versions": {
+  "skellytracker": "v2024.09.1019",
+  "ort_distribution": "onnxruntime-windowsml",
+  "ort_version": "1.30.0.202609102321",
+  "catalog_revision": "acb971bfc86d941c5931bb40d6bc394246b1e7fb1ef93cdc4f2af55687315e12",
+  "set_hash": "4abfaa7678817ed4a8ccb5f3e355ba28672589e8a3468bb6805e491dfe03a302"
+ },
+ "ep": {
+  "key": "trt-rtx",
+  "pack_id": "trt-rtx-cu13",
+  "pack_version": "0.5.0"
+ },
+ "host": {
+  "os_name": "Windows",
+  "os_build": 26300,
+  "arch": "AMD64"
+ },
+ "gpu": {
+  "vendor": "nvidia",
+  "name": "NVIDIA GeForce RTX 3070",
+  "id": "10de:2484",
+  "driver_version": "610.88",
+  "compute_capability": "8.6"
+ },
+ "probe": {
+  "ok": true,
+  "level": "L3",
+  "max_abs_diff": 0.005252361297607422,
+  "reason_code": null
+ },
+ "wide": {
+  "people_cpu": 1,
+  "people_ep": 1,
+  "box_iou_min": 0.9989572563657619,
+  "keypoint_px_max": 5.167331878436459,
+  "points_compared": 137,
+  "ok": false,
+  "reason_code": "keypoints-differ",
+  "ran": true,
+  "pipeline": "yolox-rtmw-wholebody@skellytracker",
+  "image_sha256": "5ec5b9e3a587ba06c8f9d0dfbc9749dda31c3380ab7f67d2395f267db79a580d",
+  "warnings": [],
+  "models": [
+   {
+    "key": "yolox-person@openmmlab-exporter",
+    "version": "0.1.0",
+    "size": "m",
+    "precision": "fp16",
+    "execution_provider": "trt-rtx"
+   },
+   {
+    "key": "rtmw-wholebody133@openmmlab-exporter",
+    "version": "0.4.0",
+    "size": "m",
+    "precision": "fp16",
+    "execution_provider": "trt-rtx"
+   }
+  ],
+  "thresholds": {
+   "box_iou_min": 0.9,
+   "keypoint_px_max": 2.0,
+   "score_min": 0.4
+  },
+  "seconds": 4.7
+ }
+}

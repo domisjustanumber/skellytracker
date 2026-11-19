@@ -120,7 +120,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
 | 3. EPs: install, verify and certify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
 | 4. Pipeline on each EP against the CPU EP | Runs the real pipeline for 1, 3 and 6 cameras. Records the time and the GPU memory. Compares the result with the CPU EP. |
-| 5. JPEG decode and preprocess | Decodes synthetic JPEG images on the CPU and, with `cuda` or `trt-rtx`, on the GPU. Compares the frame preprocess with the CPU reference. Runs the real pipeline on JPEG frames. |
+| 5. JPEG decode and preprocess | Decodes synthetic JPEG images on the CPU and, with `cuda` or `trt-rtx`, on the GPU. Compares the frame preprocess with the CPU reference. Runs the real pipeline on JPEG frames. GPU decode is for `cuda` and `trt-rtx` only. Each other EP (DirectML, the AMD EPs, CoreML and the CPU EP) gets frames that the CPU decoded. |
 | 6. Cameras | Not in this version. |
 | 7. JPEG encode and decode speed | Not in this version. |
 
