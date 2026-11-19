@@ -56,9 +56,9 @@ FAILED_CHECK = "quick-check-failed"  # the last quick check on this PC failed
 UNCLEAN_EXITS = "unclean-exits"  # two unclean exits in a row marked the EP as failed on this PC (`exits.py`)
 FAILED_CODES = (FAILED_CHECK, UNCLEAN_EXITS)  # the codes of an EP that failed on this PC
 REASONS = {
-    NEEDS_CHECK: "the project has no reviewed result for it on this GPU model, and no quick check passed on this PC",
-    FAILED_CHECK: "its last quick check failed on this PC",
-    UNCLEAN_EXITS: "the application ended two times in a row with no clean exit while it used this EP on this PC",
+    NEEDS_CHECK: "the project has no reviewed result for it on this GPU model, and no quick check passed on this machine",
+    FAILED_CHECK: "its last quick check failed on this machine",
+    UNCLEAN_EXITS: "the application ended two times in a row with no clean exit while it used this EP on this machine",
 }
 
 _certification_runs = 0  # the depth of `certification_run()` in this process
