@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.0.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.1.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -23,6 +23,7 @@ from skellytracker.tests.hw_fakes import gpu, host
 from skellytracker.tests.test_eps_store import ep_store  # noqa: F401 - fixture
 
 COMMIT = "0123456789abcdef0123456789abcdef01234567"
+UUID4 = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
 FOUND = {"ran": True, "ok": True, "reason_code": None, "people_cpu": 1, "people_ep": 1, "box_iou_min": 0.99,
          "keypoint_px_max": 2.0, "keypoint_box_fraction_max": 0.004, "keypoint_box_fraction_median": 0.001,
          "keypoint_box_fraction_p99": 0.003, "points_compared": 120, "seconds": 3.2, "warnings": [], "exit_reason_code": None,
@@ -47,7 +48,8 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.0.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.1.0" else ["schema"]
+    found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]
     package = report.get("package", {})
@@ -162,7 +164,7 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert (image["numbers"]["ep_ms"], image["numbers"]["cpu_ms"], image["numbers"]["speed_against_cpu"]) == (6.0, 19.0, "faster")
     assert report["details"]["eps"]["trt-rtx@10de-2484-0"]["models"][0]["precision"] == "fp16"
     assert report["details"]["versions"]["set_hash"] == evidence.set_hash(certification.load_catalog())
-    (path,) = certification.reports_dir().glob("quick-*.json")
+    (path,) = certification.reports_dir().glob("*.json")
     assert json.loads(path.read_text(encoding="utf-8")) == report
     pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
     assert certification.read_answers()[pair] == "passed" and len(certification.read_answers()) == 2
@@ -299,8 +301,12 @@ def test_the_plan_names_the_test_image_the_time_and_each_ep_that_will_not_run(qu
     report = skellytracker.certify("quick")
     assert report["checks"] == [] and report["evidence"] == {"valid": False, "reasons": ["no-check"]}
     assert not certification.reports_dir().exists()
-    assert skellytracker.certify_plan("full") == {"package": "skellytracker", "kind": "full", "seconds_estimate": 0, "downloads": [],
-                                                  "system_changes": [], "questions": []}
+    full = skellytracker.certify_plan("full")  # the level `full` also takes an EP with a reviewed row, and the CPU EP checks
+    assert full["details"]["checks"] == ["trt-rtx@10de-2484-0", "directml@10de-2484-0"] and full["kind"] == "full"
+    cpu = (len(package_certification.CAMERA_COUNTS) * package_certification.PIPELINE_SECONDS + package_certification.JPEG_FULL_SECONDS)
+    assert full["seconds_estimate"] == 3 * cpu + 2 * package_certification.PROBE_SECONDS + sum(
+        certification.load_catalog().data["certification"]["seconds"].get(key, package_certification.IMAGE_SECONDS)
+        for key in ("trt-rtx", "directml"))
 
 
 def test_the_run_deletes_the_test_image_that_it_downloaded(quick_host, monkeypatch):
@@ -317,10 +323,81 @@ def test_the_run_deletes_the_test_image_that_it_downloaded(quick_host, monkeypat
     assert not image.exists() and report["cleanup"] == []
 
 
-def test_the_full_level_is_not_built(quick_host):
-    report = skellytracker.certify("full")
-    assert problems_of(report) == [] and report["kind"] == "full"
-    assert results(report) == {"full": ("not-run", "not-built")} and report["evidence"] == {"valid": False, "reasons": ["not-built"]}
+def fake_full(monkeypatch, timing=None, jpeg=None):
+    """Fake the children of the level `full`: the pipeline timing and the JPEG certification. Give the calls."""
+    calls = []
+
+    def timing_run(key, settings, cameras, device_key=None, cancel=None):
+        calls.append(("timing", key, cameras, device_key))
+        found = {"cameras": cameras, "start_seconds": 1.5, "first_call_ms": 40.0, "calls": 100, "p95_ms": 9.0, "peak_vram_mib": None,
+                 "vram_before_mib": 10, "median_ms": 20.0 * cameras if key == "cpu" else 5.0 * cameras}
+        return timing(key, cameras, found) if timing else (found, None, 0)
+
+    def jpeg_spawn(key, device_key, cancel):
+        calls.append(("jpeg", key, device_key))
+        checks = [{"name": "cpu_decode.baseline_420", "result": "pass", "reason": "ok", "numbers": {"max_abs_diff": 1}, "detail": "C:\\secretdir"},
+                  {"name": "gpu_decode.baseline_422", "result": "pass" if key else "not-run", "reason": "ok" if key else "ep_not_present"},
+                  {"name": "preprocess_graph_ep.yolox_person", "result": "fail" if key else "not-run", "reason": "over_limit"}]
+        return jpeg(key) if jpeg else ({"checks": checks, "quick": {"gpu_decode.baseline_422": "jpeg-decode",
+                                                                   "preprocess_graph_ep.yolox_person": "jpeg-preprocess"}}, None, 0)
+
+    monkeypatch.setattr(certification, "timing_run", timing_run)
+    monkeypatch.setattr(package_certification, "_jpeg_full_spawn", jpeg_spawn)
+    return calls
+
+
+def test_the_full_level_times_the_pipeline_and_runs_the_jpeg_certification_on_the_cpu_ep_and_on_each_ep(quick_host, monkeypatch):
+    from skellytracker.core.decode import certification as decode_certification
+
+    assert package_certification.JPEG_FULL_EPS == (*decode_certification.GPU_FRAME_EPS, *decode_certification.AMD_EPS)
+    fake_probe(monkeypatch)
+    fake_image(monkeypatch)
+    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (row,))  # a reviewed row: the level `full` still checks the EP
+    assert skellytracker.certify_plan("quick")["details"]["checks"] == ["directml@10de-2484-0"]
+    calls = fake_full(monkeypatch, timing=lambda key, cameras, found: (
+        ({"error": "RuntimeError"}, None, 0) if (key, cameras) == ("trt-rtx", 6) else (found, "hung-at-exit" if cameras == 3 and key != "cpu" else None, 0)))
+    report = skellytracker.certify("full", execution_providers=["trt-rtx"])
+    ep = "trt-rtx@10de-2484-0"
+    assert problems_of(report) == [] and report["kind"] == "full" and report["evidence"] == {"valid": True, "reasons": []}
+    assert [check["name"] for check in report["checks"]] == [
+        "cpu:pipeline-1", "cpu:pipeline-3", "cpu:pipeline-6", "cpu:jpeg", "cpu:jpeg:cpu_decode.baseline_420",
+        "cpu:jpeg:gpu_decode.baseline_422", "cpu:jpeg:preprocess_graph_ep.yolox_person",
+        f"{ep}:probe", f"{ep}:image", f"{ep}:pipeline-1", f"{ep}:pipeline-3", f"{ep}:pipeline-3:exit", f"{ep}:pipeline-6",
+        f"{ep}:jpeg", f"{ep}:jpeg:cpu_decode.baseline_420", f"{ep}:jpeg:gpu_decode.baseline_422",
+        f"{ep}:jpeg:preprocess_graph_ep.yolox_person", ep]
+    found = results(report, jpeg=True)
+    assert found["cpu:jpeg"] == ("pass", None) and found["cpu:jpeg:gpu_decode.baseline_422"] == ("not-run", "ep_not_present")
+    assert found[f"{ep}:pipeline-1"] == ("record-only", None) and found[f"{ep}:pipeline-6"] == ("not-run", "RuntimeError")
+    assert found[f"{ep}:jpeg"] == ("fail", "over_limit") and found[ep] == ("pass", None)  # a JPEG failure never changes the EP check
+    numbers = next(check["numbers"] for check in report["checks"] if check["name"] == f"{ep}:pipeline-1")
+    assert (numbers["median_ms"], numbers["against_cpu"], numbers["speed_against_cpu"], numbers["peak_vram_mib"]) == (5.0, 0.25, "faster", None)
+    assert "against_cpu" not in next(check["numbers"] for check in report["checks"] if check["name"] == "cpu:pipeline-1")
+    assert calls == [*(("timing", "cpu", cameras, None) for cameras in (1, 3, 6)), ("jpeg", None, None),
+                     *(("timing", "trt-rtx", cameras, "gpu:10de:2484:0") for cameras in (1, 3, 6)), ("jpeg", "trt-rtx", "gpu:10de:2484:0")]
+    assert report["details"]["full"]["camera_counts"] == [1, 3, 6] and report["details"]["eps"][ep]["pack_version"]
+    (path,) = certification.reports_dir().glob("*.json")
+    assert path.stem == report["id"] and json.loads(path.read_text(encoding="utf-8")) == report
+    pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
+    local = store.read_json(store.store_root() / "quick-checks.json")[pair]
+    assert (local["result"], local["jpeg"]) == ("passed", {"jpeg-decode": "pass", "jpeg-preprocess": "fail"})
+    fake_image(monkeypatch)
+    skellytracker.certify("quick", execution_providers=["trt-rtx"])  # a newer quick pass does not delete the report of the level `full`
+    assert path.exists() and len(list(certification.reports_dir().glob("*.json"))) == 2
+
+
+def test_the_full_level_keeps_the_ep_checks_when_a_child_ends_or_the_image_check_does_not_pass(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    fake_image(monkeypatch, ok=False, reason_code="box-differs")
+    fake_full(monkeypatch, timing=lambda key, cameras, found: (None, "crashed", 5), jpeg=lambda key: (None, "timed-out", None))
+    report = skellytracker.certify("full", execution_providers=["trt-rtx", "cpu"])
+    ep, found = "trt-rtx@10de-2484-0", results(report, jpeg=True)
+    assert problems_of(report) == []
+    assert found["cpu:pipeline-1"] == ("fail", "crashed") and found["cpu:jpeg"] == ("fail", "timed-out")
+    assert found[f"{ep}:pipeline-1"] == ("not-run", "image-not-passed") and found[f"{ep}:jpeg"] == ("fail", "timed-out")
+    assert found[ep] == ("fail", "box-differs") and found["cpu"] == ("not-run", "not-gpu-ep")  # a named `cpu` adds no second timing
+    assert [name for name in found if name.startswith("cpu")] == ["cpu:pipeline-1", "cpu:pipeline-3", "cpu:pipeline-6", "cpu:jpeg",
+                                                                  "cpu:probe", "cpu:image", "cpu"]
 
 
 def test_a_version_that_is_not_semver_gives_no_version(monkeypatch):
@@ -432,7 +509,7 @@ def test_the_hand_in_list_holds_each_report_with_a_check_that_ran_and_keeps_its_
     first, second = skellytracker.pending_reports()
     assert first == {"report_id": first["report_id"], "kind": "quick", "created_utc": passed["created_utc"], "has_failure": False,
                      "evidence_valid": True, "state": "pending", "reference": None}
-    assert second["has_failure"] and second["created_utc"] == "2030-01-01T00:00:00Z" and first["report_id"].startswith("quick-")
+    assert second["has_failure"] and second["created_utc"] == "2030-01-01T00:00:00Z" and UUID4.match(first["report_id"]) and passed["id"] == first["report_id"]
     assert skellytracker.read_report(first["report_id"]) == passed
     ids = [first["report_id"], second["report_id"]]
     skellytracker.mark_reports(ids, "covered", reference="https://example.invalid/issues/7")

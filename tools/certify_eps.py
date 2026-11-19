@@ -36,7 +36,7 @@ model files of the ``models`` list of the ``certification`` block of the EP cata
 and needs the pipeline of that block to be available, else it is ``not-run`` with
 ``models-missing``. For the CPU EP, and for each GPU EP and each ``directml`` GPU whose
 probe passed in section 3 (``pipeline_targets`` of its details; 1, 3 and 6 cameras, the test image
-on each camera; a target of the second environment runs there, in a child process), it times ``WARMUP_CALLS`` and then ``TIMED_CALLS`` calls
+on each camera; a target of the second environment runs there, in a child process), it times the warm-up calls and then the timed calls of ``certification.time_run()`` of the package
 in the running mode ``video`` with the span ``pipeline.run``: the start time (the sessions, with the
 TensorRT RTX engine build), the first call, and the median and p95 of the timed calls. The peak VRAM
 is the largest VRAM of this process in a ``LiveSampler`` sample after each call. The timing of a GPU target for each
@@ -53,7 +53,6 @@ import dataclasses
 import json
 import os
 import shutil
-import statistics
 import sys
 import time
 from pathlib import Path
@@ -64,8 +63,7 @@ from certify_platform import MODEL_ROOT, check, outcome  # the frame deletes lis
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REMOVE_LIST = "remove-at-end.json"  # the frame deletes each file of this list at the end of the run
-WARMUP_CALLS, TIMED_CALLS, CAMERA_COUNTS = 10, 100, (1, 3, 6)  # each EP, also the CPU EP; see the estimate of section 4
-MIB = 2**20
+CAMERA_COUNTS = (1, 3, 6)  # each EP, also the CPU EP; see the estimate of section 4
 NUMBER_FAILURES = ("probe-l3-failed",)  # the EP loaded and ran: the second environment does not help
 
 
@@ -412,45 +410,12 @@ def pipeline_downloads(options: dict) -> tuple[tuple[str, int], ...]:
             *((Path(m["path"]).name, m["bytes"]) for m in settings.get("models") or () if not (MODEL_ROOT / m["path"]).is_file()))
 
 
-def process_vram(sampler, pid: int) -> int | None:
-    """The VRAM bytes of this process: Windows PDH, or NVML per process on Linux; None when no reader gives it."""
-    sample = sampler.sample([pid])
-    values = [p.vram_used_bytes for p in sample.processes if p.pid == pid]
-    values += [row.vram_used_bytes for gpu in sample.gpus for row in (gpu.processes or ()) if row.pid == pid]
-    values = [value for value in values if value is not None]
-    return max(values) if values else None
-
-
-def mib(value: int | None):
-    return "not-available" if value is None else round(value / MIB)
-
-
 def time_run(pipeline: str, execution_provider: str, cameras: int, image, device: str | None = None) -> dict:
-    """Start the pipeline, run the warm-up and the timed calls, and give the times of the span `pipeline.run`."""
-    from skellytracker.core import pipelines
-    from skellytracker.core.metrics import LiveSampler
-    from skellytracker.core.pipelines.timing import duration_ms
+    """The timing of `certification.time_run()` of the package, with `not-available` for a VRAM value that no reader gives."""
+    from skellytracker.core.eps import certification
 
-    config = pipelines.load_pipeline(pipeline)
-    config.instrumentation.timing_spans = ["pipeline.run"]
-    events, sampler, pid, ids = [], LiveSampler(), os.getpid(), list(range(cameras))
-    before = process_vram(sampler, pid)
-    peak = before
-    started = time.perf_counter()
-    with pipelines.start_pipeline(config, camera_ids=ids, running_mode="video", execution_provider=execution_provider,
-                                  timing_sink=events.append, device=device) as run:
-        start_seconds = time.perf_counter() - started
-        for index in range(WARMUP_CALLS + TIMED_CALLS):
-            run.process_batch({camera: pipelines.Frame(image, frame_index=index) for camera in ids})
-            # shortcut: a sample after each call, not during it; the ONNX Runtime arenas keep their peak, so it is close
-            now = process_vram(sampler, pid)
-            peak = now if peak is None else max(peak, now or 0)
-    calls = [duration_ms(event) for event in events if event.get("node_id") == "pipeline"]
-    timed = sorted(calls[WARMUP_CALLS:])
-    return {"cameras": cameras, "start_seconds": round(start_seconds, 2), "first_call_ms": round(calls[0], 1),
-            "calls": len(timed), "median_ms": round(statistics.median(timed), 2),
-            "p95_ms": round(timed[min(len(timed) - 1, round(0.95 * (len(timed) - 1)))], 2),
-            "vram_before_mib": mib(before), "peak_vram_mib": mib(peak)}
+    found = certification.time_run(pipeline, execution_provider, cameras, image, device)
+    return {name: "not-available" if value is None and name.endswith("_mib") else value for name, value in found.items()}
 
 
 AGREEMENT_FIELDS = ("box_iou_min", "keypoint_box_fraction_max", "keypoint_box_fraction_median", "keypoint_box_fraction_p99",
@@ -500,16 +465,9 @@ def pipeline_target(target: dict, settings: dict, frame, seen: set, suffix: str 
 
 def test_image(settings: dict):
     """The decoded test image of the `certification` block, from the cache of `_wide_run()` in the work folder."""
-    import cv2
-    import numpy as np
+    from skellytracker.core.eps import certification
 
-    from skellytracker.core.eps import _download, store
-
-    image = settings["image"]
-    path = store.cache_root() / "certify" / f"{image['sha256']}.jpg"
-    if not (path.is_file() and _download.sha256_of(path) == image["sha256"]):
-        path = _download.fetch(image["url"], image["sha256"], path)
-    return cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
+    return certification.test_frame(settings)
 
 
 def fallback_main(mode: str, key: str, work: Path) -> dict:
@@ -532,12 +490,12 @@ def section_pipeline(work: Path) -> dict:
     if not isolated():
         return not_isolated()
     from skellytracker.core import pipelines
-    from skellytracker.core.eps import _download
+    from skellytracker.core.eps import _download, certification
     from skellytracker.core.eps.catalog import load_catalog
 
     settings = load_catalog().data["certification"]
     details = {"models": fetch_models(settings.get("models") or (), MODEL_ROOT, work), "pipeline": settings["pipeline"],
-               "calls": {"warmup": WARMUP_CALLS, "timed": TIMED_CALLS, "running_mode": "video"}, "eps": {}}
+               "calls": {"warmup": certification.WARMUP_CALLS, "timed": certification.TIMED_CALLS, "running_mode": "video"}, "eps": {}}
     if not pipelines.get_pipeline(settings["pipeline"]).available:
         return {"result": "not-run", "reason_code": "models-missing", "summary": "a model file of the pipeline is absent",
                 "checks": [], "details": details}

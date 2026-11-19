@@ -14,7 +14,9 @@ probe only.
 """
 
 import json
+import os
 import re
+import statistics
 import threading
 import time
 from collections.abc import Callable
@@ -34,6 +36,8 @@ REPORT_SCHEMA = "skellytracker.eps.certification/1"
 PARTIAL_PLACEMENT = "ep_partial_placement"  # the warning code of the pipeline runtime; `_runtime` is private
 SCORE_MARGIN = 0.1  # not calibrated: fp16 noise near `score_min` must not fail a good EP
 SIMILAR_SPEED = 0.2  # `similar`: the warm call on the EP is within 20 % of the warm call on the CPU EP
+WARMUP_CALLS, TIMED_CALLS = 10, 100  # the calls of `time_run()`: the warm-up calls, and then the timed calls
+TIMING_TIMEOUT_SECONDS = 900.0  # not calibrated: the start of the child, a pipeline start with an engine build on each camera, 110 calls
 WARM_CALLS = 2  # extra calls after the first, so that the first-call cost is not the figure; the fastest one is the figure
 WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
 
@@ -173,6 +177,80 @@ def _wide_child(key: str, settings: dict, device_key: str | None, connection) ->
         result = {"error": type(error).__name__}
     connection.send(result)
     connection.close()
+
+
+def test_frame(settings: dict):
+    """The decoded test image of the `certification` block of the EP catalog, from the cache. It downloads the image when the cache has no copy."""
+    import cv2
+    import numpy as np
+
+    image = settings["image"]
+    path = store.cache_root() / "certify" / f"{image['sha256']}.jpg"
+    if not (path.is_file() and _download.sha256_of(path) == image["sha256"]):
+        path = _download.fetch(image["url"], image["sha256"], path)
+    return cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
+
+
+def _process_vram(sampler, pid: int) -> int | None:
+    """The VRAM bytes of this process: Windows PDH, or NVML per process on Linux; None when no reader gives it."""
+    sample = sampler.sample([pid])
+    values = [p.vram_used_bytes for p in sample.processes if p.pid == pid]
+    values += [row.vram_used_bytes for gpu in sample.gpus for row in (gpu.processes or ()) if row.pid == pid]
+    values = [value for value in values if value is not None]
+    return max(values) if values else None
+
+
+def time_run(pipeline, execution_provider: str, cameras: int, image, device: str | None = None) -> dict:
+    """Start the pipeline on `cameras` cameras in the running mode `video`, and time `TIMED_CALLS` calls after `WARMUP_CALLS` calls.
+
+    `pipeline` is a key of the pipeline catalog or the mapping of a config. The times are of the span
+    `pipeline.run`. `start_seconds` holds the start of the sessions, with an engine build. The VRAM values are
+    of this process, in MiB, from a sample after each call. They are None when no reader gives the value.
+    """
+    from skellytracker.core import pipelines
+    from skellytracker.core.metrics import LiveSampler
+    from skellytracker.core.pipelines.timing import duration_ms
+
+    def mib(value: int | None) -> int | None:
+        return None if value is None else round(value / 2**20)
+
+    config = pipelines.load_pipeline(pipeline)
+    config.instrumentation.timing_spans = ["pipeline.run"]
+    events, sampler, pid, ids = [], LiveSampler(), os.getpid(), list(range(cameras))
+    before = _process_vram(sampler, pid)
+    peak = before
+    started = time.perf_counter()
+    with pipelines.start_pipeline(config, camera_ids=ids, running_mode="video", execution_provider=execution_provider,
+                                  timing_sink=events.append, device=device) as run:
+        start_seconds = time.perf_counter() - started
+        for index in range(WARMUP_CALLS + TIMED_CALLS):
+            run.process_batch({camera: pipelines.Frame(image, frame_index=index) for camera in ids})
+            # shortcut: a sample after each call, not during it; the ONNX Runtime arenas keep their peak, so it is close
+            now = _process_vram(sampler, pid)
+            peak = now if peak is None else max(peak, now or 0)
+    calls = [duration_ms(event) for event in events if event.get("node_id") == "pipeline"]
+    timed = sorted(calls[WARMUP_CALLS:])
+    return {"cameras": cameras, "start_seconds": round(start_seconds, 2), "first_call_ms": round(calls[0], 1),
+            "calls": len(timed), "median_ms": round(statistics.median(timed), 2),
+            "p95_ms": round(timed[min(len(timed) - 1, round(0.95 * (len(timed) - 1)))], 2),
+            "vram_before_mib": mib(before), "peak_vram_mib": mib(peak)}
+
+
+def _timing_child(key: str, settings: dict, cameras: int, device_key: str | None, connection) -> None:
+    """The child of `timing_run()`: it sends the result of `time_run()`, or `{"error": <exception class name>}`."""
+    try:
+        with gate.certification_run():  # the level `full` times an EP that can have no result yet
+            result = time_run(settings["pipeline"], key, cameras, test_frame(settings), device_key)
+    except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+        result = {"error": type(error).__name__}
+    connection.send(result)
+    connection.close()
+
+
+def timing_run(key: str, settings: dict, cameras: int, device_key: str | None = None, *,
+               cancel: threading.Event | None = None, timeout: float = TIMING_TIMEOUT_SECONDS) -> tuple:
+    """Run `time_run()` on the EP `key` in a `spawn` child, and give `(result, problem, exit_code)` of `spawn_child()`."""
+    return verification.spawn_child(_timing_child, (key, settings, cameras, device_key), timeout=timeout, cancel=cancel)
 
 
 def _image_run(key: str, settings: dict, progress: Callable[[str], None], device_key: str | None = None) -> dict:

@@ -214,13 +214,16 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 [ADR-K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) are decided. The quick level of
 `skellytracker.certify()` and `skellytracker.certify_plan()` is built (`skellytracker/certification.py`).
 It writes the local result in `quick-checks.json` of the EP store, and a passed quick check keeps the
-field-test opt-in. Build in this order:
+field-test opt-in. The level `full` is built in the package
+([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md)). Build in this order:
 
-1. The level `full` in `certify()`. Today it returns the check `full` as `not-run` with `not-built`,
-   and the level `full` is `tools/certify_platform.py`.
-2. The report of `tools/certify_platform.py` in the format `skellycertify.report/1.0.0`, with the
-   block `package` by the rules of `skellytracker/certification.py`. Add its reason codes to
-   `skellytracker/REASON_CODES.md`. Cut the suite to sections 1 to 5. A build must write
+1. A run of the level `full` on a plugin EP (`cuda`, `trt-rtx`), on Linux and on macOS. Only
+   `directml` on one Windows host ran it. Then calibrate its time estimates and the time estimates of
+   the level `quick`.
+2. `tools/certify_platform.py` must call `certify("full")` and add its own checks to the same report:
+   the versions against `uv.lock`, the hardware probe against the tools of the OS, and the install of
+   each pack ([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md) item 5). Add their
+   reason codes to `skellytracker/REASON_CODES.md`. Remove sections 6 and 7. A build must write
    `skellytracker/_build_info.py`: the reader exists, the build step does not.
 3. A run of the quick check of `coreml` on a Mac. No Mac ran it
    ([ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 6).
