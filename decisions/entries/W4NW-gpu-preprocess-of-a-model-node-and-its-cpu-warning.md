@@ -82,5 +82,5 @@ One RTX 3070, Windows 11, `onnxruntime-windowsml` 1.30.0, DirectML.dll 1.15.4, n
   gives no `fail`. The graph is within the resize limit, also for ROIs at the far corner of a
   3840x2160 frame. The DML hand-over is bitwise equal in 300 of 300 repeats. A frame from
   `OrtValue.ortvalue_from_numpy(..., "dml")` gives a wrong graph output in 25 of 50 repeats
-  (`frame_upload`). The pipeline outputs of `gpu` and `cpu` are equal on 8 frames. A scratch probe
-  (not in git): on the UHD 770 (DXGI adapter 1), only the device id 0 binds; 1 and 2 fail at the run.
+  (`frame_upload`). The pipeline outputs of `gpu` and `cpu` are equal on 8 frames. On the UHD 770
+  (DXGI adapter 1), the binding of the device ids 1 and 2 is not recorded; measure it again.

@@ -113,8 +113,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   a reviewed report moves `directml` into `GRAPH_DEFAULT_EPS`. On an AMD GPU on Windows, the report
   must show `run_jpeg_certification("directml")` with no `fail` in `preprocess_graph_amd_ep.*` and
   `pipeline_amd_ep.*`, the numbers of `frame_upload` and `gpu_vs_cpu_preprocess`, and the time of
-  the span `person.preprocess` with `gpu` and with `cpu`. On one RTX 3070, this span was slower with
-  `gpu` (about 6 ms) than with `cpu` (about 4 ms), in a rough run.
+  the span `person.preprocess` with `gpu` and with `cpu`. On one RTX 3070, the time of this span
+  with `gpu` and with `cpu` is not recorded; measure it again.
 - **Dependency pins for the exporters.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
   decides exact pins, ONNX Runtime 1.30.0 as a base dependency with GPU EPs as CUDA 13 plugin packs,
   and `requires-python = "==3.13.18"`. The exporters that agents build again pin the 2.0.0
