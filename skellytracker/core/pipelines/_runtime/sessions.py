@@ -37,6 +37,7 @@ GRAPH_REFUSED = "graph_refused"
 SESSION_NOT_BUILT = "session_not_built"
 FRAME_SIZE_CAP = "frame_size_cap"
 EP_NOT_WIRED = "ep_not_wired"
+QUICK_CHECK_FAILED = "quick_check_failed"  # also a reason of the warning `jpeg_decoded_on_cpu`
 
 
 @dataclass(frozen=True)

@@ -731,6 +731,35 @@ def test_a_jpeg_that_the_gpu_decoder_refuses_decodes_on_the_cpu_with_one_warning
     assert_agree(gpu, cpu, JPEG_SCORE_TOLERANCE)
 
 
+@pytest.mark.parametrize("execution_provider", GPU_EPS)
+def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_and_keeps_the_gpu_preprocess_on_a_gpu_ep(
+    root: Path, execution_provider: str, bound_runs: list[int], monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The EP packs are in the EP store of the host, so the test patches the read of the stored result (pipeline.running, Behaviour item 13)."""
+    from skellytracker.core.pipelines._runtime import executor
+
+    reads: list[tuple[str, Any]] = []
+    monkeypatch.setattr(executor, "stored_jpeg_checks", lambda ep, key: (reads.append((ep, key)), {"jpeg-decode": "fail", "jpeg-preprocess": "pass"})[1])
+    monkeypatch.setattr(executor, "open_jpeg_decoder", lambda *args: pytest.fail("no GPU JPEG decoder opens"))
+    calls = jpeg_camera_calls(2)
+    cpu, _ = run_calls(root, calls, camera_ids=["a", "b", "c"])
+    assert reads == []  # the CPU EP reads no stored result
+    data = on_ep(detector_pipeline(), execution_provider)
+    data["instrumentation"] = {"timing_spans": JPEG_SPANS}
+    lines: list[dict] = []
+    with start(root, data, camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        gpu = [run.process_batch(frames) for frames in calls]
+        frame = port_values(run, "a")["frame.image"]
+        assert frame.pixels is not None and frame.device is None  # decoded on the CPU; the frame stage uploads it (the spans below)
+        assert [value.device_name() for value in frame._uploads.values()] == ["cuda"]  # noqa: SLF001
+    assert [execution_provider] * 2 == [ep for ep, _ in reads] and all(key.startswith("gpu:") for _, key in reads)
+    assert [dict(warning.details) for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"] == [{"reason": "quick_check_failed"}]
+    assert cpu_warnings(run) == [] and len(bound_runs) == 2 * len(calls)  # each node of each call ran its preprocess graph
+    assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
+        ("decode", ["a", "b"]), ("upload", ["a", "b", "c"])] * len(calls)
+    assert_agree(gpu, cpu)
+
+
 # The GPU preprocess on `directml` (`-m gpu`, Windows only). The EP store is a private folder of `tmp_path` with the
 # field-test opt-in of `directml` (ADR-Z5X7). The JPEG buffers decode on the CPU, and the run gives no warning.
 

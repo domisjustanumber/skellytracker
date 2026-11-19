@@ -1,6 +1,7 @@
 """The executor of a pipeline run (`_runtime/executor.py`), on generated ONNX models on the CPU EP."""
 from __future__ import annotations
 
+import json
 import logging
 import threading
 from pathlib import Path
@@ -1145,6 +1146,157 @@ def test_close_frees_the_decoded_frames_then_the_sessions_then_the_decoder_and_a
     run.close()
     assert log[-4:] == [("person", {}, {}), ("body", {}, {}), "sessions", "close"]  # the frames are gone before the sessions
     assert executor.decoders == {}
+
+
+# A stored `fail` of a JPEG check of the quick check (pipeline.running, Behaviour item 13). The fixture `gpu_decode` runs
+# the GPU frame path on the CPU EP; `stored` patches the read of `quick-checks.json`, and the tests of
+# `stored_jpeg_checks` read a file of a private EP store.
+
+
+@pytest.fixture
+def stored(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """`found["checks"]` is the stored result of each device; `found["reads"]` records the `(EP, device key)` of each read."""
+    from skellytracker.core.pipelines._runtime import executor
+
+    found: dict[str, Any] = {"checks": {}, "reads": []}
+    monkeypatch.setattr(executor, "stored_jpeg_checks", lambda ep, key: (found["reads"].append((ep, key)), dict(found["checks"]))[1])
+    return found
+
+
+def preprocess_warnings(run: Any) -> list[Any]:
+    return [warning for warning in run.warnings if warning.code == "preprocessed_on_cpu"]
+
+
+def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_keeps_the_gpu_preprocess_and_warns_one_time(
+    root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any],
+) -> None:
+    stored["checks"] = {"jpeg-decode": "fail", "jpeg-preprocess": "pass"}
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"]) as run:
+        assert run.warnings == ()  # the decode warning comes at the first JPEG call
+        for frames in jpeg_calls(3):
+            before = len(gpu_decode["uploads"])
+            run.process_batch(frames)
+            assert len(gpu_decode["uploads"]) - before == 3  # the CPU frames of a and b upload for the GPU preprocess, as c does
+            assert port_values(run, "a")["frame.image"].pixels is not None
+        assert run._executor.models["person"].graph_on_at_start  # noqa: SLF001
+    assert gpu_decode["log"] == [] and preprocess_warnings(run) == []  # no GPU decoder opens
+    (warning,) = jpeg_warnings(run)
+    assert (warning.node_ids, dict(warning.details)) == ((), {"reason": "quick_check_failed"})
+
+
+def test_a_stored_jpeg_preprocess_fail_uses_the_cpu_preprocess_and_the_cpu_decode_with_the_warnings(
+    root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any],
+) -> None:
+    expected_calls = jpeg_calls(2)
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], preprocess="cpu") as run:
+        expected = [run.process_batch(frames) for frames in expected_calls]
+    stored["checks"] = {"jpeg-decode": "pass", "jpeg-preprocess": "fail"}
+    lines: list[dict] = []
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        assert [(w.node_ids, dict(w.details)["reason"], dict(w.details)["frame_sizes"]) for w in run.warnings] == [
+            (("person",), "quick_check_failed", None), (("body",), "quick_check_failed", None)]  # at the start, one for each node
+        results = [run.process_batch(frames) for frames in jpeg_calls(2)]
+        assert run._executor.models["person"].graph is None and run._executor.upload_devices == {}  # noqa: SLF001
+    assert gpu_decode["log"] == [] and gpu_decode["uploads"] == []  # no GPU decoder opens and no frame uploads
+    assert [dict(warning.details) for warning in jpeg_warnings(run)] == [{"reason": "quick_check_failed"}]
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": None, "body": None}
+    for found, wanted in zip(results, expected, strict=True):  # the CPU path of `preprocess="cpu"`
+        for camera in wanted:
+            np.testing.assert_array_equal(found[camera]["wholebody"].xy, wanted[camera]["wholebody"].xy)
+            np.testing.assert_array_equal(found[camera]["boxes"].xyxy, wanted[camera]["boxes"].xyxy)
+
+
+@pytest.mark.parametrize("checks", [
+    {"jpeg-decode": "pass", "jpeg-preprocess": "pass"}, {"jpeg-decode": "not-run", "jpeg-preprocess": "not-run"}, {},
+], ids=["pass", "not-run", "no_stored_result"])
+def test_a_stored_pass_not_run_or_no_stored_result_keeps_the_gpu_frame_path(
+    root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any], checks: dict[str, str],
+) -> None:
+    stored["checks"] = checks
+    lines: list[dict] = []
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        for frames in jpeg_calls():
+            run.process_batch(frames)
+            assert port_values(run, "a")["frame.image"].pixels is None  # a frame of the GPU decoder
+    assert stored["reads"] == [("cpu", None)] * 2 and run.warnings == ()  # one read for each node and device, at the start
+    assert gpu_decode["log"][0] == ("open", "cpu")
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": "CPUExecutionProvider", "body": "CPUExecutionProvider"}
+
+
+@pytest.mark.parametrize("preprocess", ["gpu", "cpu"])
+def test_preprocess_gpu_and_cpu_do_not_read_the_stored_result(
+    root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any], monkeypatch: pytest.MonkeyPatch, preprocess: str,
+) -> None:
+    from skellytracker.core.pipelines._runtime import onnx_model
+
+    monkeypatch.setattr(onnx_model, "GRAPH_EPS", onnx_model.GRAPH_EPS | {"cpu"})
+    stored["checks"] = {"jpeg-decode": "fail", "jpeg-preprocess": "fail"}
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], preprocess=preprocess) as run:
+        for frames in jpeg_calls():
+            run.process_batch(frames)
+    assert stored["reads"] == [] and run.warnings == ()
+    assert gpu_decode["log"][:1] == ([("open", "cpu")] if preprocess == "gpu" else [])  # `gpu` runs the GPU frame path
+
+
+@pytest.mark.parametrize("failed", [0, 1])
+def test_a_stored_jpeg_preprocess_fail_switches_off_only_its_own_gpu(
+    root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any], monkeypatch: pytest.MonkeyPatch, failed: int,
+) -> None:
+    """Two GPUs, each with one JPEG camera. The header gives the preprocess of the first GPU (pipeline.timing, Fields)."""
+    from skellytracker.core.eps.records import RunDevice
+    from skellytracker.core.pipelines._runtime import executor, sessions
+
+    gpus = (RunDevice("gpu:0", "0000:01:00.0"), RunDevice("gpu:1", "0000:02:00.0"))
+    monkeypatch.setattr(sessions, "run_gpus", lambda plans, device: gpus)
+    monkeypatch.setattr(sessions, "free_vram", lambda key: None)
+    monkeypatch.setattr(executor, "stored_jpeg_checks", lambda ep, key: {"jpeg-preprocess": "fail"} if key == f"gpu:{failed}" else {})
+    calls = [{"a": Frame(jpeg(image(1 + index, 40, 48)), index), "b": Frame(jpeg(image(2, 36, 64)), index)} for index in range(2)]
+    lines: list[dict] = []
+    with start(root, detector_pipeline(), camera_ids=["a", "b"], timing_sink=lines.append) as run:
+        assert run._executor.device_of == {"a": 0, "b": 1}  # noqa: SLF001
+        for frames in calls:
+            run.process_batch(frames)
+            on_gpu = {camera: port_values(run, camera)["frame.image"].pixels is None for camera in "ab"}
+            assert on_gpu == {"a": failed == 1, "b": failed == 0}  # a frame of the GPU decoder only on the GPU that passed
+        assert set(run._executor.upload_devices) == {1 - failed}  # noqa: SLF001
+    assert [dict(warning.details)["reason"] for warning in preprocess_warnings(run)] == ["quick_check_failed"] * 2
+    assert [dict(warning.details) for warning in jpeg_warnings(run)] == [{"reason": "quick_check_failed"}]
+    assert gpu_decode["log"].count(("open", "cpu")) == 1
+    provider = None if failed == 0 else "CPUExecutionProvider"
+    assert {item["id"]: item["stage_providers"]["preprocess"] for item in lines[0]["nodes"]} == {"person": provider, "body": provider}
+
+
+def write_quick_checks(folder: Path, rows: Any) -> None:
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "quick-checks.json").write_text(rows if isinstance(rows, str) else json.dumps(rows), encoding="utf-8")
+
+
+def test_stored_jpeg_checks_reads_the_row_of_the_pair_and_gives_no_stored_result_on_each_fault(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from skellytracker.core.eps import certification, store
+    from skellytracker.core.eps.catalog import load_catalog
+    from skellytracker.core.pipelines._runtime.executor import stored_jpeg_checks
+    from skellytracker.core.system import host as host_module
+    from skellytracker.tests.hw_fakes import gpu, host
+
+    folder = tmp_path / "eps"
+    monkeypatch.setenv(store.STORE_VARIABLE, str(folder))
+    fake = host(gpu())
+    monkeypatch.setattr(host_module, "probe_host", lambda: fake)
+    device_key = "gpu:10de:2484:0"
+    pair = certification.pair_key(load_catalog(), "cuda", gpu(), "Windows")
+    jpeg = {"jpeg-decode": "fail", "jpeg-preprocess": "pass"}
+
+    assert stored_jpeg_checks("cuda", device_key) == {} and not folder.exists()  # no file: no stored result, and the read writes nothing
+    write_quick_checks(folder, {pair: {"result": "passed", "jpeg": jpeg}})
+    assert stored_jpeg_checks("cuda", device_key) == jpeg
+    assert stored_jpeg_checks("trt-rtx", device_key) == {}  # no row of the pair
+    assert stored_jpeg_checks("cuda", None) == {} and stored_jpeg_checks("cuda", "gpu:10de:2204:0") == {}  # no GPU of the host
+    for rows in ({pair: {"result": "passed"}}, {pair: "passed"}, [pair], "{not json", {pair: {"jpeg": ["fail"]}}):  # no `jpeg`, or damaged
+        write_quick_checks(folder, rows)
+        assert stored_jpeg_checks("cuda", device_key) == {}
+    write_quick_checks(folder, {pair: {"jpeg": {"jpeg-decode": 1}}})  # a damaged value comes back, and it is not `fail`
+    assert stored_jpeg_checks("cuda", device_key) == {"jpeg-decode": 1}
+    assert sorted(path.name for path in folder.iterdir()) == ["quick-checks.json"]  # no lock file
 
 
 def test_a_run_on_the_cpu_ep_opens_no_decoder_gives_no_jpeg_warning_and_a_jpeg_frame_gives_only_a_decode_event(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:

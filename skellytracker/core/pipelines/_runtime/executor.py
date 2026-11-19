@@ -79,6 +79,27 @@ def decoder_missing_warning(execution_provider: str, cause: str | None = None) -
     })
 
 
+def stored_jpeg_checks(execution_provider: str, device_key: str | None) -> dict[str, Any]:  # Any: beartype must not check a damaged value
+    """The stored result of each JPEG check of the quick check of the EP on one GPU, for example `{"jpeg-decode": "fail"}` (Behaviour item 13).
+
+    The row of the pair in `quick-checks.json` of the EP store. The read takes no store lock: the writer
+    replaces the file in one step, and the lock would make the store folder. Each fault gives {}: a run
+    never fails on it.
+    """
+    from skellytracker.core.eps import certification, store
+    from skellytracker.core.eps.catalog import load_catalog
+    from skellytracker.core.system.host import gpu_device_keys, probe_host
+
+    if device_key is None:
+        return {}
+    try:
+        host = probe_host()  # the record of the start check of the run: no second probe
+        pair = certification.pair_key(load_catalog(), execution_provider, dict(gpu_device_keys(host))[device_key], host.os_name)
+        return dict(store.read_json(store.store_root() / "quick-checks.json")[pair]["jpeg"])
+    except Exception:  # noqa: BLE001 - no file, no row, no `jpeg` or a damaged file: no stored result
+        return {}
+
+
 def _port(ref: str) -> Port:
     node_id, _, port = ref.partition(".")
     return node_id, port
@@ -228,6 +249,9 @@ class Executor:
         self.decoders: dict[int, Any] = {}
         self.open_errors: dict[int, str] = {}
         self.jpeg_warned: set[Any] = set()
+        # the device indices where a stored quick check moves the JPEG decode to the CPU, and the warnings of the start
+        self.decode_failed: set[int] = set()
+        self.start_warnings: list[PipelineWarning] = []
         self.decode_pool: concurrent.futures.ThreadPoolExecutor | None = None  # the CPU JPEG decode, opened at the first call that uses it
         try:
             opened = self._open_sessions()
@@ -268,7 +292,7 @@ class Executor:
             self.close(write_taps=False)
             raise
 
-        for warning in (*resolved.warnings, *self.sessions.partial_placement(), *self._not_wired()):
+        for warning in (*resolved.warnings, *self.sessions.partial_placement(), *self._not_wired(), *self.start_warnings):
             self._warn(warning)
         stateful = resolved.stateful_nodes(running_mode)
         if stateful and running_mode == "video":
@@ -306,21 +330,38 @@ class Executor:
             # the GPU preprocess (pipeline.running, Implementer guidance); with `preprocess="cpu"` no node has a graph, so no
             # frame uploads and no GPU JPEG decoder opens, and the run gives no warning of the CPU path (Behaviour item 14)
             graph_eps = {"auto": onnx_model.GRAPH_DEFAULT_EPS, "gpu": onnx_model.GRAPH_EPS, "cpu": frozenset()}[self.preprocess]
-            if plan.execution_provider in graph_eps:
+            # with `auto`, a stored `fail` of a JPEG check of the quick check switches off its part of the GPU frame path on
+            # its device (Behaviour item 13): `jpeg-preprocess` the GPU preprocess and the GPU decode, `jpeg-decode` the GPU decode
+            reads = self.preprocess == "auto" and plan.execution_provider in graph_eps and plan.execution_provider in JPEG_DECODER_EPS
+            stored = [stored_jpeg_checks(plan.execution_provider, device_key) if reads else {} for device_key in self.devices]
+            off = frozenset(index for index, checks in enumerate(stored) if checks.get("jpeg-preprocess") == "fail")
+            if plan.execution_provider in graph_eps and len(off) < len(self.devices):
                 # the device memory of the bound values is that of the provider of the model session
                 device_type = {sessions.CPU_EP_NAME: "cpu", sessions.DML_EP_NAME: "dml"}.get(opened[node_id][0].report.ep_name, "cuda")
                 graph = onnx_model.GraphPath(
                     functools.partial(self.sessions.open_preprocess, node, plan), places, device_type, self._warn,
-                    onnx_model.graph_refusal(node.model, plan.precision, slots),
+                    onnx_model.graph_refusal(node.model, plan.precision, slots), off,
                 )
-            runner = self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
-            if runner.graph_on_at_start:  # the frame stage uploads or GPU-decodes the frames of these devices
-                for index, place in enumerate(places):
-                    # a DML session does not see a frame of `OrtValue.ortvalue_from_numpy(..., "dml")`: it gets the host
-                    # frame and copies it to the device in its own run (ADR-W4NW, Evidence)
-                    self.upload_devices.setdefault(index, (place.ep_device_id, "cpu" if graph.device_type == "dml" else graph.device_type))
-                    if plan.execution_provider in JPEG_DECODER_EPS:
-                        self.decoder_places.setdefault(index, (plan.execution_provider, place.device_key, place.ep_device_id))
+            self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
+            if off:
+                cause = f"a stored quick check of '{plan.execution_provider}' on this PC gives fail for jpeg-preprocess"
+                self.start_warnings.append(PipelineWarning(
+                    onnx_model.PREPROCESSED_ON_CPU, f"{node_id}: the preprocess runs on the CPU ({sessions.QUICK_CHECK_FAILED}): {cause}", (node_id,),
+                    {"node": node_id, "reason": sessions.QUICK_CHECK_FAILED, "frame_sizes": None, "cause": cause},
+                ))
+            # the frame stage uploads or GPU-decodes the frames of the devices where the node starts on the graph
+            on = [] if graph is None or graph.refused is not None else [index for index in range(len(places)) if index not in off]
+            for index in on:
+                place = places[index]
+                # a DML session does not see a frame of `OrtValue.ortvalue_from_numpy(..., "dml")`: it gets the host
+                # frame and copies it to the device in its own run (ADR-W4NW, Evidence)
+                self.upload_devices.setdefault(index, (place.ep_device_id, "cpu" if graph.device_type == "dml" else graph.device_type))
+                if plan.execution_provider in JPEG_DECODER_EPS:
+                    self.decoder_places.setdefault(index, (plan.execution_provider, place.device_key, place.ep_device_id))
+            for index, checks in enumerate(stored):
+                if index in off or (index in on and checks.get("jpeg-decode") == "fail"):  # no GPU decoder opens there
+                    self.decoder_places.setdefault(index, (plan.execution_provider, places[index].device_key, places[index].ep_device_id))
+                    self.decode_failed.add(index)
         return opened
 
     def _not_wired(self) -> list[PipelineWarning]:
@@ -416,7 +457,8 @@ class Executor:
         `V-pipeline.running-13` and the SOI check of each JPEG buffer come before any decode. On a
         device of `decoder_places`, the JPEG buffers of the call go to the GPU decoder in one batch.
         The decoder opens at the first call with a JPEG buffer on its device. A buffer that the GPU
-        decoder refuses, and each buffer of a device with no GPU decoder, decodes on the CPU. Two or
+        decoder refuses, each buffer of a device with no GPU decoder, and each buffer of a device of
+        `decode_failed` (no decoder opens there), decodes on the CPU. Two or
         more such buffers decode in the thread pool of the run, with at most `cpu_threads` threads,
         when `cpu_threads` is more than 1. The call waits for each decode, then reads the results in
         camera order: a refused call names the first bad camera, as a decode in a row does. A refused
@@ -442,6 +484,13 @@ class Executor:
         for index, place in self.decoder_places.items():
             group = [camera_id for camera_id in jpegs if self.device_of[camera_id] == index]
             if not group:
+                continue
+            if index in self.decode_failed:  # a stored quick check: no GPU decoder opens, one warning for the run
+                if sessions.QUICK_CHECK_FAILED not in self.jpeg_warned:
+                    pending[sessions.QUICK_CHECK_FAILED] = PipelineWarning(
+                        JPEG_DECODED_ON_CPU, f"a stored quick check of '{place[0]}' on this PC gives fail for a JPEG check: the run decodes "
+                        "the JPEG buffers of that GPU on the CPU", (), {"reason": sessions.QUICK_CHECK_FAILED},
+                    )
                 continue
             if index not in self.decoders:  # one open for each device and run, also when it gives None or raises
                 try:

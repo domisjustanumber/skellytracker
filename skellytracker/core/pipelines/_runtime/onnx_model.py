@@ -88,6 +88,8 @@ class GraphPath:
 
     `open(device_key, sources, batch)` gives `(session, reason, text)` (`RunSessions.open_preprocess`).
     `refused` is the text of the graph refusal at the start, else None. `warn` gets each warning.
+    `off` holds the device indices with the CPU preprocess from the start, because a stored quick check failed
+    (the executor gives their warning).
     """
 
     open: Callable[[str | None, tuple[tuple[int, int], ...], int], tuple[Any, str | None, str | None]]
@@ -95,6 +97,7 @@ class GraphPath:
     device_type: str
     warn: Callable[[PipelineWarning], None]
     refused: str | None = None
+    off: frozenset[int] = frozenset()
 
 
 class OnnxModelRunner:
@@ -123,8 +126,8 @@ class OnnxModelRunner:
 
     @property
     def graph_on_at_start(self) -> bool:
-        """True when the node starts with its preprocess as a graph (pipeline.timing, `stage_providers`)."""
-        return self.graph is not None and self.graph.refused is None
+        """True when the node starts with its preprocess as a graph on its first device (pipeline.timing, `stage_providers`)."""
+        return self.graph is not None and self.graph.refused is None and 0 not in self.graph.off
 
     def run(
         self, device: int, images: Sequence[Any], boxes: Sequence[InstanceBoxes] | None = None, timer: Timer | None = None,
@@ -164,6 +167,8 @@ class OnnxModelRunner:
         """
         from skellytracker.core.detectors.generic.inference import session_batch
 
+        if device in self.graph.off:  # the warning went out at the start
+            return None
         graph, place = self.graph, self.graph.devices[device]
         # shortcut: a dynamic model session runs the batch of the graph (cameras x rows), padded, where the CPU
         # path runs the N items; give the graph a symbolic batch when dynamic shapes are proven on TensorRT RTX.
