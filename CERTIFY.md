@@ -171,8 +171,9 @@ DirectML on a GPU that is not an AMD GPU is `record-only`. This is normal.
 1. Open the report file. The suite prints its path at the end.
 2. Read the whole file. It must hold no personal data (see [Privacy](#privacy)). If it does, remove
    it and tell the project in the notes of the issue.
-3. Open a new issue in this repository and choose the template **Certify report**. Fill in your
-   OS and GPU model. Attach the report file.
+3. Open a new issue in the repository `skellycertify`
+   (https://github.com/domisjustanumber/skellycertify) and choose the form **Certify report**. Fill
+   in your OS and GPU model. Attach the report file.
 
 If GitHub does not accept the `.md` file, rename it to `.txt` and attach that file.
 

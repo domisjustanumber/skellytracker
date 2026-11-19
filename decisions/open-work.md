@@ -62,8 +62,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     `fetch_models` of section 4 downloaded the four files of the list into an empty folder: 4 files,
     sizes and sha256 right.
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
-  - The instructions page `CERTIFY.md` and the issue template are drafts. They name the fork of the
-    user. Item 9 of the [certification build list](#certification-build-list) replaces them.
+  - The instructions page `CERTIFY.md` is a draft. Its clone address names the fork of the user. A
+    report goes to an issue of the repository `skellycertify`.
   - Section 5 calls `run_jpeg_certification` of the JPEG branch. Until that branch lands, the
     section is `not-run` with `not-in-this-checkout`. The section also calls it once for each EP of
     `AMD_EPS` that passed section 3. A `directml` call is `record-only` when the hardware class of a
@@ -199,9 +199,8 @@ order:
    package that was on the PC before.
 7. The PyInstaller hook of ONNX Runtime.
 8. The passive record, the shadow comparison and the calibration of its limit.
-9. Remove the issue form of this repository, and point `CERTIFY.md` to `skellycertify`.
-10. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
-    The name of the field or the value is not decided.
+9. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
+   The name of the field or the value is not decided.
 
 CI runs `test_eps_session.py` on no Linux runner: `if: runner.os != 'Linux'` in
 `.github/workflows/ep-pack.yml:41`.
