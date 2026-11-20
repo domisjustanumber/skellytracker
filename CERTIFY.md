@@ -119,7 +119,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 1. Checkout and versions | Records the tag, the commit, whether the clone is clean, the Python version and the package versions. |
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
 | 3. EP packs: install and verify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
-| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, the real pipeline on one test image against the CPU EP, the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
+| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, 3 frames of one test image) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or

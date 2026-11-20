@@ -41,6 +41,7 @@ These entries are `accepted`.
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
 | [K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) | Host facts only in `core/system`, `core/metrics`; ONNX Runtime and its hook through this package; EP page from `status()` | accepted |
 | [Q7VQ](entries/Q7VQ-certify-rulings-of-2026-11-20.md) | Validation only through certify in freemocap builds; passive record in the 2.0.0 pre-release; suite report in the 1.2.0 layout; "system" | accepted |
+| [R0EB](entries/R0EB-quick-check-runs-a-video-and-a-live-session.md) | Quick check: `video` and `live` sessions of 3 frames in place of the image run; one CPU reference for the run | accepted |
 
 ### Evidence
 

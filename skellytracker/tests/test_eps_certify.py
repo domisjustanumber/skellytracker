@@ -275,6 +275,40 @@ def test_wide_run_with_fakes(rtx_host, monkeypatch, tmp_path):
     assert certification._image_run("trt-rtx", settings, steps.append) == {"ran": False, "reason_code": "models-missing"}
 
 
+def test_session_frames_run_the_test_image_as_frames_with_a_rising_time_in_live(monkeypatch):
+    import pickle
+
+    frames, starts = [], []
+    monkeypatch.setattr(pipelines, "load_pipeline", lambda key: "config")
+    monkeypatch.setattr(pipelines, "Frame", lambda image, frame_index, timestamp_ms: frames.append((frame_index, timestamp_ms)) or image)
+    monkeypatch.setattr(pipelines, "start_pipeline", lambda config, running_mode, execution_provider, device=None, **k:
+                        starts.append((running_mode, execution_provider, device)) or FakeRun(execution_provider, []))
+    found = certification.session_frames("p", "trt-rtx", "image", "live", "gpu:10de:2484:0")
+    assert frames == [(0, 0.0), (1, 33.0), (2, 66.0)] and starts == [("live", "trt-rtx", "gpu:10de:2484:0")]
+    assert len(found["frames"]) == certification.FRAMES and found["ms"] >= 0 and found["warnings"] == []
+    assert found["models"][0]["precision"] == "fp16" and certification.compare_results(found["frames"][0], result(), THRESHOLDS)["ok"]
+    assert pickle.loads(pickle.dumps(found))["frames"][2]["wholebody"].score.tolist() == [[0.9, 0.8, 0.1]]  # noqa: S301 - a child sends it; the test made the bytes
+    frames.clear()
+    certification.session_frames("p", "cpu", "image", "video")
+    assert frames == [(0, None), (1, None), (2, None)] and starts[-1] == ("video", "cpu", None)
+
+
+def test_a_session_child_keeps_the_error_of_each_mode(monkeypatch):
+    def session_frames(pipeline, key, image, mode, device):
+        if mode == "live":
+            raise RuntimeError("the folder secretdir")
+        return {"frames": [], "image": image}
+
+    monkeypatch.setattr(certification, "test_frame", lambda settings: "image")
+    monkeypatch.setattr(certification, "session_frames", session_frames)
+    monkeypatch.setattr(verification, "spawn_child", in_process)
+    steps = []
+    found, _, _ = certification.session_run("cpu", {"pipeline": "p"}, ("video", "live"), progress=steps.append)
+    assert found == {"video": {"frames": [], "image": "image"}, "live": {"error": "RuntimeError"}} and steps == ["video", "live"]
+    monkeypatch.setattr(certification, "test_frame", lambda settings: (_ for _ in ()).throw(DownloadError("offline", "no network")))
+    assert certification.session_run("cpu", {"pipeline": "p"}, ("video",), progress=steps.append)[0] == {"error": "DownloadError"}
+
+
 def test_the_cli_asks_only_a_person_at_a_terminal(rtx_host, monkeypatch, capsys):
     probe(monkeypatch)
     monkeypatch.setattr(cli, "show_folder", lambda folder: pytest.fail("no folder opens with no person"))

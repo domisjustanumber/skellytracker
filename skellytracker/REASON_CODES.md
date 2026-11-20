@@ -30,30 +30,32 @@ The certify suite writes `bad-output`, `not-selected` and `partial-run`.
 |---|---|---|
 | `no-check` | `evidence.reasons`, check `<ep>:jpeg` | The run had no EP to check. For example, each GPU EP of this host has a reviewed row. On `<ep>:jpeg`: no check of the JPEG certification passed or failed. |
 | `not-gpu-ep` | check | The EP runs no model on a GPU, for example `cpu`. The quick check compares a GPU EP with the CPU EP. |
-| `image-not-passed` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess`, `<ep>:pipeline-<n>` | The JPEG checks or the pipeline timing did not start, because the image check did not pass. |
+| `video-not-passed` | check `<ep>:live`, `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess`, `<ep>:pipeline-<n>` | The check did not start, because the check `<ep>:video` did not pass. |
+| `cpu-reference-missing` | check `<ep>:video`, `<ep>` | The check did not start, because `cpu:video` did not pass. The comparison needs the frames of the CPU EP. |
 | a code of `REASONS` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess`, `<ep>:jpeg`, `<ep>:jpeg:<name>` | A reason code of the JPEG certification, for example `component_not_installed` or `over_limit`. The tuple `REASONS` of `core/decode/certification.py` is the list. |
 | `gpu-not-usable` | check | The caller named the EP and a GPU with the option `device`, and the EP cannot use that GPU. |
 | `ep-<code>` | check | The EP cannot run on this host. `<code>` is the reason code of the EP state, or the state: `ep-os`, `ep-no-device`, `ep-cc-too-low`, `ep-driver-too-old`, `ep-rocm-missing`, `ep-rocm-version`, `ep-not-installed`, `ep-stale`. The quick check installs nothing. |
 | `probe-l2-failed` | check `<ep>:probe` | The EP did not register, or it lists no device for the GPU. |
 | `probe-l3-failed` | check `<ep>:probe` | The trial session on the probe model failed: a node is not on the EP, or the output differs from the CPU EP. |
-| `probe-not-passed` | check `<ep>:image`, `<ep>:jpeg` | The image run or the JPEG certification did not start, because the probe did not pass. |
-| `models-missing` | check `<ep>:image`, `cpu:pipeline-<n>` | A model file or an extra of the pipeline is not on this host. No level downloads a model. |
-| `outputs-not-comparable` | check `<ep>:image` | The pipeline has no output `boxes` or no output `wholebody`. The comparison needs the two. |
-| `no-person-on-cpu` | check `<ep>:image` | The CPU EP found no person on the test image. |
-| `people-differ` | check `<ep>:image` | The EP and the CPU EP found a different set of persons. |
-| `box-differs` | check `<ep>:image` | A box IoU is less than `box_iou_min`. |
-| `scores-differ` | check `<ep>:image` | A keypoint score on the EP is much lower than on the CPU EP. |
-| `no-point-to-compare` | check `<ep>:image` | No keypoint has a score of `score_min` or more in the two results. |
-| `keypoints-differ` | check `<ep>:image` | A keypoint is farther than `keypoint_box_fraction_max` of the box diagonal from the CPU EP result. |
-| `not-finite` | check `<ep>:image` | A value of the EP result is not finite where the CPU EP result is finite. |
-| `partial-placement` | check `<ep>:image` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
-| `<ExceptionClass>` | check, `cleanup` | A setup step or a cleanup step raised this exception class, for example `EpUnavailableError` or `DownloadError`. The report never holds the message. |
+| `probe-not-passed` | check `<ep>:video`, `<ep>:jpeg` | The check `<ep>:video` or the JPEG certification did not start, because the probe did not pass. |
+| `models-missing` | check `cpu:video`, `cpu:live`, `<ep>:video`, `cpu:pipeline-<n>` | A model file or an extra of the pipeline is not on this host. No level downloads a model. |
+| `outputs-not-comparable` | check `cpu:video`, `cpu:live`, `<ep>:video` | The pipeline has no output `boxes` or no output `wholebody`. The checks need the two. |
+| `no-person-on-cpu` | check `cpu:video` | The CPU EP found no person on a frame of the test image. |
+| `no-person` | check `<ep>:live` | The EP found no person on a frame of the test image. |
+| `people-differ` | check `<ep>:video` | The EP and the CPU EP found a different set of persons on a frame. |
+| `box-differs` | check `<ep>:video` | A box IoU is less than `box_iou_min`. |
+| `scores-differ` | check `<ep>:video` | A keypoint score on the EP is much lower than on the CPU EP. |
+| `no-point-to-compare` | check `<ep>:video` | No keypoint has a score of `score_min` or more in the two results. |
+| `keypoints-differ` | check `<ep>:video` | A keypoint is farther than `keypoint_box_fraction_max` of the box diagonal from the CPU EP result. |
+| `not-finite` | check `<ep>:video`, `<ep>:live`, `cpu:live` | On `<ep>:video`: a value of the EP result is not finite where the CPU EP result is finite. On `<ep>:live` and `cpu:live`: a box of a person, or a point with a score, is not finite. |
+| `partial-placement` | check `<ep>:video` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
+| `<ExceptionClass>` | check, `cleanup` | A setup step, a cleanup step or a pipeline run raised this exception class, for example `EpUnavailableError` or `DownloadError`. A setup step gives `not-run`. A pipeline run of `cpu:video`, `cpu:live`, `<ep>:video` or `<ep>:live` gives `fail`. The report never holds the message. |
 
 ## Fixed values in `numbers`
 
 | Field | Values | Meaning |
 |---|---|---|
-| `speed_against_cpu` | `faster`, `slower`, `similar` | The warm call of the pipeline on the EP against the warm call on the CPU EP, on one image (`ep_ms`, `cpu_ms`). `similar` is within 20 %. It is a record only. A check `<ep>:pipeline-<n>` gives the same value from its median against the median of the CPU EP (`against_cpu` is the ratio). |
+| `speed_against_cpu` | `faster`, `slower`, `similar` | The warm call of the pipeline on the EP against the warm call on the CPU EP, in the check `<ep>:video` (`ep_ms`, `cpu_ms`: the fastest call after the first). `similar` is within 20 %. It is a record only. A check `<ep>:pipeline-<n>` gives the same value from its median against the median of the CPU EP (`against_cpu` is the ratio). |
 
 ## Check names
 
@@ -63,15 +65,17 @@ an EP check has no `:`. `details.eps.<ep>.device` gives the device key.
 
 | Check | Meaning |
 |---|---|
+| `cpu:video`, `cpu:live` | The CPU reference, one time for the run, in one child process: the pipeline on the CPU EP on 3 frames of the test image in the running mode `video`, then on 3 frames in the running mode `live`. `cpu:video` passes when each frame has a person. `cpu:live` passes when its outputs are finite. They run first, at the two levels. The CPU EP has no EP check. |
 | `<ep>:probe` | The L3 probe of the EP (`verify()`) on the GPU, in a child process. |
-| `<ep>:image` | The pipeline on one test image on the EP and on the CPU EP, in a child process, and the comparison. |
+| `<ep>:video` | The pipeline on the EP on 3 frames of the test image in the running mode `video`, in a child process. Each frame is compared with the frame of `cpu:video` with the same index. The first frame that fails gives the reason. `numbers` holds the worst value of each number over the frames. |
+| `<ep>:live` | The pipeline on the EP on 3 frames of the test image in the running mode `live`, in a child process. It passes when each frame has finite outputs and a person. It never changes `<ep>`. |
 | `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess` | Only on `cuda` and `trt-rtx`: the two quick checks of the GPU frame path (`run_jpeg_quick_checks()` of `core/decode/certification.py`), in one child process. They never change `<ep>`. |
-| `<ep>` | The quick check of the EP on one GPU. It passes only when `<ep>:probe` and `<ep>:image` pass. |
-| `<ep>:probe:exit`, `<ep>:image:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
+| `<ep>` | The quick check of the EP on one GPU. It passes only when `<ep>:probe` and `<ep>:video` pass. |
+| `<ep>:probe:exit`, `<ep>:video:exit`, `<ep>:live:exit`, `cpu:live:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
 | `<ep>:pipeline-1`, `<ep>:pipeline-3`, `<ep>:pipeline-6` | Level `full`: the timing of the pipeline on the EP at 1, 3 and 6 cameras, each in a child process. It is `record-only`, and `numbers` holds the times and the VRAM of the child. A run that raises is `not-run` with the exception class. |
 | `<ep>:jpeg` | Level `full`: the outcome of the JPEG certification (`run_jpeg_certification()` of `core/decode/certification.py`) on the EP, in one child process. It is `fail` when a check failed, else `pass` when a check passed. It never changes `<ep>`. |
 | `<ep>:jpeg:<name>` | Level `full`: one check of the JPEG certification, with the name, the result, the reason code and the numbers of that check. |
-| `cpu:pipeline-<n>`, `cpu:jpeg`, `cpu:jpeg:<name>` | Level `full`: the same checks of the CPU EP. They run first. The CPU EP has no EP check. |
+| `cpu:pipeline-<n>`, `cpu:jpeg`, `cpu:jpeg:<name>` | Level `full`: the same checks of the CPU EP. They run after `cpu:video` and `cpu:live`, and before the checks of each EP. |
 | cleanup `test-image`, `field-test-opt-in` | The delete of the test image that the run downloaded, and the removal of the opt-in that a check that did not pass wrote. |
 
 ## The certify suite

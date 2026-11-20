@@ -17,6 +17,10 @@ def crash_in_the_ep_step(key, settings, device_key, connection):
     os._exit(5)
 
 
+def crash(*args):
+    os._exit(5)
+
+
 def hang(*args):
     time.sleep(300)
 

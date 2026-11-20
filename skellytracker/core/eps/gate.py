@@ -9,8 +9,8 @@ failed on this PC. `check_start()` and `build_session()` call `require()`, so ea
 the rule. The rule has no setting and no environment variable.
 
 The certification code must run an EP before the EP has a result. It runs inside `certification_run()`,
-which switches the rule off for this process. Only the certification code uses it: the probe, the image run
-and the JPEG checks of the quick check, the JPEG certification and the certify suite.
+which switches the rule off for this process. Only the certification code uses it: the probe, the `video` and `live`
+runs and the JPEG checks of the quick check, the image run of `eps.certify()`, the JPEG certification and the certify suite.
 
 This module loads no library and uses no network. It reads `quick-checks.json` of the EP store.
 """

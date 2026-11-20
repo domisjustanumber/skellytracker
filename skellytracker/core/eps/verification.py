@@ -10,7 +10,7 @@
 An EP pack is ready when it is installed, current, registers and lists a device. A pack with no
 L3 pass stays usable, with one warning line for each process. Do not call `verify()` in a daemonic
 worker process: it starts a child process. `spawn_child()` runs each child of `eps` that loads an EP
-library: the probe of `verify()` and the image run of `certify()`.
+library: the probe of `verify()`, the image run of `certify()` and the `video` and `live` runs of the quick check.
 """
 
 import multiprocessing

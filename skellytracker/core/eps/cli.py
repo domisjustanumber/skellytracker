@@ -34,7 +34,7 @@ when the pack is not usable, else 1. For a person at a terminal, a plain
 certified: certify now, later, or do not ask again.
 
 `certify KEY --quick` runs the quick level of `skellytracker.certify()` on the EP: the probe and the
-image run of the pipeline of `certification` of the EP catalog. It prints each check, or the module
+pipeline of `certification` of the EP catalog in the running modes `video` and `live`. It prints each check, or the module
 report with `--json`. It ignores `--out`: the report file is in the folder `reports` of the EP store.
 It checks each GPU that the EP can use. It exits 0 when the EP passes on each of them, 1 when it fails
 on one, 6 when cancelled, 3 when the EP cannot run on this host (`ep-<code>`), else 1.

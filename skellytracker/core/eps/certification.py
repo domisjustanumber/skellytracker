@@ -20,6 +20,7 @@ import statistics
 import time
 from collections.abc import Callable
 from pathlib import Path
+from types import SimpleNamespace
 
 import skellytracker
 from skellytracker.core.eps import _download, evidence, gate, store, verification
@@ -39,6 +40,7 @@ WARMUP_CALLS, TIMED_CALLS = 10, 100  # the calls of `time_run()`: the warm-up ca
 TIMING_TIMEOUT_SECONDS = 900.0  # not calibrated: the start of the child, a pipeline start with an engine build on each camera, 110 calls
 WARM_CALLS = 2  # extra calls after the first, so that the first-call cost is not the figure; the fastest one is the figure
 WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
+FRAMES = 3  # the frames of one run of `session_frames()`: one camera, the test image repeated
 
 
 def reports_dir() -> Path:
@@ -298,6 +300,65 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
             "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
                        for _, model in sorted(models.items())],
             "thresholds": settings["thresholds"], "seconds": round(time.monotonic() - started, 1)}
+
+
+def session_frames(pipeline, execution_provider: str, image, running_mode: str, device: str | None = None) -> dict:
+    """Start the pipeline on one camera in the running mode `video` or `live`, and run the test image as `FRAMES` frames.
+
+    A frame of `live` has a rising `timestamp_ms`. `frames` holds, for each frame, the outputs that `compare_results()`
+    reads, as plain arrays, so that a child can send them. `ms` is the fastest call after the first: a rough figure,
+    a record only.
+    """
+    import numpy as np
+
+    from skellytracker.core import pipelines
+
+    config = pipelines.load_pipeline(pipeline)
+    frames, times = [], []
+    with pipelines.start_pipeline(config, camera_ids=[0], running_mode=running_mode, execution_provider=execution_provider,
+                                  timing="off", device=device) as run:
+        for index in range(FRAMES):
+            before = time.perf_counter()
+            found = run.process(pipelines.Frame(image, frame_index=index, timestamp_ms=index * 33.0 if running_mode == "live" else None))
+            times.append((time.perf_counter() - before) * 1000)
+            boxes, body = found["boxes"], found["wholebody"]
+            frames.append({"boxes": SimpleNamespace(present=np.array(boxes.present), xyxy=np.array(boxes.xyxy)),
+                           "wholebody": SimpleNamespace(present=np.array(body.present), score=np.array(body.score), xy=np.array(body.xy))})
+        models, warnings = run.models, sorted({warning.code for warning in run.warnings})
+    return {"frames": frames, "ms": round(min(times[1:]), 1), "warnings": warnings,
+            "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
+                       for _, model in sorted(models.items())]}
+
+
+def _session_child(key: str, settings: dict, device_key: str | None, modes: tuple, connection) -> None:
+    """The child of `session_run()`: it sends each running mode as a step, then `{mode: <session_frames()>}`.
+
+    An error in one mode gives `{"error": <exception class name>}` for that mode. An error before the first mode, for
+    example in the download of the test image, gives it for the whole result.
+    """
+    try:
+        with gate.certification_run():  # the check runs the EP before the EP has a result
+            image, result = test_frame(settings), {}
+            for mode in modes:
+                connection.send(mode)
+                try:
+                    result[mode] = session_frames(settings["pipeline"], key, image, mode, device_key)
+                except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+                    result[mode] = {"error": type(error).__name__}
+    except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+        result = {"error": type(error).__name__}
+    connection.send(result)
+    connection.close()
+
+
+def session_run(key: str, settings: dict, modes: tuple, device_key: str | None = None, *, cancel=None,
+                progress: Callable[[str], None] | None = None, timeout: float = WIDE_TIMEOUT_SECONDS) -> tuple:
+    """Run `session_frames()` for each running mode of `modes` on the EP `key` in one `spawn` child.
+
+    It gives `(result, problem, exit_code)` of `spawn_child()`. `progress` gets the name of each mode when it starts.
+    """
+    return verification.spawn_child(_session_child, (key, settings, device_key, tuple(modes)), timeout=timeout, cancel=cancel,
+                                    progress=progress)
 
 
 def certify(key: str, *, wide: bool = False, out: Path | str | None = None,
