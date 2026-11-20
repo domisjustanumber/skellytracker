@@ -16,7 +16,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.1.0`. The reason codes
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.2.0`. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
 
@@ -37,7 +37,10 @@ import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-SCHEMA = "skellycertify.report/1.1.0"
+SCHEMA = "skellycertify.report/1.2.0"
+SUMMARY_NAMES = {"trt-rtx": "TensorRT RTX", "cuda": "CUDA", "directml": "DirectML", "coreml": "Core ML", "amdgpu": "AMD GPU",
+                 "migraphx": "MIGraphX", "cpu": "CPU"}  # the short fixed name of each EP in `summary`; a name never changes
+RAN = ("pass", "fail", "record-only")
 SCHEMA_PREFIX = "skellycertify.report/1."  # a report of an older 1.x version on this host stays in the hand-in list
 PACKAGE = "skellytracker"
 LEVELS = ("quick", "full")
@@ -175,6 +178,13 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     the schema `1.0.0` on this host, with a time in its file name and no `id`, stays in the hand-in list
     with its old id. The package never deletes a report of the level `full`.
 
+    `summary` is the list of the summary items of the report for a person, from the format `1.2.0`. An item has
+    `group`, `name`, `device` and `result`. Each EP that ran on a GPU has one item of the group `ep`, with the
+    result of its check: an EP that is `not-run` has no item. `name` is the short fixed name of the EP, for
+    example `TensorRT RTX`, `CUDA`, `DirectML` or `CPU`. `device` is the `id` of the GPU in `host.gpus`, or None.
+    A `gpu-jpeg` item follows the `ep` item when a check of the GPU JPEG decode ran on that EP and that GPU. The
+    CPU EP has the last item when one of its checks ran: `fail` when one failed, else `record-only`.
+
     Evidence: the item of the quick level is one EP on one GPU of this host. Thus a run of a part of the EPs is
     complete for each EP that it checks, and is not `partial-run`. A run with no EP to check has no
     check and is not valid as evidence (`no-check`). A `quick` report never gives a reviewed row.
@@ -217,6 +227,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
         reasons.append("cancelled")
     sender.send("cleaning-up", None, report["checks"], None)
     report["evidence"] = {"valid": not reasons, "reasons": reasons}
+    report["summary"] = _summary(report)
     report = _scrub(report)
     report = {"schema": SCHEMA, "id": str(uuid.uuid4()), **report}  # after the scrub: a private word must not change the id
     if report["checks"]:
@@ -376,6 +387,34 @@ class _Progress:
 def _label(key: str, device_key: str | None) -> str:
     """The name of the check of an EP on a GPU: `cuda@10de-2484-0`. It has no `:`, so each name with `:` is a part of it."""
     return key if device_key is None else f"{key}@{device_key.removeprefix('gpu:').replace(':', '-')}"
+
+
+def _summary(report: dict) -> list[dict]:
+    """The summary items of section 3.7 of the contract, from the checks of the report: the EPs that ran, in the order of the run.
+
+    An `ep` item has the result of the row of the pair. The CPU EP has no such row: its item is `fail` when one of its
+    rows failed, else `record-only`, because the CPU EP is the reference of each comparison. A `gpu-jpeg` item is
+    there only when a GPU JPEG decode check ran for the pair: the check `jpeg-decode` of the level `quick`, or the
+    checks `jpeg:gpu_decode.*` of the level `full`, where one `fail` gives `fail`. `device` is the id of the GPU in
+    `host.gpus`, or None.
+    """
+    rows = {row["name"]: row["result"] for row in report["checks"]}
+    items = []
+    for label, facts in report["details"].get("eps", {}).items():
+        if rows.get(label) not in RAN:
+            continue
+        pair = {"name": SUMMARY_NAMES.get(label.split("@")[0], label.split("@")[0]), "device": facts.get("gpu")}
+        items.append({"group": "ep", **pair, "result": rows[label]})
+        decode = rows.get(f"{label}:jpeg-decode")
+        if decode not in RAN:
+            found = {result for name, result in rows.items() if name.startswith(f"{label}:jpeg:gpu_decode.")} & {"pass", "fail"}
+            decode = "fail" if "fail" in found else "pass" if found else None
+        if decode:
+            items.append({"group": "gpu-jpeg", **pair, "result": decode})
+    cpu = {result for name, result in rows.items() if name.startswith("cpu:")} & set(RAN)
+    if cpu:
+        items.append({"group": "ep", "name": SUMMARY_NAMES["cpu"], "device": None, "result": "fail" if "fail" in cpu else "record-only"})
+    return items
 
 
 def _names(label: str, key: str, device_key: str | None, full: bool = False) -> tuple[str, ...]:

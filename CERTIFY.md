@@ -130,7 +130,7 @@ stopped it.
 
 ## Read the summary table
 
-The report file has the format `skellycertify.report/1.1.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.2.0` of the repository `skellycertify`. It
 starts with a line that says if the report is valid as evidence. Then it has a table with one row for
 each check that failed. A report with no failed check has no such table. A failed section has one row:
 the table does not repeat its checks. The JSON block at the end of the file holds each check. The

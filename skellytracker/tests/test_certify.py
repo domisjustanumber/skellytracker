@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.1.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.2.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -48,7 +48,7 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.1.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.2.0" else ["schema"]
     found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]
@@ -165,6 +165,8 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
                      {**store.read_manifest(pack["id"], pack["version"]), "wheels": [[wheel["filename"], wheel["sha256"]] for wheel in wheels]})
     assert store.installed_pack_facts(certification.load_catalog(), "trt-rtx")["wheels_match_lock"] is True
     assert report["evidence"] == {"valid": True, "reasons": []} and report["kind"] == "quick"
+    assert report["summary"] == [{"group": group, "name": name, "device": "10de:2484", "result": "pass"} for group, name in (
+        ("ep", "TensorRT RTX"), ("gpu-jpeg", "TensorRT RTX"), ("ep", "DirectML"))]  # `directml` has no GPU JPEG decode
     assert report["package"] == {"name": "skellytracker", "version": package_certification._package()[0]["version"],
                                  "commit": COMMIT, "tree_modified": False}
     assert report["host"]["os"]["arch"] == "x86_64" and report["host"]["gpus"][0]["id"] == "10de:2484"
@@ -635,3 +637,22 @@ def test_coreml_on_a_mac_needs_its_quick_check_and_its_result_has_the_key_of_the
     evidence_row = {"ep": "coreml", "os": "macOS", "gpu": "chip:apple-m2-pro", "set": "s", "source": "maintainer", "result": "pass"}
     monkeypatch.setattr(evidence, "load_evidence", lambda: (evidence_row,))
     assert skellytracker.certify_plan("quick")["details"]["checks"] == []  # a reviewed row of the chip: nothing by default
+
+
+def test_the_summary_lists_each_ep_that_ran_with_its_gpu_jpeg_result_and_the_cpu_ep_last():
+    eps = {"cuda@10de-2484-0": {"gpu": "10de:2484"}, "trt-rtx@10de-2484-0": {"gpu": "10de:2484"}, "directml@8086-a780-0": {"gpu": "8086:a780"}}
+    full = {"details": {"eps": eps}, "checks": [
+        {"name": "cpu:pipeline-1", "result": "record-only"}, {"name": "cpu:jpeg", "result": "pass"},
+        {"name": "cuda@10de-2484-0", "result": "pass"}, {"name": "cuda@10de-2484-0:jpeg:gpu_decode.a", "result": "pass"},
+        {"name": "cuda@10de-2484-0:jpeg:gpu_decode.b", "result": "fail"},
+        {"name": "trt-rtx@10de-2484-0", "result": "not-run"},  # an EP that did not run has no item
+        {"name": "directml@8086-a780-0", "result": "fail"}, {"name": "directml@8086-a780-0:jpeg:gpu_decode.a", "result": "not-run"}]}
+    assert package_certification._summary(full) == [
+        {"group": "ep", "name": "CUDA", "device": "10de:2484", "result": "pass"},
+        {"group": "gpu-jpeg", "name": "CUDA", "device": "10de:2484", "result": "fail"},
+        {"group": "ep", "name": "DirectML", "device": "8086:a780", "result": "fail"},
+        {"group": "ep", "name": "CPU", "device": None, "result": "record-only"}]
+    quick = {"details": {"eps": eps}, "checks": [{"name": "cuda@10de-2484-0", "result": "pass"},
+                                                 {"name": "cuda@10de-2484-0:jpeg-decode", "result": "pass"}]}
+    assert [item["group"] for item in package_certification._summary(quick)] == ["ep", "gpu-jpeg"]  # no CPU row ran: no CPU item
+    assert package_certification._summary({"details": {}, "checks": []}) == []

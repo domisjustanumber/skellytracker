@@ -89,7 +89,7 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     text = out.read_text(encoding="utf-8")
     data = cp.report_data(text)
     assert text.startswith("# Certify report\n") and text.endswith("```\n")
-    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.1.0", None, None)
+    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.2.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
     assert "| Module | Section | Result | Reason |" not in text  # no failed row: no summary table
