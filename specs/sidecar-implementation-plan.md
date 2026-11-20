@@ -1715,6 +1715,122 @@ these parts:
   read-only `GITHUB_TOKEN`, an approval before a workflow of an outside contributor runs,
   CODEOWNERS for `.github/` and `tools/`, and branch protection on `development`.
 
+#### Later item A — Hands with no body model, for an unknown number of people
+
+The user asked for this item on 2026-11-20. It is not started. It is not a part of 2.0.0.
+
+**Goal.** A pipeline tracks hands that are large in the image. It uses no body model. The number of
+people is not known.
+
+**What stops it today.**
+
+- v2 tracks one person ([ADR-TH8E](../decisions/entries/TH8E-one-person-in-v2.md)). Each
+  `track_ids` value is -1, and `V-pipeline.graph-11` holds the limit.
+- The `outputs` block of a pipeline has only the keys `wholebody`, `holistic` and `boxes`
+  ([Outputs](pipeline/outputs.md#fields)). No key delivers hands alone.
+- No port says which side a hand row is.
+
+**Steps.**
+
+1. Select the models: a hand detector and a hand keypoint model through the
+   [model addition workflow](model-sidecar/model-addition-workflow/README.md), or the
+   `mediapipe_tasks` node with its `hand` variant. Measure the two on one recording before the
+   decision.
+2. If the keypoint model has its own points, add a hand landmark schema to
+   `skellytracker/core/model_zoo/landmark_schemas/`.
+3. Write a node proposal for the pipeline spec: an output key for hands, and the side of each row.
+4. Write the `associate` node of the list above. It gives each row an identity across frames. A new
+   entry then supersedes [ADR-TH8E](../decisions/entries/TH8E-one-person-in-v2.md), and
+   `V-pipeline.graph-11` goes.
+5. Implement the nodes with the skill
+   [`implement-pipeline-node`](../.claude/skills/implement-pipeline-node/SKILL.md). Add a pipeline
+   example and its vectors.
+6. The freemocap side: freemocap removed `tracker_profiles.py` of `sfn26`, which held the hand
+   detector choices and the sided hand mapping. freemocap needs a mapping from hand rows to people
+   and sides. The user changes freemocap.
+
+#### Later item B — An RTMW body with MediaPipe hands on crops
+
+The user asked for this item on 2026-11-20: an RTMW body with MediaPipe hands cropped at the
+wrists. It is not started. It is not a part of 2.0.0.
+
+**Goal.** One pipeline gives the body, the feet and the face of RTMW and the hands of MediaPipe.
+MediaPipe runs on one crop for each hand.
+
+**What `sfn26` did.** The file `TRACKER_COMPOSITION.md` of the branch `sfn26` (commit `2d356a6c`)
+describes a preset with this composition.
+
+- Its first crop used the wrist and the forearm. Its later crop uses the fingertips: the centre is
+  the mean of the index tip and the pinky tip. For the side, the file gives 3 times the larger
+  distance from the wrist to a tip, with a minimum of 30 pixels, in one place, and "4x size" in a
+  table. That table gives the count of finite hand keypoints in an excerpt of 36 observations: 714
+  with the wrist crop and 840 with the fingertip crop on one recording, and 987 and 1323 on the
+  other.
+- Each cropped MediaPipe detector asks for one hand, with a side that the caller gives.
+- A hand that is not found gives NaN coordinates. The preset never puts the RTMW hand in its place.
+- The file reports one comparison of two presets on two recordings: 14.19 ms against 55.37 ms for
+  each tracking call, and 95.45 % against 21.70 % of the hand keypoints available. The file says
+  that these counts are not accuracy measurements. This repository did not repeat the comparison.
+
+**What stops it today.**
+
+- The `mediapipe_tasks` node has no `boxes` input
+  ([`mediapipe_tasks`](pipeline/nodes/mediapipe_tasks.md#behaviour);
+  [ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 4). The list
+  above has this open work, with `min_size_px` on `boxes_from_points` and `assumed_handedness`.
+- The other path is an ONNX hand model, which is the decomposed ONNX Holistic of the list above.
+- The output `holistic` needs the groups `body`, `right_hand`, `left_hand` and `face` from one
+  port ([Outputs](pipeline/outputs.md#fields)). A port that mixes RTMW groups and MediaPipe groups
+  needs a rule for the point names and the landmark schemas of each group.
+
+**Steps.**
+
+1. Repeat the comparison of `sfn26` on the sample recording with the pipelines of this package:
+   hand keypoints available, and the time for each frame. Do this before each other step. The
+   result decides if the item continues.
+2. Write the node proposal for the `boxes` input of `mediapipe_tasks`, with `min_size_px` and
+   `assumed_handedness`. Decide the crop rule in the proposal: wrist, or fingertips as `sfn26`.
+3. Write the proposal for an output that holds groups of two models.
+4. Implement the nodes, add the pipeline example and its vectors.
+5. The freemocap side: the mapping must take the hand points with the MediaPipe names and the body
+   points with the RTMW names. `tracker_profiles.py` of `sfn26` held this choice. The user changes
+   freemocap.
+
+#### Later item C — DeepLabCut models through the intake, with a new repository `DLC-Exporter`
+
+The user decided on 2026-11-20: `tools/dlc_inference/` and `tools/dlc_training/` of `sfn26` go to a
+new repository `DLC-Exporter`. The model then goes through the usual sidecar and pipeline intake.
+It is not started. It is not a part of 2.0.0.
+
+**What `sfn26` has.** `tools/dlc_training/` is the offline training environment of a DLC experiment,
+with a synthetic dataset and an inference contract (`INFERENCE_CONTRACT.md`). `tools/dlc_inference/` exports the model to ONNX and
+checks parity. Its `README.md` says that the supported contract is CUDA FP32 with `use_tf32=0`, and
+that a run with TF32 failed the confidence tolerance.
+
+**Gaps in the specs, to check at the intake.**
+
+- A `keypoint_coordinates` point with finite coordinates has the score 1.0
+  ([changelog](model-sidecar/changelog.md), row 46). A DLC model gives a confidence for each point.
+- The sidecar has no field that tells a host to turn TF32 off.
+- The model reads the whole image and gives one instance. Find if a keypoint detector role with no
+  box input describes it.
+- The `outputs` block has no key for points that are not a human body.
+
+**Steps.**
+
+1. The user makes the repository `DLC-Exporter`. The two tool folders move there from `sfn26`. This
+   repository gets no copy.
+2. The exporter fills in the model intake with the skill
+   [`author-sidecar`](../.claude/skills/author-sidecar/SKILL.md). Each gap above becomes a
+   `near-miss` or a `gap` of the intake, and then a proposal
+   ([`propose-sidecar-change`](../.claude/skills/propose-sidecar-change/SKILL.md)).
+3. The user decides each proposal. The accepted ones land with the skill
+   [`change-sidecar-spec`](../.claude/skills/change-sidecar-spec/SKILL.md).
+4. A pipeline bundle for the model follows, with the skill
+   [`change-pipeline-spec`](../.claude/skills/change-pipeline-spec/SKILL.md).
+5. The freemocap side: a DLC model has its own point names. freemocap needs a mapping file for
+   them. The user changes freemocap.
+
 ## Verification
 
 - `uv run pytest -m "not video"` passes. On Windows with Python 3.11 or 3.12, run the MediaPipe
