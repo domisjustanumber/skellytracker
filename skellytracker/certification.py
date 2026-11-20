@@ -50,7 +50,7 @@ REPORT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
 # of the child and 3 frames in each mode: 4.2 s for the CPU reference, 1.1 to 1.4 s for a probe, and about 3 s for each of
 # `<ep>:video` and `<ep>:live`. A run now has 30 frames in each mode, so the values are larger.
 PROBE_SECONDS = 3  # not calibrated: one L3 probe
-VIDEO_SECONDS = 6  # not calibrated: `<ep>:video` of an EP with no `certification.seconds` (for `trt-rtx` and `cuda`: the first engine build)
+VIDEO_SECONDS = 6  # not calibrated: `<ep>:video` of an EP with no `certification.seconds` (the catalog gives `trt-rtx` and `cuda`, with the first engine build)
 LIVE_SECONDS = 6  # not calibrated: `<ep>:live`: one more child and one more pipeline start on the EP
 CPU_REFERENCE_SECONDS = 12  # not calibrated: the CPU reference: `cpu:video` and `cpu:live` in one child
 QUICK_BUDGET_SECONDS = 75  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5)

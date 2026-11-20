@@ -298,7 +298,9 @@ certification:
     url: https://github.com/freemocap/skellysamples/releases/download/single_images_v07_12_26/sample_recording_a_pose_image.jpg
     sha256: 5ec5b9e3a587ba06c8f9d0dfbc9749dda31c3380ab7f67d2395f267db79a580d
     bytes: 212902
-  seconds: {trt-rtx: 60, cuda: 30}
+  # The time estimate in seconds of the check `video` of an EP. On 2026-11-20, one RTX 3070 on Windows gave 10.0 s for
+  # `trt-rtx` with an empty engine cache and 4.5 s with the cache, and 4.9 s and 3.8 s for `cuda`. Not calibrated.
+  seconds: {trt-rtx: 15, cuda: 8}
   # `keypoint_box_fraction_max` is a part of the diagonal of the person box. On 2026-11-18, one RTX 3070 gave
   # 0.0047 for `trt-rtx` and 0.0056 for `cuda` (5.2 px and 6.1 px on a box of 519 x 958 px), and a box IoU of
   # 0.999 and 0.989 (ADR-MF2R). One step of the keypoint decode is about 2.3 px on that box.

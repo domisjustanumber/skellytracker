@@ -398,7 +398,7 @@ def test_each_progress_message_is_the_complete_state_and_a_raising_callback_is_d
         "cpu:video", "cpu:live", "trt-rtx@10de-2484-0:probe", "trt-rtx@10de-2484-0:video", "trt-rtx@10de-2484-0:live",
         "trt-rtx@10de-2484-0:jpeg-decode", "trt-rtx@10de-2484-0:jpeg-preprocess", "trt-rtx@10de-2484-0")]
     assert messages[0]["total"] == 8 and messages[0]["done"] == 0 and messages[0]["seconds_left"] == (
-        package_certification.CPU_REFERENCE_SECONDS + package_certification.PROBE_SECONDS + 60 + package_certification.LIVE_SECONDS
+        package_certification.CPU_REFERENCE_SECONDS + package_certification.PROBE_SECONDS + 15 + package_certification.LIVE_SECONDS
         + package_certification.JPEG_SECONDS)
     running = [m for m in messages if m["step"] == {"name": "trt-rtx@10de-2484-0:video"}]
     assert running[0]["checks"][:4] == [{"name": "cpu:video", "result": "pass"}, {"name": "cpu:live", "result": "pass"},
@@ -422,7 +422,9 @@ def test_the_plan_gives_the_time_the_total_and_each_ep_that_will_not_run_and_dow
     assert plan["details"] == {"execution_providers": ["directml", "cuda"], "checks": ["directml@10de-2484-0", "cuda@10de-2484-0"],
                                "not_run": {"cuda@10de-2484-0": "ep-not-installed"}, "os_known": False}
     assert skellytracker.certify_plan("quick")["details"]["execution_providers"] == ["trt-rtx", "directml"]  # the default
-    assert skellytracker.certify_plan("quick")["seconds_estimate"] == pc.QUICK_BUDGET_SECONDS  # at most the budget
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(pc, "QUICK_BUDGET_SECONDS", 10)
+        assert skellytracker.certify_plan("quick")["seconds_estimate"] == 10  # at most the budget
     assert plan["system_changes"] == [] and plan["questions"] == [] and plan["kind"] == "quick"
     nothing = skellytracker.certify_plan("quick", execution_providers=["cuda"])
     assert (nothing["total"], nothing["seconds_estimate"]) == (0, 0)  # no check can run
