@@ -486,7 +486,11 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
                 times.append(time.perf_counter_ns() - start)
             except Exception as error:  # noqa: BLE001 - a refused upload is a recorded fact
                 return {"result": "record-only", "reason": "recorded", "numbers": {"uploaded": 0}, "detail": _error_text(error)}
-            found = run_preprocess(session, [value], slots, None, "cpu", 0).numpy()  # the graph output in host memory
+            try:
+                found = run_preprocess(session, [value], slots, None, "cpu", 0).numpy()  # the graph output in host memory
+            except Exception as error:  # noqa: BLE001 - a graph that cannot read the uploaded frame is a recorded fact (Intel UHD 770: device removed)
+                return {"result": "record-only", "reason": "recorded", "numbers": {"uploaded": 1, "repeats": i, "unequal": unequal, "read_raised": 1},
+                        "detail": _error_text(error)}
             unequal += found.shape != expected.shape or not np.array_equal(found, expected)
         numbers = {"uploaded": 1, "repeats": UPLOAD_REPEATS, "unequal": unequal, "median_upload_ms": round(statistics.median(times) / 1e6, 3)}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers,
