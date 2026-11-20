@@ -212,7 +212,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 `skellytracker.certify()` and `skellytracker.certify_plan()` is built (`skellytracker/certification.py`).
 It writes the local result in `quick-checks.json` of the EP store, and a passed quick check keeps the
 field-test opt-in. The level `full` is built in the package
-([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md)). Build in this order:
+([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md)). Each run of this list on
+a system is a run of the certify process in a freemocap build
+([ADR-Q7VQ](entries/Q7VQ-certify-rulings-of-2026-11-20.md) item 1). Build in this order:
 
 1. A run of the level `full` on Linux and on macOS. One Windows host ran it for `trt-rtx`, `cuda` and
    `directml` on an RTX 3070 and for `directml` on a UHD 770: each EP check passed. Then calibrate its
@@ -222,7 +224,8 @@ field-test opt-in. The level `full` is built in the package
    384 checks, no `fail`, 47 s for `packs` and 316 s for `full`. The section `hardware` gave one
    difference in 17 comparisons: `vram_mib` of the UHD 770 is 128 in skellytracker and 2047 in
    `Win32_VideoController`. The cause is not examined. A build must write
-   `skellytracker/_build_info.py`: the reader exists, the build step does not.
+   `skellytracker/_build_info.py`: the reader exists, the build step does not. `flit build` puts the
+   file in the wheel and in the sdist, also when git ignores it (one trial on Windows, 2026-11-20).
 3. A run of the quick check of `coreml` on a Mac. No Mac ran it
    ([ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 6).
 4. A run of an install from the Windows ML catalog with a download, its progress and its cancel. The
@@ -232,7 +235,9 @@ field-test opt-in. The level `full` is built in the package
 5. A run of the PyInstaller hook of ONNX Runtime on Linux and on macOS. The hook is built
    (`skellytracker/_pyinstaller/hook-onnxruntime.py`), and the freeze test ran on Windows only.
    `beartype_this_package()` checks nothing in a frozen app.
-6. The passive record, the shadow comparison and the calibration of its limit.
+6. The passive record, the shadow comparison and the calibration of its limit. They are a part of
+   the 2.0.0 pre-release ([ADR-Q7VQ](entries/Q7VQ-certify-rulings-of-2026-11-20.md) item 2). The
+   format of `skellycertify` must first define the fields of a `passive` record.
 7. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
    The name of the field or the value is not decided.
 

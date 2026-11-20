@@ -1,4 +1,4 @@
-# Run the certify suite on your machine
+# Run the certify suite on your system
 
 You help the project when you run the certify suite. The suite tests the ONNX Runtime
 execution providers (EPs) of skellytracker on your hardware. The project has only a few kinds of
@@ -6,14 +6,14 @@ hardware to test on. Your report tells the maintainers what works on yours.
 
 You do not need to know the project. You need about 10 minutes and a terminal.
 
-## What the suite does to your machine
+## What the suite does to your system
 
 - The suite runs one command and writes one report file.
 - The suite needs no administrator rights. It installs no system software, with one exception:
   on Windows with an AMD GPU, Windows downloads and installs the Windows ML package of each AMD EP
   that the Windows ML catalog offers for your GPU. The plan on the screen names each EP. At the
   end, the suite removes each package that it installed, also after a failure or after Ctrl+C. It
-  never removes a package that was on your machine before, also when Windows updates that package
+  never removes a package that was on your system before, also when Windows updates that package
   during the run. If a removal fails, the report has a `fail` check `remove-<package>` with the
   full package name, and the terminal tells you how to remove the package.
 - If the run stops while Windows installs such a package, the suite removes the package at the end
@@ -30,7 +30,7 @@ You do not need to know the project. You need about 10 minutes and a terminal.
   model cache of your user account.
 - The suite downloads these files. The plan on the screen shows the size of each file before
   anything runs. 1 MB is 1,000,000 bytes.
-  - The EP packs that a GPU of your machine can use: on Windows, about 111 MB for `trt-rtx` and
+  - The EP packs that a GPU of your system can use: on Windows, about 111 MB for `trt-rtx` and
     about 1009 MB for `cuda`; on Linux, about 146 MB and about 1213 MB. DirectML and CoreML need
     no download.
   - The model files of the test pipeline: about 346 MB.
@@ -42,7 +42,7 @@ You do not need to know the project. You need about 10 minutes and a terminal.
 - `uv` keeps its own download cache. The suite cannot delete it. Run `uv cache clean` if you want
   to remove it.
 - A run takes about 5 minutes on a fast link. The plan on the screen shows the estimate for your
-  machine. A slow link or a slow GPU makes it longer. Each section has a time limit. The suite
+  system. A slow link or a slow GPU makes it longer. Each section has a time limit. The suite
   stops a section that is over its limit and goes on.
 - The suite sends nothing. You send the report yourself.
 
@@ -128,13 +128,22 @@ stopped, the section keeps that result. It then has the extra check `exit` with 
 `hung-at-exit` means that the section did not end 20 seconds after its result, and the suite
 stopped it.
 
-## Read the summary table
+## Read the report
 
 The report file has the format `skellycertify.report/1.2.0` of the repository `skellycertify`. It
-starts with a line that says if the report is valid as evidence. Then it has a table with one row for
-each check that failed. A report with no failed check has no such table. A failed section has one row:
-the table does not repeat its checks. The JSON block at the end of the file holds each check. The
-column `Section` holds the check name:
+has these parts:
+
+- One line with the package, its version, the time of the run and if the report is valid as evidence.
+- The OS, the CPU and the RAM of your system.
+- A table with one row for each EP that ran on each GPU, and one row for GPU decode of JPEG frames.
+  The result `record` means that the check only recorded facts. A GPU that no EP ran on has the
+  result `not checked`.
+- The line `Cameras: not checked on this system.`
+- The line `Failed checks:` and a table with one row for each check that failed. A report with no
+  failed check has no such table.
+- The heading `## Data` and a JSON block. It holds each check and each fact of the run.
+
+The column `Check` of the failed checks holds the check name:
 
 - `suite:<slug>` is the result of a section of the suite: `suite:checkout` (1), `suite:hardware` (2),
   `suite:packs` (3) and `suite:full` (4). `suite:full` is in the table only when section 4 gave no
@@ -168,8 +177,8 @@ A report from a modified clone, from a run with `--only`, from a run that you st
 versions says `not valid as evidence` and gives the reasons. The project keeps such a report as a
 record only.
 
-If a cleanup step at the end fails, for example the delete of a downloaded file, the report has a
-`Cleanup` table with a `fail` row for that step.
+If a cleanup step at the end fails, for example the delete of a downloaded file, the list `cleanup`
+in the JSON block has a `fail` row for that step.
 
 Each EP result counts on each GPU, also DirectML on a GPU that is not an AMD GPU.
 

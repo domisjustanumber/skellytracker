@@ -36,8 +36,8 @@ The sections (``SECTIONS``): 1 ``checkout``, the checkout and the versions again
 ``skellytracker.certify("full")`` (``tools/certify_eps.py``).
 
 The report file obeys sections 4.1 and 4.2 of ``report-format.md`` of the repository ``skellycertify``.
-It has the title, the line of the module, a summary table with one row for each check, a short part
-for a person and, last, one fenced JSON block (``report_data()`` reads it):
+It has the title, the line of the module, the system list, the GPU table from the ``summary`` items, the
+camera line, the failed checks and, last, one fenced JSON block (``report_data()`` reads it):
 ``{"schema", "app": null, "modules": [<module report>], "note"}``. The one module report is the
 report of section 4, with ``kind`` ``full`` and ``created_utc`` set to the start of the run. When
 section 4 gave no report, it is the empty report of ``_base_report()`` of the package. Its ``checks``
@@ -654,39 +654,57 @@ def cell(text) -> str:
     return " ".join(str(text if text is not None else "").split()).replace("|", "\\|")
 
 
+def gpu_cell(gpu: dict) -> str:
+    """The display name of a GPU, then its VRAM in whole GB when it is 1 GB or more (section 4.2 of the contract)."""
+    name = " ".join(re.sub(r"\((R|TM)\)|\b(GeForce|Radeon|Arc|Graphics|GPU|Series)\b", " ", gpu.get("name") or gpu["id"]).split())
+    vram = gpu.get("vram_bytes") or 0
+    return cell(name + (f" {round(vram / 2**30)} GB" if vram >= 2**30 else ""))
+
+
+def system_lines(modules: list[dict]) -> list[str]:
+    """The system list, one time for the file: each value from the first module whose `host` has it, as a display name."""
+    hosts = [m.get("host") or {} for m in modules]
+    label = next((h["os"]["label"] for h in hosts if (h.get("os") or {}).get("label")), None)
+    cpu = next((h["cpu"]["name"] for h in hosts if (h.get("cpu") or {}).get("name")), None)
+    memory = next((h["memory_bytes"] for h in hosts if h.get("memory_bytes")), None)
+    cpu = cpu and re.sub(r"\((R|TM)\)|\b\d+(st|nd|rd|th) Gen\b|\bCPU @ [\d.]+ ?GHz\b|\b\d+-Core Processor\b", " ", cpu)
+    return [f"- {key}: {cell(value)}" for key, value in (("OS", label and re.sub(r"\b(Home|Pro)\b", " ", label)), ("CPU", cpu),
+                                                        ("RAM", memory and f"{round(memory / 2**30)} GB")) if value]
+
+
 def render(data: dict) -> str:
-    """The report file of sections 4.1 and 4.2 of the contract: the part for a person, then the data as the last fenced JSON block."""
-    modules = data["modules"]
-    lines = ["# Certify report", "", f"Schema `{data['schema']}`, created {modules[0]['created_utc']} (UTC).", ""]
+    """The report file of sections 4.1 and 4.2 of the contract: the short summary for a person, then the data as the last
+    fenced JSON block. The tool writes one module with no app. The rows come from the `summary` items: nothing is computed."""
+    modules, shown = data["modules"], {"record-only": "record"}
+    first = modules[0]
+    proof, package = first["evidence"], first["package"]
+    lines = ["# Certify report", "", " · ".join([
+        f"{package['name']} {package['version'] or 'with no version'}", f"{first.get('kind')} run",
+        f"{first['created_utc'][:16].replace('T', ' ')} UTC",
+        "valid as evidence" if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}"])]
+    system = system_lines(modules)
+    gpus, cameras, checked, unchecked = [], [], set(), {}
     for m in modules:
-        proof, package = m["evidence"], m["package"]
-        lines.append(f"**{package['name']} {package['version'] or 'with no version'}:** " +
-                     ("valid as evidence." if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}."))
-    # Only the failed rows (item 4 of section 4.2 of the contract). The row `suite:<slug>` covers the checks `suite:<slug>:<name>`.
-    failed = [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for m in modules
-              for c in m["checks"] if c["result"] == "fail" and not (c["name"].startswith("suite:") and c["name"].count(":") > 1)]
-    if failed:
-        lines += ["", "| Module | Section | Result | Reason |", "|---|---|---|---|", *failed]
-    names = {s.slug: f"{s.number}. {s.name}" for s in SECTIONS}
-    for m in modules:
-        suite = m["details"].get("suite", {})
-        lines += ["", "## Sections", ""]
-        lines += [f"- {names.get(slug, slug)}: {cell(found['summary'])}" + (f" ({found['seconds']} s)." if found["seconds"] is not None else ".")
-                  for slug, found in suite.get("sections", {}).items()]
-        eps = [c for c in m["checks"] if ":" not in c["name"]]  # a name with no `:` is the check of an EP on a GPU
-        if eps:
-            lines += ["", "## EP checks", "", "| Check | Result | Reason |", "|---|---|---|",
-                      *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for c in eps)]
-        if m.get("cleanup"):
-            lines += ["", "Cleanup:", "", "| Check | Result | Reason |", "|---|---|---|",
-                      *(f"| {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for c in m["cleanup"])]
-        if "telemetry_database" in suite:
-            lines += ["", "Telemetry folder of ONNX Runtime: " +
-                      ", ".join(f"{k} {'yes' if v else 'no'}" for k, v in suite["telemetry_database"].items()) + "."]
-        if suite.get("answers"):
-            lines += ["", "## Answers", "", *(f"- {cell(a['text'])} **{a['answer'] or 'no answer'}**" for a in suite["answers"])]
-    if data["note"]:
-        lines += ["", "## Note", "", *(f"> {line}" for line in data["note"].splitlines())]
+        found = {g["id"]: g for g in (m.get("host") or {}).get("gpus") or []}
+        unchecked.update({key: gpu for key, gpu in found.items() if key not in unchecked})
+        for item in m.get("summary") or []:
+            result = shown.get(item["result"], item["result"])
+            if item["group"] == "camera":
+                cameras.append(f"| {cell(item['name'])} | {result} |")
+                continue
+            device = item["device"]
+            where = "-" if device is None else gpu_cell(found.get(device) or {"id": device})
+            gpus.append(f"| {where} | {cell(item['name'])}{' GPU decode' if item['group'] == 'gpu-jpeg' else ''} | {result} |")
+            checked.add(device)
+    gpus += [f"| {gpu_cell(gpu)} | | not checked |" for key, gpu in unchecked.items() if key not in checked]
+    failed = [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {cell(c['reason'])} |"
+              for m in modules for c in m["checks"] if c["result"] == "fail"]  # the module has no `sections`: each failed check
+    for part in (system, gpus and ["| GPU | Module | Result |", "|---|---|---|", *gpus],
+                 ["| Camera | Result |", "|---|---|", *cameras] if cameras else ["Cameras: not checked on this system."],
+                 failed and ["Failed checks:", "", "| Module | Check | Reason |", "|---|---|---|", *failed],
+                 data["note"] and ["Note of the person:", "", *(f"> {line}" for line in data["note"].splitlines())]):
+        if part:
+            lines += ["", *part]
     text = json.dumps(data, indent=1)
     fence = "`" * max(3, 1 + max((len(run) for run in re.findall(r"`+", text)), default=0))
     return "\n".join([*lines, "", "## Data", "", fence + "json", text, fence, ""])

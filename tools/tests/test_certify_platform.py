@@ -92,18 +92,50 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.2.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
-    assert "| Module | Section | Result | Reason |" not in text  # no failed row: no summary table
-    assert "**skellytracker " in text and ":** not valid as evidence: " in text
+    assert "Failed checks:" not in text and "## Sections" not in text  # no failed check: no table
+    assert text.splitlines()[2].startswith("skellytracker ") and " · full run · " in text and " UTC · not valid as evidence: " in text
     checks = data["modules"][0]["checks"]
     checks[0].update(result="fail", reason="crashed")
-    checks.append({"name": "suite:checkout:b", "result": "fail", "reason": "x"})  # its section row covers it
-    table = cp.render(data).split("## Sections")[0].split("| Module | Section | Result | Reason |\n|---|---|---|---|\n")[1]
-    assert table.strip() == f"| skellytracker | {checks[0]['name']} | fail | crashed |" and checks[0]["name"].count(":") == 1
+    table = cp.render(data).split("Failed checks:\n\n| Module | Check | Reason |\n|---|---|---|\n")[1].split("\n\n")[0]
+    assert table == f"| skellytracker | {checks[0]['name']} | crashed |"
+
+
+def test_the_markdown_gives_the_system_list_and_the_gpu_table_from_the_summary_items():
+    gpus = [{"vendor": "intel", "name": "Intel(R) UHD Graphics 770", "id": "8086:a780", "vram_bytes": 134217728},
+            {"vendor": "nvidia", "name": "NVIDIA GeForce RTX 3070", "id": "10de:2484", "vram_bytes": 8589934592}]
+    report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "full", "package": {"name": "skellytracker", "version": "2.0.0"},
+              "evidence": {"valid": True, "reasons": []}, "checks": [], "details": {},
+              "host": {"os": {"label": "Windows 11 Home 26H2"}, "cpu": {"name": "AMD Ryzen 7 7700X 8-Core Processor"},
+                       "memory_bytes": 68388003840, "gpus": gpus},
+              "summary": [{"group": "ep", "name": "CUDA", "device": "10de:2484", "result": "pass"},
+                          {"group": "gpu-jpeg", "name": "CUDA", "device": "10de:2484", "result": "pass"},
+                          {"group": "ep", "name": "CPU", "device": None, "result": "record-only"}]}
+    text = cp.render({"schema": "s", "app": None, "modules": [report], "note": "a note"}).split("\n\n## Data")[0]
+    assert text == """# Certify report
+
+skellytracker 2.0.0 · full run · 2026-11-19 10:00 UTC · valid as evidence
+
+- OS: Windows 11 26H2
+- CPU: AMD Ryzen 7 7700X
+- RAM: 64 GB
+
+| GPU | Module | Result |
+|---|---|---|
+| NVIDIA RTX 3070 8 GB | CUDA | pass |
+| NVIDIA RTX 3070 8 GB | CUDA GPU decode | pass |
+| - | CPU | record |
+| Intel UHD 770 | | not checked |
+
+Cameras: not checked on this system.
+
+Note of the person:
+
+> a note"""
 
 
 def test_a_backtick_run_in_the_data_does_not_break_the_json_fence():
-    report = {"created_utc": "t", "package": {"name": "p", "version": None}, "evidence": {"valid": False, "reasons": ["x"]},
-              "checks": [], "details": {}}
+    report = {"created_utc": "t", "kind": "full", "package": {"name": "p", "version": None},
+              "evidence": {"valid": False, "reasons": ["x"]}, "checks": [], "details": {}}
     data = {"schema": "s", "app": None, "modules": [report], "note": "a ```` note"}
     assert cp.report_data(cp.render(data)) == data
 
@@ -159,8 +191,6 @@ def test_the_report_of_section_4_is_the_base_of_the_module(tmp_path, monkeypatch
     assert report["details"]["versions"] == {"ort_version": "1.30.0"} and report["details"]["suite"]["sections"]["full"]["details"] == {"models": []}
     assert report["cleanup"][0] == {"name": "test-image", "result": "fail", "reason": "PermissionError"}
     assert "no-check" in report["evidence"]["reasons"] and len(report["evidence"]["reasons"]) == len(set(report["evidence"]["reasons"]))
-    text = out.read_text(encoding="utf-8")
-    assert "| cuda@10de-2484-0 | pass |  |" in text  # the EP checks for a person
 
 
 def test_a_check_name_and_a_reason_code_follow_the_contract():
@@ -242,13 +272,11 @@ def test_a_cleanup_error_is_a_row_and_the_work_folder_and_the_report_still_go(tm
     out, work = tmp_path / "r.md", tmp_path / "w"
     code = cp.run_suite(sections()[:1], {1}, out, yes=True, work=work, interactive=False,
                         command=lambda s, w: [PY, "-c", writer, str(w), listed])
-    text = out.read_text(encoding="utf-8")
     report = module(out)
     assert code == cp.EXIT_OK and not work.exists() and not (root / "model.onnx").exists() and outside.exists()
     reasons = [(c["name"], c["reason"]) for c in report["cleanup"]]
     assert ("remove-windows-packages", "RuntimeError") in reasons and reasons.count(("remove-listed-file", "outside-model-root")) == 2
     assert len([r for r in reasons if r[0] == "remove-listed-file" and r[1] != "outside-model-root"]) == 1  # the directory
-    assert "| remove-windows-packages | fail | RuntimeError |" in text
 
 
 def test_a_child_with_a_complete_result_and_a_bad_exit_keeps_its_result(tmp_path):
@@ -510,9 +538,7 @@ def test_the_report_records_the_telemetry_folder_before_and_after_as_booleans(tm
     states = iter([False, True])
     monkeypatch.setattr(cp, "telemetry_database", lambda: next(states))
     _, out, _ = run(tmp_path, {1: emit(PASSING)}, selected={1})
-    text = out.read_text(encoding="utf-8")
     assert module(out)["details"]["suite"]["telemetry_database"] == {"before": False, "after": True}
-    assert "Telemetry folder of ONNX Runtime: before no, after yes." in text
 
 
 def test_the_suite_and_the_package_give_a_child_the_same_grace_time():
