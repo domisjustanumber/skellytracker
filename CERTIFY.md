@@ -132,7 +132,9 @@ stopped it.
 
 The report file has the format `skellycertify.report/1.1.0` of the repository `skellycertify`. It
 starts with a line that says if the report is valid as evidence. Then it has a table with one row for
-each check. The column `Section` holds the check name:
+each check that failed. A report with no failed check has no such table. A failed section has one row:
+the table does not repeat its checks. The JSON block at the end of the file holds each check. The
+column `Section` holds the check name:
 
 - `suite:<slug>` is the result of a section of the suite: `suite:checkout` (1), `suite:hardware` (2),
   `suite:packs` (3) and `suite:full` (4). `suite:full` is in the table only when section 4 gave no

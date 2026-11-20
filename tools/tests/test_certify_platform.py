@@ -92,8 +92,13 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.1.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
-    assert "| Module | Section | Result | Reason |" in text and "| skellytracker | suite:checkout:a | pass |  |" in text
+    assert "| Module | Section | Result | Reason |" not in text  # no failed row: no summary table
     assert "**skellytracker " in text and ":** not valid as evidence: " in text
+    checks = data["modules"][0]["checks"]
+    checks[0].update(result="fail", reason="crashed")
+    checks.append({"name": "suite:checkout:b", "result": "fail", "reason": "x"})  # its section row covers it
+    table = cp.render(data).split("## Sections")[0].split("| Module | Section | Result | Reason |\n|---|---|---|---|\n")[1]
+    assert table.strip() == f"| skellytracker | {checks[0]['name']} | fail | crashed |" and checks[0]["name"].count(":") == 1
 
 
 def test_a_backtick_run_in_the_data_does_not_break_the_json_fence():

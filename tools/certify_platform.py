@@ -662,8 +662,11 @@ def render(data: dict) -> str:
         proof, package = m["evidence"], m["package"]
         lines.append(f"**{package['name']} {package['version'] or 'with no version'}:** " +
                      ("valid as evidence." if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}."))
-    lines += ["", "| Module | Section | Result | Reason |", "|---|---|---|---|"]
-    lines += [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for m in modules for c in m["checks"]]
+    # Only the failed rows (item 4 of section 4.2 of the contract). The row `suite:<slug>` covers the checks `suite:<slug>:<name>`.
+    failed = [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {c['result']} | {cell(c['reason'])} |" for m in modules
+              for c in m["checks"] if c["result"] == "fail" and not (c["name"].startswith("suite:") and c["name"].count(":") > 1)]
+    if failed:
+        lines += ["", "| Module | Section | Result | Reason |", "|---|---|---|---|", *failed]
     names = {s.slug: f"{s.number}. {s.name}" for s in SECTIONS}
     for m in modules:
         suite = m["details"].get("suite", {})
