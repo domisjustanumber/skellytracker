@@ -214,12 +214,15 @@ It writes the local result in `quick-checks.json` of the EP store, and a passed 
 field-test opt-in. The level `full` is built in the package
 ([ADR-75J6](entries/75J6-full-level-in-certify-and-uuid-report-id.md)). Build in this order:
 
-1. A run of the level `full` on a plugin EP (`cuda`, `trt-rtx`), on Linux and on macOS. Only
-   `directml` on one Windows host ran it. Then calibrate its time estimates and the time estimates of
-   the level `quick`.
-2. A run of the sections `packs` and `full` of `tools/certify_platform.py` on a host. Only the sections
-   `checkout` and `hardware` ran ([ADR-SP4Z](entries/SP4Z-certify-suite-calls-the-full-level.md)). A build
-   must write `skellytracker/_build_info.py`: the reader exists, the build step does not.
+1. A run of the level `full` on Linux and on macOS. One Windows host ran it for `trt-rtx`, `cuda` and
+   `directml` on an RTX 3070 and for `directml` on a UHD 770: each EP check passed. Then calibrate its
+   time estimates and the time estimates of the level `quick`.
+2. A run of the sections `packs` and `full` of `tools/certify_platform.py` on Linux and on macOS. One
+   Windows host ran the four sections ([ADR-SP4Z](entries/SP4Z-certify-suite-calls-the-full-level.md)):
+   384 checks, no `fail`, 47 s for `packs` and 316 s for `full`. The section `hardware` gave one
+   difference in 17 comparisons: `vram_mib` of the UHD 770 is 128 in skellytracker and 2047 in
+   `Win32_VideoController`. The cause is not examined. A build must write
+   `skellytracker/_build_info.py`: the reader exists, the build step does not.
 3. A run of the quick check of `coreml` on a Mac. No Mac ran it
    ([ADR-ER5X](entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 6).
 4. A run of an install from the Windows ML catalog with a download, its progress and its cancel. The
