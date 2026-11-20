@@ -169,6 +169,7 @@ skellytracker/core/model_zoo/**/*.onnx
 skellytracker/utilities/quine_directory_printer/output/*
 recorded_objects.npy
 *.zip
+!skellytracker/core/model_zoo/test_media/quick_frames.zip
 
 .claude/*
 !.claude/skills/

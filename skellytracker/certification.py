@@ -46,10 +46,14 @@ PACKAGE = "skellytracker"
 LEVELS = ("quick", "full")
 REPORT_STATES = ("pending", "opened", "covered")  # `opened`: the user saved the file and opened the issue form; `covered`: an issue holds it
 REPORT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$")
-PROBE_SECONDS = 15  # not calibrated: the time estimate of one L3 probe; the catalog gives the time of the check `<ep>:video`
-VIDEO_SECONDS = 30  # not calibrated: the time estimate of the check `<ep>:video` for an EP that has no `certification.seconds`
-LIVE_SECONDS = 20  # not calibrated: the time estimate of the check `<ep>:live`: one more child and one more pipeline start on the EP
-CPU_REFERENCE_SECONDS = 20  # not calibrated: the time estimate of the CPU reference: `cpu:video` and `cpu:live` in one child
+# The time estimates below are not calibrated. One Windows host on `directml` (2026-11-20, ADR-R0EB) gave, with the start
+# of the child and 3 frames in each mode: 4.2 s for the CPU reference, 1.1 to 1.4 s for a probe, and about 3 s for each of
+# `<ep>:video` and `<ep>:live`. A run now has 30 frames in each mode, so the values are larger.
+PROBE_SECONDS = 3  # not calibrated: one L3 probe
+VIDEO_SECONDS = 6  # not calibrated: `<ep>:video` of an EP with no `certification.seconds` (for `trt-rtx` and `cuda`: the first engine build)
+LIVE_SECONDS = 6  # not calibrated: `<ep>:live`: one more child and one more pipeline start on the EP
+CPU_REFERENCE_SECONDS = 12  # not calibrated: the CPU reference: `cpu:video` and `cpu:live` in one child
+QUICK_BUDGET_SECONDS = 75  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5)
 CPU_CHECKS = ("cpu:video", "cpu:live")  # the CPU reference of the run, at the two levels
 JPEG_SECONDS = 5  # not calibrated: the time estimate of the two JPEG checks; 1.0 to 1.3 s on one RTX 3070
 JPEG_TIMEOUT_SECONDS = 120.0
@@ -72,40 +76,50 @@ COMMIT = re.compile(r"^[0-9a-f]{40}$")
 OS_NAMES = {"Darwin": "macOS"}
 ARCHES = {"amd64": "x86_64", "x64": "x86_64", "aarch64": "arm64"}
 PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]|/(?:home|Users|root)/|~[\\/])[^\s\"'|,;]*")
-# the numbers of `compare_results()` in `<ep>:video`: the worst value over the frames, the lowest for these four, else the highest
-LOWEST_NUMBERS = ("people_cpu", "people_ep", "box_iou_min", "points_compared")
-COMPARED_NUMBERS = (*LOWEST_NUMBERS, "keypoint_px_max", "keypoint_box_fraction_max", "keypoint_box_fraction_median",
-                    "keypoint_box_fraction_p99")
+# the numbers of `compare_results()` that `<ep>:video` keeps: the values of frame 0
+COMPARED_NUMBERS = ("people_cpu", "people_ep", "box_iou_min", "points_compared", "keypoint_px_max", "keypoint_box_fraction_max",
+                    "keypoint_box_fraction_median", "keypoint_box_fraction_p99")
 
 
 def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None,
                  pipeline=None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
-    `downloads` names the test image when it is not on this host. `details.checks` gives the
-    name of each EP check, one for each EP and GPU. No level installs an EP: `details.not_run` gives each
-    of them that will not run, with its reason code, for example `ep-not-installed`. `system_changes` and
-    `questions` are empty. `pipeline` does not change the plan. `seconds_estimate` also counts the CPU
-    reference (`cpu:video` and `cpu:live`) when an EP check can run. The level `full` always counts the
-    checks of the CPU EP.
+    `downloads` is empty at the two levels: `certify()` downloads nothing. `details.checks` gives the
+    name of each EP check, one for each EP and GPU. A pair with a reviewed pass is not in it at the level
+    `quick`. No level installs an EP: `details.not_run` gives each of them that will not run, with its
+    reason code, for example `ep-not-installed`. `system_changes`, `questions` and `risks` are empty.
+    `pipeline` does not change the plan. `total` is the count of the checks that will run: the checks of
+    each pair that can run, with its EP check, and the CPU reference (`cpu:video` and `cpu:live`) when a
+    pair can run. It is 0 when no pair can run. The level `full` always counts the checks of the CPU EP.
+    `seconds_estimate` counts the same checks. At the level `quick` it is at most `QUICK_BUDGET_SECONDS`.
+    `details.os_known` is true when `ep_evidence.yaml` has a reviewed pass for the OS key of this system
+    (`os_key()` of `core/eps/evidence.py`, for example `Windows 11`), for any EP, GPU and version set.
     """
     _check_level(level)
-    plan = {"package": PACKAGE, "kind": level, "seconds_estimate": 0, "downloads": [], "system_changes": [], "questions": []}
-    from skellytracker.core.eps import store
+    plan = {"package": PACKAGE, "kind": level, "seconds_estimate": 0, "total": 0, "risks": [], "downloads": [],
+            "system_changes": [], "questions": []}
+    from skellytracker.core.eps import evidence
     from skellytracker.core.eps.catalog import load_catalog
     from skellytracker.core.system.host import probe_host
 
     catalog, host = load_catalog(), probe_host()
     settings = catalog.data["certification"]
     full = level == "full"
-    selected = _selection(catalog, host, execution_providers, device, skip_certified=not full)
+    selected = [item for item in _selection(catalog, host, execution_providers, device, skip_certified=not full)
+                if item[4] != "reviewed"]
     runnable = [item for item in selected if item[4] is None]
-    plan["seconds_estimate"] = sum(_estimates(runnable, settings, full).values())
-    if (runnable or full) and not _image_path(store, settings).is_file():
-        plan["downloads"].append({"name": settings["image"]["url"].rsplit("/", 1)[1], "bytes": settings["image"]["bytes"]})
+    seconds = sum(_estimates(runnable, settings, full).values())
+    plan["seconds_estimate"] = seconds if full else min(seconds, QUICK_BUDGET_SECONDS)
+    plan["total"] = (len(_cpu_names(full)) if runnable or full else 0) + sum(
+        len(_names(label, key, device_key, full)) for label, key, device_key, *_ in runnable)
+    os_key = evidence.os_key(host.os_label)
     plan["details"] = {"execution_providers": list(dict.fromkeys(key for _, key, *_ in selected)),
                        "checks": [label for label, *_ in selected],
-                       "not_run": {label: reason for label, _, _, _, reason in selected if reason}}
+                       "not_run": {label: reason for label, _, _, _, reason in selected if reason},
+                       "os_known": os_key is not None and any(
+                           isinstance(row, dict) and row.get("result") == "pass" and isinstance(row.get("os_label"), str)
+                           and evidence.os_key(row["os_label"]) == os_key for row in evidence.load_evidence())}
     return plan
 
 
@@ -119,49 +133,69 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       10 times a second. If it raises, it gets no other message, and the run continues.
     - `cancel`: an object with `is_set()`. A set cancel stops the running child process within about a
       second. Each check that did not end is `not-run` with `cancelled`.
-    - `execution_providers`: the EP keys to check. The default is each GPU EP of this host with no
-      reviewed row in `ep_evidence.yaml` for the GPU model and OS: each usable plugin EP, and also
-      `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no pack), and `coreml`
-      on a Mac. The default of the level `full` also takes an EP with a reviewed row. An unknown or
-      reserved key raises `EpRequestError` (a `ValueError`).
+    - `execution_providers`: the EP keys to check. The default is each GPU EP of this host: each usable
+      plugin EP, and also `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no
+      pack), and `coreml` on a Mac. An unknown or reserved key raises `EpRequestError` (a `ValueError`).
     - `device`: one device key or a list of device keys, as in `run_devices()`: the GPUs to check on. The
-      default is each GPU that the EP can use. In the default selection, a GPU with a reviewed row is not
-      checked. A key that is not a GPU of this host raises `EpRequestError`. A named EP that cannot use
-      a named GPU is `not-run` with `gpu-not-usable`.
+      default is each GPU that the EP can use. A key that is not a GPU of this host raises
+      `EpRequestError`. A named EP that cannot use a named GPU is `not-run` with `gpu-not-usable`.
+    - A reviewed pair: an EP on a GPU with a reviewed pass, a row of `ep_evidence.yaml` for the EP, the GPU
+      model, the OS and the version set of this release (`evidence.certified()`). The level `quick` never
+      checks it, also when the caller names the EP or the GPU (ADR-X7WD items 2 and 3). It has no check.
+      `details.skipped` gives it as `{<ep>: "reviewed"}`, and it has a summary item `skipped`. The level
+      `full` checks it.
     - `pipeline`: the pipeline of the user, as a `PipelineConfig`, a key of the pipeline catalog or a
       path. The default is `certification.pipeline` of the EP catalog. A config that does not load
       raises, as `load_pipeline()` does.
 
     The quick check shows that a post-hoc session (the running mode `video`) and a realtime session (the
-    running mode `live`) start and run. Each check below runs in its own `spawn` child.
-    - First the CPU reference, one time for the run: the pipeline on the CPU EP on 3 frames (`FRAMES` of
-      `core/eps/certification.py`: one camera, the test image repeated) in `video`, then on 3 frames in `live`. `cpu:video` passes
-      when each frame has a person. `cpu:live` passes when its outputs are finite. It runs only when an
-      EP check can run.
+    running mode `live`) start and run. Each check below runs in its own `spawn` child. The frames are the
+    30 test frames of the package (`frames_record()`, `FRAMES` of
+    `core/eps/certification.py`), on one camera, in order.
+    - First the CPU reference, one time for the run: the pipeline on the CPU EP on the frames in `video`,
+      then in `live`. `cpu:video` passes when each frame has a person. `cpu:live` passes when its outputs
+      are finite. It runs only when an EP check can run.
     - Then, for each EP on each GPU of the selection: the L3 probe (`verify()`), `<ep>:probe`.
-    - `<ep>:video`: the pipeline on the EP on 3 frames in `video`. It compares each frame with the
-      frame of the CPU reference with the same index, with the thresholds of `certification` of the EP
-      catalog. The first frame that fails gives the reason. With no CPU reference, it is `not-run` with
-      `cpu-reference-missing`. Its `numbers` hold the worst value of each number over the frames, and
-      `ep_ms`, `cpu_ms` and `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure, a
-      record only that never changes the result.
-    - `<ep>:live`: the pipeline on the EP on 3 frames in `live`, with a rising `timestamp_ms`. It
+    - `<ep>:video`: the pipeline on the EP on the frames in `video`. It compares frame 0 with frame 0 of
+      the CPU reference with each threshold of `certification` of the EP catalog. Each later frame fails
+      only on other people than the CPU EP (`people-differ`), an output that is not finite (`not-finite`) or
+      a box IoU under `box_iou_min` (`box-differs`): its keypoint difference is a record only (ADR-R0EB
+      item 3). The first frame that fails gives the reason. With no CPU reference, it is `not-run` with
+      `cpu-reference-missing`. Its `numbers` hold the numbers of frame 0, `later_keypoint_box_fraction_max`
+      (the worst keypoint difference of the later frames), `frames`, and `ep_ms`, `cpu_ms` and
+      `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure, a record only that never
+      changes the result.
+    - `<ep>:live`: the pipeline on the EP on the frames in `live`, with a rising `timestamp_ms`. It
       passes when each frame has finite outputs and a person. It compares nothing. It starts only after
-      `<ep>:video` passed, else it is `not-run` with `video-not-passed`. It never changes `<ep>`.
-    It downloads no model: with a model file that is not on this host, each of these checks is `not-run`
-    with `models-missing`. Each EP on each GPU gives the checks `<ep>:probe`, `<ep>:video`, `<ep>:live`
+      `<ep>:video` passed, else it is `not-run` with `video-not-passed`.
+    It downloads nothing (ADR-X7WD item 6). With a model file that is not on this host, each of these checks
+    is `not-run` with `models-missing`. With a test frames file that is absent or has a wrong sha256,
+    `cpu:video`, `cpu:live` and each `<ep>:video` and `<ep>:live` are `not-run` with `test-media-missing`.
+    Each EP on each GPU gives the checks `<ep>:probe`, `<ep>:video`, `<ep>:live`
     and `<ep>`. `<ep>` is `<key>@<device>`, for example `cuda@10de-2484-0`: the EP key and the device key of
     the GPU with no `gpu:` and with `-` for `:`. It is `<key>` alone for an EP with no GPU to run on, and
     for `coreml`: it runs on the chip of the Mac and selects no GPU. The key of its stored result is the chip
     name, and `details.eps.coreml.gpu` gives it, for example `chip:apple-m2-pro` (ADR-ER5X item 6).
     Thus the name of an EP check has no `:`. `details.eps.<ep>.device` gives the device key. The
-    check `<ep>` passes only when `<ep>:probe` and `<ep>:video` pass (ADR-21BK item 2). On `cuda` and `trt-rtx`, an EP on
+    check `<ep>` is a roll-up check: it runs no test. It passes only when `<ep>:probe`, `<ep>:video` and
+    `<ep>:live` pass. Else it has the result and the reason of the first of them that failed, or else of
+    the first that did not run (ADR-X7WD item 4). On `cuda` and `trt-rtx`, an EP on
     a GPU also gives `<ep>:jpeg-decode` and `<ep>:jpeg-preprocess`: the two checks of
     `run_jpeg_quick_checks()` of the GPU frame path, in one more `spawn` child, after a check `<ep>:video` that
     passed. They never change `<ep>`: a JPEG check that fails stops only the GPU frame path
     (ADR-R53H item 5). An EP that cannot run, for
     example a pack that is not installed, gives `not-run` with `ep-<state code>`. Each EP runs, also
     when an other EP fails.
+
+    The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` from the start of the
+    call. The order is the CPU reference, then the pairs in the order of the selection. Before each check
+    that starts a child (the CPU reference, a probe, `<ep>:video`, `<ep>:live`, the two JPEG checks), a
+    check whose time estimate is more than the time that is left does not start: it is `not-run` with
+    `over-budget`. The time limit of each child is the smaller of its own limit and the time that is left,
+    and a child that the end of the budget stops is also `not-run` with `over-budget`. A run that names
+    one EP (`execution_providers` with one key) does not skip a check on its estimate: it stops only at the
+    end of the budget. An EP check that is `not-run` stores no local result, so the budget never blocks an EP.
+    The level `full` has no budget.
 
     Level `full` (ADR-75J6). The report has the layout of the level `quick`: a flat list of checks, the same
     `details.eps` and the same `details.versions`. It runs only checks that need no checkout: it installs
@@ -180,11 +214,11 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       in one `spawn` child, for each EP of `JPEG_FULL_EPS` on a GPU: `fail` when a check failed, else `pass`
       when a check passed. Each check of that run follows it as `<ep>:jpeg:<name>`, with its result, its
       reason code and its numbers. It starts only after a probe that passed.
-    - A timing, a JPEG check and `<ep>:live` never change `<ep>`. `<ep>` passes when `<ep>:probe` and
-      `<ep>:video` pass.
+    - A timing and a JPEG check never change `<ep>`. `<ep>` is the roll-up check of the level `quick`.
       The run stores the same local result as a quick check. For `cuda` and `trt-rtx`, the stored `jpeg`
       holds the results of the two checks of `QUICK_CHECKS` from the JPEG certification.
     - With no EP to check, the level `full` still runs the checks of the CPU EP.
+    - The timings use frame 0 of the test frames.
 
     The report: `id` is a version 4 UUID. It is also the name of the report file and the id of the hand-in
     list. The package writes it after the scrub of private words. `details.eps.<ep>.pack_version` holds the
@@ -199,12 +233,15 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     `group`, `name`, `device` and `result`. Each EP that ran on a GPU has one item of the group `ep`, with the
     result of its check: an EP that is `not-run` has no item. `name` is the short fixed name of the EP, for
     example `TensorRT RTX`, `CUDA`, `DirectML` or `CPU`. `device` is the `id` of the GPU in `host.gpus`, or None.
-    A `gpu-jpeg` item follows the `ep` item when a check of the GPU JPEG decode ran on that EP and that GPU. The
-    CPU EP has the last item when one of its checks ran: `fail` when one failed, else `record-only`.
+    A `gpu-jpeg` item follows the `ep` item when a check of the GPU JPEG decode ran on that EP and that GPU.
+    Each reviewed pair that the level `quick` skipped has an `ep` item with the result `skipped` and the reason
+    `reviewed`, after the items of the pairs that ran. The CPU EP has the last item when one of its checks ran:
+    `fail` when one failed, else `record-only`.
 
     Evidence: the item of the quick level is one EP on one GPU of this host. Thus a run of a part of the EPs is
     complete for each EP that it checks, and is not `partial-run`. A run with no EP to check has no
-    check and is not valid as evidence (`no-check`). A `quick` report never gives a reviewed row.
+    check and is not valid as evidence (`no-check`), also when each pair is reviewed: that is a correct
+    quick run. A `quick` report never gives a reviewed row.
 
     The package cannot see the pipelines of an application, so it never refuses a run with `gpu-busy`:
     the application must not call it while a pipeline holds the GPU.
@@ -214,11 +251,12 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     in `quick-checks.json`. A `field-test` EP gets the opt-in during its check. The opt-in stays only
     when the check passes on a GPU (ADR-21BK item 2). The stored result is for the GPU model: two GPUs of one
     model share it, and the last check wins. The row of `quick-checks.json` of `cuda` and `trt-rtx` also holds
-    `jpeg`: the result of each of the two JPEG checks. The test image is deleted at the end when this run
-    downloaded it.
+    `jpeg`: the result of each of the two JPEG checks.
     """
     _check_level(level)
+    started = time.monotonic()
     created = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    from skellytracker.core.eps import evidence
     from skellytracker.core.eps.catalog import load_catalog
     from skellytracker.core.system.host import probe_host
 
@@ -226,7 +264,12 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     report, reasons = _base_report(level, created, host)
     sender = _Progress(progress, level)
     full = level == "full"
+    if not full:
+        sender.deadline = started + QUICK_BUDGET_SECONDS
+        sender.whole = execution_providers is not None and len(set(execution_providers)) == 1
     selected = _selection(catalog, host, execution_providers, device, skip_certified=not full)
+    skipped = [item for item in selected if item[4] == "reviewed"]  # the level `quick` never checks a reviewed pair
+    selected = [item for item in selected if item[4] != "reviewed"]
     cpu = full or any(reason is None for *_, reason in selected)  # the CPU reference runs only for an EP that can run
     names = [*(_cpu_names(full) if cpu else ()), *(name for label, key, device_key, *_ in selected
                                                    for name in _names(label, key, device_key, full))]
@@ -244,8 +287,10 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
                 row.update(result="not-run", reason="cancelled")
         reasons.append("cancelled")
     sender.send("cleaning-up", None, report["checks"], None)
+    report["details"]["skipped"] = {label: "reviewed" for label, *_ in skipped}
     report["evidence"] = {"valid": not reasons, "reasons": reasons}
-    report["summary"] = _summary(report)
+    report["summary"] = _summary(report, [{"group": "ep", "name": SUMMARY_NAMES.get(key, key), "device": evidence.gpu_id(gpu),
+                                           "result": "skipped", "reason": "reviewed"} for _, key, _, gpu, _ in skipped])
     report = _scrub(report)
     report = {"schema": SCHEMA, "id": str(uuid.uuid4()), **report}  # after the scrub: a private word must not change the id
     if report["checks"]:
@@ -382,10 +427,15 @@ def _check_level(level) -> None:
 
 
 class _Progress:
-    """The sender of the progress messages: each message is the complete state, at most 10 each second."""
+    """The sender of the progress messages: each message is the complete state, at most 10 each second.
+
+    It also holds the time budget of the run, because each check gets it: `deadline` is the end of the budget of the
+    level `quick` (`time.monotonic()`), or None. With `whole`, a check does not skip on its estimate, only at the end.
+    """
 
     def __init__(self, callback, kind: str):
         self.callback, self.kind, self.last, self.estimates = callback, kind, 0.0, {}
+        self.deadline, self.whole = None, False
 
     def send(self, state: str, step: str | None, checks: list[dict], total: int | None = None) -> None:
         if self.callback is None:
@@ -402,19 +452,38 @@ class _Progress:
             self.callback = None
 
 
+def _over_budget(sender: _Progress, name: str) -> bool:
+    """True when the check `name` must not start: the time that is left of the budget is shorter than its estimate.
+
+    A run that names one EP stops only at the end of the budget (ADR-X7WD item 5). The level `full` has no budget.
+    """
+    left = None if sender.deadline is None else sender.deadline - time.monotonic()
+    return left is not None and (left <= 0 or (not sender.whole and sender.estimates.get(name, 0) > left))
+
+
+def _timeout(sender: _Progress, limit: float) -> float:
+    """The time limit of a child: `limit`, or the time that is left of the budget when that is shorter."""
+    return limit if sender.deadline is None else max(0.0, min(limit, sender.deadline - time.monotonic()))
+
+
+def _cut(problem: str | None, timeout: float, limit: float) -> str | None:
+    """`over-budget` for a child that the end of the budget stopped, else `problem` unchanged."""
+    return "over-budget" if problem == "timed-out" and timeout < limit else problem
+
+
 def _label(key: str, device_key: str | None) -> str:
     """The name of the check of an EP on a GPU: `cuda@10de-2484-0`. It has no `:`, so each name with `:` is a part of it."""
     return key if device_key is None else f"{key}@{device_key.removeprefix('gpu:').replace(':', '-')}"
 
 
-def _summary(report: dict) -> list[dict]:
+def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
     """The summary items of section 3.7 of the contract, from the checks of the report: the EPs that ran, in the order of the run.
 
     An `ep` item has the result of the row of the pair. The CPU EP has no such row: its item is `fail` when one of its
     rows failed, else `record-only`, because the CPU EP is the reference of each comparison. A `gpu-jpeg` item is
     there only when a GPU JPEG decode check ran for the pair: the check `jpeg-decode` of the level `quick`, or the
     checks `jpeg:gpu_decode.*` of the level `full`, where one `fail` gives `fail`. `device` is the id of the GPU in
-    `host.gpus`, or None.
+    `host.gpus`, or None. The items of `skipped` (a pair with a reviewed pass) follow the pairs that ran, before the CPU EP.
     """
     rows = {row["name"]: row["result"] for row in report["checks"]}
     items = []
@@ -429,6 +498,7 @@ def _summary(report: dict) -> list[dict]:
             decode = "fail" if "fail" in found else "pass" if found else None
         if decode:
             items.append({"group": "gpu-jpeg", **pair, "result": decode})
+    items += skipped
     cpu = {result for name, result in rows.items() if name.startswith("cpu:")} & set(RAN)
     if cpu:
         items.append({"group": "ep", "name": SUMMARY_NAMES["cpu"], "device": None, "result": "fail" if "fail" in cpu else "record-only"})
@@ -474,7 +544,8 @@ def _estimates(selected: list[tuple], settings: dict, full: bool) -> dict[str, i
 def _selection(catalog, host, execution_providers, device=None, *, skip_certified: bool = True) -> list[tuple]:
     """`(label, key, device_key, gpu, reason)` for each EP and GPU to check; `reason` is the code of one that cannot run.
 
-    With `skip_certified`, the default selection leaves out an EP on a GPU that has a reviewed row.
+    With `skip_certified` (the level `quick`), an EP on a GPU with a reviewed pass has the reason `reviewed`, also when the
+    caller names the EP or the GPU: the caller runs no check for it (ADR-X7WD item 3).
     """
     from skellytracker.core import errors
     from skellytracker.core.eps import evidence, gate, store
@@ -497,8 +568,8 @@ def _selection(catalog, host, execution_providers, device=None, *, skip_certifie
         chip = gate.chip_of(catalog, key, host)
         if chip is not None:  # `coreml`: one check on the chip of the host, with no device key and the name `<key>`
             certified = skip_certified and evidence.certified(key, chip, gate.OS_LABELS.get(host.os_name, host.os_name))
-            if not (default and (certified or wanted is not None)):
-                found.append((key, key, None, chip, "gpu-not-usable" if wanted is not None else
+            if not (default and wanted is not None):
+                found.append((key, key, None, chip, "gpu-not-usable" if wanted is not None else "reviewed" if certified else
                               _setup_reason(store.pack_state(catalog, key, None, None, host.os_build))))
             continue
         if catalog.device_row(key) is None:
@@ -508,11 +579,11 @@ def _selection(catalog, host, execution_providers, device=None, *, skip_certifie
         pairs = [(device_key, gpu) for device_key, gpu in usable if wanted is None or device_key in wanted]
         for device_key, gpu in pairs:
             state = store.pack_state(catalog, key, gpu, device_key, host.os_build)
-            # the default: no reviewed row; a plugin EP must be usable; `directml` and a Windows ML EP are always in it
-            if default and ((skip_certified and evidence.certified(key, gpu, host.os_name))
-                            or (catalog.pack(key) is not None and state[0] not in USABLE_STATES)):
+            # the default: a plugin EP must be usable; `directml` and a Windows ML EP are always in it
+            if default and catalog.pack(key) is not None and state[0] not in USABLE_STATES:
                 continue
-            found.append((_label(key, device_key), key, device_key, gpu, _setup_reason(state)))
+            reviewed = skip_certified and evidence.certified(key, gpu, host.os_name)
+            found.append((_label(key, device_key), key, device_key, gpu, "reviewed" if reviewed else _setup_reason(state)))
         if not pairs and not default:
             reason = "gpu-not-usable" if usable else _setup_reason(store.pack_state(catalog, key, None, None, host.os_build))
             found.append((key, key, None, None, reason))
@@ -521,10 +592,6 @@ def _selection(catalog, host, execution_providers, device=None, *, skip_certifie
 
 def _setup_reason(state: tuple) -> str | None:
     return None if state[0] in RUNNABLE_STATES else "ep-" + (state[1] or state[0]).replace("_", "-")
-
-
-def _image_path(store, settings: dict) -> Path:
-    return store.cache_root() / "certify" / f"{settings['image']['sha256']}.jpg"  # the path of `test_frame()`
 
 
 def _pipeline(catalog, pipeline) -> tuple[dict, str, str | None]:
@@ -547,9 +614,13 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
 
     rows = {row["name"]: row for row in report["checks"]}
     mapping, pipeline_key, image_reason = resolved
-    settings = {**catalog.data["certification"], "pipeline": mapping}
-    image = _image_path(store, settings)
-    image_was_here = image.is_file()
+    settings = {**catalog.data["certification"], "frames": certification.frames_record(), "pipeline": mapping}
+    try:
+        certification.frames_file(settings)
+        media = None
+    except certification.FramesUnavailableError:
+        media = "test-media-missing"  # `certify()` downloads nothing (ADR-X7WD item 6)
+    image_reason = media or image_reason
     details = {"pipeline": pipeline_key, "eps": {}}
     cpu_medians: dict = {}
     reference = _cpu_reference(report, settings, image_reason, sender, cancel) if CPU_CHECKS[0] in rows else None
@@ -578,7 +649,7 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
             if setup is None:
                 _probe(report, label, key, device_key, sender, cancel)
                 _video(report, label, key, device_key, settings, image_reason, sender, cancel, details["eps"][label], reference)
-                _live(report, label, key, device_key, settings, sender, cancel)
+                _live(report, label, key, device_key, settings, media, sender, cancel)
                 if full:
                     _timings(report, label, key, device_key, settings,
                              None if rows[names[1]]["result"] == "pass" else "video-not-passed", sender, cancel, cpu_medians)
@@ -590,7 +661,7 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
             else:
                 for name in names[:-1]:
                     rows[name].update(result="not-run", reason=setup)
-            parts = [rows[name] for name in names[:2]]
+            parts = [rows[name] for name in names[:3]]  # the roll-up check `<label>`: the probe, `video` and `live`
             failed = next((row for row in parts if row["result"] == "fail"), None)
             not_run = next((row for row in parts if row["result"] == "not-run"), None)
             if failed is None and not_run is None:
@@ -605,8 +676,6 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
         finally:
             if temporary and rows[label]["result"] != "pass":
                 _cleanup(report, "field-test-opt-in", lambda key=key: store.drop_field_test_opt_in(key))
-    if not image_was_here and image.exists():
-        _cleanup(report, "test-image", image.unlink)
     runtime = probe_runtime()  # imports onnxruntime in this process, as `eps.certify()` does
     ort = dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True))
     ort_name = "onnxruntime-windowsml" if "onnxruntime-windowsml" in ort else next(iter(ort), None)
@@ -619,18 +688,22 @@ def _probe(report: dict, label: str, key: str, device_key: str | None, sender: _
     from skellytracker.core.eps import verification
 
     row = next(row for row in report["checks"] if row["name"] == f"{label}:probe")
+    if _over_budget(sender, row["name"]):
+        row.update(result="not-run", reason="over-budget")
+        return
     sender.send("running", row["name"], report["checks"])
-    started = time.monotonic()
+    started, timeout = time.monotonic(), _timeout(sender, verification.TIMEOUT_SECONDS)
     try:
-        (verdict,) = verification.verify([key], device_key=device_key, force=True, cancel=cancel)
+        (verdict,) = verification.verify([key], device_key=device_key, force=True, cancel=cancel, timeout=timeout)
     except Exception as error:  # noqa: BLE001 - a setup failure: the EP did not run
         row.update(result="not-run", reason=type(error).__name__)
         return
     numbers = {"seconds": round(time.monotonic() - started, 1), "max_abs_diff": verdict.max_abs_diff}
+    code = _cut(verdict.reason_code, timeout, verification.TIMEOUT_SECONDS)
     if verdict.ok:
         row.update(result="pass", reason=None)
-    elif verdict.reason_code == "cancelled":
-        row.update(result="not-run", reason="cancelled")
+    elif code in ("cancelled", "over-budget"):
+        row.update(result="not-run", reason=code)
     elif verdict.reason_code in CHILD_FAILURES:
         row.update(result="fail", reason=CHILD_FAILURES[verdict.reason_code])
         numbers["exit_code"] = verdict.exit_code
@@ -658,7 +731,7 @@ def _session_result(rows: list[dict], mode: str, found: dict | None, problem: st
             row.update(result="not-run", reason="cancelled")
         elif code in CHILD_FAILURES:
             row.update(result="fail", reason=CHILD_FAILURES[code], numbers={"exit_code": exit_code})
-        else:  # a setup failure before the first mode, for example the download of the test image
+        else:  # `over-budget`, or a setup failure before the first mode, for example a test frames file that is not valid
             row.update(result="not-run", reason=code)
     return None
 
@@ -681,15 +754,16 @@ def _cpu_reference(report: dict, settings: dict, image_reason: str | None, sende
     from skellytracker.core.eps import certification
 
     video, live = (_row(report, name) for name in CPU_CHECKS)
-    if image_reason is not None or (cancel is not None and cancel.is_set()):
+    if image_reason is not None or (cancel is not None and cancel.is_set()) or _over_budget(sender, video["name"]):
         for row in (video, live):
-            row.update(result="not-run", reason=image_reason or "cancelled")
+            row.update(result="not-run", reason=image_reason or ("cancelled" if cancel is not None and cancel.is_set() else "over-budget"))
         return None
     sender.send("running", video["name"], report["checks"])
-    started = time.monotonic()
+    started, timeout = time.monotonic(), _timeout(sender, certification.WIDE_TIMEOUT_SECONDS)
     found, problem, exit_code = certification.session_run(
-        "cpu", settings, ("video", "live"), cancel=cancel,
+        "cpu", settings, ("video", "live"), cancel=cancel, timeout=timeout,
         progress=lambda mode: sender.send("running", live["name"], report["checks"]) if mode == "live" else None)
+    problem = _cut(problem, timeout, certification.WIDE_TIMEOUT_SECONDS)
     run = _session_result([video, live], "video", found, problem, exit_code)
     if run is None:
         return None
@@ -713,10 +787,12 @@ def _cpu_reference(report: dict, settings: dict, image_reason: str | None, sende
 
 def _video(report: dict, label: str, key: str, device_key: str | None, settings: dict, image_reason: str | None,
            sender: _Progress, cancel, details: dict, reference: dict | None) -> None:
-    """The check `<label>:video`: the pipeline on `FRAMES` frames in the running mode `video` on the EP, in a `spawn` child.
+    """The check `<label>:video`: the pipeline on the test frames in the running mode `video` on the EP, in a `spawn` child.
 
-    It compares each frame with the frame of the CPU reference with the same index. The first frame that fails gives the
-    reason. `numbers` holds the worst value of each number of `compare_results()` over the frames.
+    It compares frame 0 with frame 0 of the CPU reference with each threshold of the catalog. Each later frame has the
+    lighter rule of `compare_results()` with `keypoints` false: the people, the finite outputs and the box IoU (ADR-R0EB
+    item 3). The first frame that fails gives the reason. `numbers` holds the numbers of `compare_results()` of frame 0,
+    and `later_keypoint_box_fraction_max`: the worst keypoint difference of the later frames, a record only.
     """
     from skellytracker.core.eps import certification
 
@@ -728,43 +804,57 @@ def _video(report: dict, label: str, key: str, device_key: str | None, settings:
     if image_reason is not None or reference is None:
         row.update(result="not-run", reason=image_reason or "cpu-reference-missing")
         return
+    if _over_budget(sender, row["name"]):
+        row.update(result="not-run", reason="over-budget")
+        return
     sender.send("running", row["name"], report["checks"])
-    started = time.monotonic()
-    found, problem, exit_code = certification.session_run(key, settings, ("video",), device_key, cancel=cancel)
+    started, timeout = time.monotonic(), _timeout(sender, certification.WIDE_TIMEOUT_SECONDS)
+    found, problem, exit_code = certification.session_run(key, settings, ("video",), device_key, cancel=cancel, timeout=timeout)
+    problem = _cut(problem, timeout, certification.WIDE_TIMEOUT_SECONDS)
     run = _session_result([row], "video", found, problem, exit_code)
     if run is None:
         return
     if "error" in run:
         row.update(result="fail", reason=run["error"])
     else:
-        compared = [certification.compare_results(cpu, ep, settings["thresholds"])
-                    for cpu, ep in zip(reference["frames"], run["frames"], strict=True)]
+        compared = [certification.compare_results(cpu, ep, settings["thresholds"], keypoints=index == 0)
+                    for index, (cpu, ep) in enumerate(zip(reference["frames"], run["frames"], strict=True))]
         failed = next((item for item in compared if not item["ok"]), None)
         reason = failed["reason_code"] if failed else "partial-placement" if certification.PARTIAL_PLACEMENT in run["warnings"] else None
         row.update(result="fail" if reason else "pass", reason=reason)
-        # the worst frame: for the median and the p99 it is the value of the worst frame, not a value over the points of all frames
-        numbers = {name: (min if name in LOWEST_NUMBERS else max)(values) for name in COMPARED_NUMBERS
-                   if (values := [item[name] for item in compared if item[name] is not None])}
-        row["numbers"] = {**numbers, "frames": len(compared), "seconds": round(time.monotonic() - started, 1), "ep_ms": run["ms"],
+        later = [item["keypoint_box_fraction_max"] for item in compared[1:] if item["keypoint_box_fraction_max"] is not None]
+        numbers = {name: compared[0][name] for name in COMPARED_NUMBERS if compared[0][name] is not None}
+        row["numbers"] = {**numbers, "later_keypoint_box_fraction_max": max(later, default=None), "frames": len(compared),
+                          "seconds": round(time.monotonic() - started, 1), "ep_ms": run["ms"],
                           "cpu_ms": reference["cpu_ms"], "speed_against_cpu": certification.speed_against_cpu(run["ms"], reference["cpu_ms"])}
         details.update(models=run["models"], warnings=run["warnings"])
     if problem:
         _add_exit(report, row["name"], problem)
 
 
-def _live(report: dict, label: str, key: str, device_key: str | None, settings: dict, sender: _Progress, cancel) -> None:
-    """The check `<label>:live`: a smoke run of `FRAMES` frames in the running mode `live` on the EP, in a `spawn` child.
+def _live(report: dict, label: str, key: str, device_key: str | None, settings: dict, media: str | None, sender: _Progress,
+          cancel) -> None:
+    """The check `<label>:live`: a smoke run of the test frames in the running mode `live` on the EP, in a `spawn` child.
 
-    It passes when each frame has finite outputs and a person. It compares nothing, and it never changes the EP check.
+    It passes when each frame has finite outputs and a person. It compares nothing. `media` is the reason code of test
+    frames that are not valid.
     """
     from skellytracker.core.eps import certification
 
     row, video = _row(report, f"{label}:live"), _row(report, f"{label}:video")
+    if media is not None:
+        row.update(result="not-run", reason=media)
+        return
     if video["result"] != "pass" or (cancel is not None and cancel.is_set()):
         row.update(result="not-run", reason="cancelled" if video["result"] == "pass" or video["reason"] == "cancelled" else "video-not-passed")
         return
+    if _over_budget(sender, row["name"]):
+        row.update(result="not-run", reason="over-budget")
+        return
     sender.send("running", row["name"], report["checks"])
-    found, problem, exit_code = certification.session_run(key, settings, ("live",), device_key, cancel=cancel)
+    timeout = _timeout(sender, certification.WIDE_TIMEOUT_SECONDS)
+    found, problem, exit_code = certification.session_run(key, settings, ("live",), device_key, cancel=cancel, timeout=timeout)
+    problem = _cut(problem, timeout, certification.WIDE_TIMEOUT_SECONDS)
     run = _session_result([row], "live", found, problem, exit_code)
     if run is None:
         return
@@ -791,10 +881,10 @@ def _jpeg_child(key: str, device_key: str | None, connection) -> None:
     connection.close()
 
 
-def _jpeg_spawn(key: str, device_key: str, cancel) -> tuple[dict | None, str | None, int | None]:
+def _jpeg_spawn(key: str, device_key: str, cancel, timeout: float = JPEG_TIMEOUT_SECONDS) -> tuple[dict | None, str | None, int | None]:
     from skellytracker.core.eps import verification
 
-    return verification.spawn_child(_jpeg_child, (key, device_key), timeout=JPEG_TIMEOUT_SECONDS, cancel=cancel)
+    return verification.spawn_child(_jpeg_child, (key, device_key), timeout=timeout, cancel=cancel)
 
 
 def _jpeg(report: dict, label: str, key: str, device_key: str, sender: _Progress, cancel) -> None:
@@ -807,13 +897,19 @@ def _jpeg(report: dict, label: str, key: str, device_key: str, sender: _Progress
             row.update(result="not-run", reason="cancelled" if video["result"] == "pass" or video["reason"] == "cancelled"
                        else "video-not-passed")
         return
+    if _over_budget(sender, rows[0]["name"]):
+        for row in rows:
+            row.update(result="not-run", reason="over-budget")
+        return
     sender.send("running", rows[0]["name"], report["checks"])
-    found, problem, exit_code = _jpeg_spawn(key, device_key, cancel)
+    timeout = _timeout(sender, JPEG_TIMEOUT_SECONDS)
+    found, problem, exit_code = _jpeg_spawn(key, device_key, cancel, timeout)
+    problem = _cut(problem, timeout, JPEG_TIMEOUT_SECONDS)
     if found is None or "error" in found:
         code = found["error"] if found else problem
         for row in rows:
-            if code == "cancelled":
-                row.update(result="not-run", reason="cancelled")
+            if code in ("cancelled", "over-budget"):
+                row.update(result="not-run", reason=code)
             else:
                 row.update(result="fail", reason=CHILD_FAILURES.get(code, code))
                 if code in CHILD_FAILURES:

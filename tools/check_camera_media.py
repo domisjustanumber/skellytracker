@@ -13,7 +13,7 @@ file, and exits 1. It finds the file by its extension (``RECORDING_SUFFIXES``, `
 and by its first bytes (``MAGIC``), so that a renamed video or JPEG is also refused.
 
 - The one exception is a golden reference file. Its path starts with an item of ``GOLDEN_PATHS``.
-  Set this list for the repo. This repo has no golden reference file: the list is empty.
+  Set this list for the repo. This repo has one folder of golden reference files: the test frames of the package.
 - A ``.ts`` file is a TypeScript file unless its first bytes are an MPEG transport stream.
 - A NumPy or array dump is a measurement. The tool does not refuse it.
 - A PNG, GIF, WebP or SVG file can be a chart, a diagram or a screenshot. The tool does not refuse
@@ -36,7 +36,7 @@ import sys
 from pathlib import Path, PurePosixPath
 
 # The path prefixes of the golden reference files. Set them for the repo. An empty tuple allows none.
-GOLDEN_PATHS: tuple[str, ...] = ()
+GOLDEN_PATHS: tuple[str, ...] = ("skellytracker/core/model_zoo/test_media/",)
 
 RECORDING_SUFFIXES = frozenset(
     ".mp4 .mkv .mka .avi .mov .webm .m4v .m4a .wav .flac .opus .ogg .mp3 .mcap"

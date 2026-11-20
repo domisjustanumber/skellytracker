@@ -42,7 +42,7 @@ class RunDevice:
 class DeviceCheck:
     """The certification state of one EP on one GPU of this host (ADR-21BK items 2 and 3).
 
-    - `certified`: the project has a reviewed pass of the EP on this GPU model on this OS.
+    - `certified`: the project has a reviewed pass of the EP on this GPU model on this OS, for the version set of this release.
     - `local_result`: `passed` or `failed`, the last quick check of `skellytracker.certify()` of the EP on
       this GPU model on this PC, for the pack version of today. It is None with no such check.
     - `usable`: a run can use the EP on this GPU now: the EP is ready, no quick check failed here, and
@@ -305,7 +305,8 @@ class PackStatus:
     - `catalog_status`: `ready`, or `field-test` for an EP in a field test (ADR-Z5X7). With no opt-in
       in the EP store, the `state` of a `field-test` EP is `field_test`, and `install_hint` is None:
       an application can show the EP as "available for a field test", but it never offers it.
-    - `certified`: true when the project has a reviewed pass of the EP on this GPU model on this OS.
+    - `certified`: true when the project has a reviewed pass of the EP on this GPU model on this OS, for the version set of
+      this release.
       It is None for a built-in EP and when no GPU of this host can use the EP.
     - `source`: where the EP comes from: the index of the pack (`pypi`, `azure` or `amd`),
       `windows-ml` for an EP of the Windows ML catalog, or `builtin` (ADR-XSE7).

@@ -34,6 +34,7 @@ def test_the_entry_module_imports_only_os_and_the_hook_is_data_only():
     assigned = {node.targets[0].id: ast.unparse(node.value) for node in hook.body if isinstance(node, ast.Assign)}
     assert set(assigned) == {"datas", "hiddenimports"} and assigned["hiddenimports"] == "[]"
     assert "'**/*.yaml'" in assigned["datas"] and "'**/tests/**'" in assigned["datas"]
+    assert "'**/test_media/*.zip'" in assigned["datas"]  # the test frames of `certify()`
     assert "binaries" not in assigned and "copy_metadata" not in ast.unparse(hook)
 
 

@@ -150,7 +150,7 @@ def run_child(job: dict, *, timeout: float = TIMEOUT_SECONDS, grace: float = EXI
 
 
 def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: str | None = None,
-           force: bool = False, cancel=None) -> tuple[Verdict, ...]:
+           force: bool = False, cancel=None, timeout: float = TIMEOUT_SECONDS) -> tuple[Verdict, ...]:
     """Verify each EP key at level `L2` or `L3`. With no keys: each EP that is usable on this host.
 
     A stored result with the same key is returned with no new check, unless `force` is true. The
@@ -159,6 +159,8 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
     in the catalog keeps the stored result. A pack that is not installed raises `EpUnavailableError`.
     `cancel` is an object with `is_set()`: when it is set, the child of the running check stops within about
     0.1 s, its verdict has `reason_code` `cancelled` and is not stored, and no other key is checked.
+    `timeout` is the time limit of each child. A child that a limit shorter than `TIMEOUT_SECONDS` stops gives a
+    verdict with `timed-out` that is not stored: the time budget of the caller ended, not the check.
     """
     if level not in ("L2", "L3"):
         raise ValueError(f"the level must be 'L2' or 'L3', not {level!r}")
@@ -179,8 +181,9 @@ def verify(keys: Sequence[str] | None = None, *, level: str = "L3", device_key: 
         record = None if force else store.read_verdicts().get(stored_key)
         if record is None or (level == "L3" and record["level"] == "L2" and record["ok"]):
             record = run_child({"key": key, "pack": pack, "gpu": gpu, "device_key": target, "level": level,
-                                "atol": float(row.get("l3_atol", 1e-4))}, cancel=cancel)
-            if record.get("reason_code") != "cancelled":
+                                "atol": float(row.get("l3_atol", 1e-4))}, cancel=cancel, timeout=timeout)
+            cut = record.get("reason_code") == "timed-out" and timeout < TIMEOUT_SECONDS
+            if record.get("reason_code") != "cancelled" and not cut:
                 store.write_verdict(stored_key, record)
         verdicts.append(Verdict(key, record["level"], record["ok"], stored_key, pack["id"] if pack else None,
                                 pack["version"] if pack else None, record.get("reason"), record.get("max_abs_diff"),

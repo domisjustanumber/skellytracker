@@ -13,11 +13,15 @@ not on this host, the wider run does not run (`models-missing`), and the result 
 probe only.
 """
 
+import hashlib
+import importlib.resources
+import io
 import json
 import os
 import re
 import statistics
 import time
+import zipfile
 from collections.abc import Callable
 from pathlib import Path
 from types import SimpleNamespace
@@ -40,7 +44,11 @@ WARMUP_CALLS, TIMED_CALLS = 10, 100  # the calls of `time_run()`: the warm-up ca
 TIMING_TIMEOUT_SECONDS = 900.0  # not calibrated: the start of the child, a pipeline start with an engine build on each camera, 110 calls
 WARM_CALLS = 2  # extra calls after the first, so that the first-call cost is not the figure; the fastest one is the figure
 WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
-FRAMES = 3  # the frames of one run of `session_frames()`: one camera, the test image repeated
+FRAMES = 30  # the test frames of one run of `session_frames()`: `count` of `frames_record()`; a test checks it
+
+
+class FramesUnavailableError(RuntimeError):
+    """The test frames file of the package is absent, or its sha256 or its count is wrong."""
 
 
 def reports_dir() -> Path:
@@ -89,8 +97,11 @@ def speed_against_cpu(ep_ms: float, cpu_ms: float) -> str:
     return "faster" if ep_ms < cpu_ms else "slower"
 
 
-def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
+def compare_results(cpu: dict, ep: dict, thresholds: dict, *, keypoints: bool = True) -> dict:
     """Compare the pipeline result of the EP with the result of the CPU EP on one image.
+
+    With `keypoints` false, only the people, the finite outputs and the box IoU can fail: the lighter rule of a
+    later frame of `<label>:video` (ADR-R0EB item 3). The keypoint values then stay in the result as a record.
 
     The rule: the same count of present rows, at least one; each box IoU at least `box_iou_min`;
     no NaN in the EP result where the CPU result is finite; each point with a CPU score of
@@ -132,6 +143,8 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict) -> dict:
         return {**found, "reason_code": "not-finite"}
     if found["box_iou_min"] < thresholds["box_iou_min"]:
         return {**found, "reason_code": "box-differs"}
+    if not keypoints:
+        return {**found, "ok": True}
     if ((cpu_score >= thresholds["score_min"]) & (ep_score < thresholds["score_min"] - SCORE_MARGIN)).any():
         return {**found, "reason_code": "scores-differ"}
     if not distance.size:
@@ -192,6 +205,41 @@ def test_frame(settings: dict):
     return cv2.imdecode(np.frombuffer(path.read_bytes(), np.uint8), cv2.IMREAD_COLOR)
 
 
+def frames_record() -> dict:
+    """The record of the test frames file: `path`, `sha256`, `bytes` and `count` (`model_zoo/test_media/quick_frames.yaml`)."""
+    import yaml
+
+    return yaml.safe_load((importlib.resources.files("skellytracker.core") / "model_zoo" / "test_media" / "quick_frames.yaml").read_text(encoding="utf-8"))
+
+
+def frames_file(settings: dict) -> bytes:
+    """The bytes of the test frames file of `settings["frames"]` (`frames_record()`), a file of the package. It downloads nothing.
+
+    The path is relative to `skellytracker/core/model_zoo/`. It raises `FramesUnavailableError` when the file is absent
+    or its sha256 is not the sha256 of the record.
+    """
+    item = settings["frames"]
+    try:
+        data = (importlib.resources.files("skellytracker.core") / "model_zoo" / item["path"]).read_bytes()
+    except OSError as error:
+        raise FramesUnavailableError("the test frames file is not in the package") from error
+    if hashlib.sha256(data).hexdigest() != item["sha256"]:
+        raise FramesUnavailableError("the test frames file has a wrong sha256")
+    return data
+
+
+def quick_frames(settings: dict) -> list:
+    """The decoded test frames of `frames_record()`, in the order of their names. It checks the file first (`frames_file()`)."""
+    import cv2
+    import numpy as np
+
+    with zipfile.ZipFile(io.BytesIO(frames_file(settings))) as archive:
+        frames = [cv2.imdecode(np.frombuffer(archive.read(name), np.uint8), cv2.IMREAD_COLOR) for name in sorted(archive.namelist())]
+    if len(frames) != settings["frames"]["count"] or any(frame is None for frame in frames):
+        raise FramesUnavailableError("the test frames file does not hold the frames of the record")
+    return frames
+
+
 def _process_vram(sampler, pid: int) -> int | None:
     """The VRAM bytes of this process: Windows PDH, or NVML per process on Linux; None when no reader gives it."""
     sample = sampler.sample([pid])
@@ -241,7 +289,7 @@ def _timing_child(key: str, settings: dict, cameras: int, device_key: str | None
     """The child of `timing_run()`: it sends the result of `time_run()`, or `{"error": <exception class name>}`."""
     try:
         with gate.certification_run():  # the level `full` times an EP that can have no result yet
-            result = time_run(settings["pipeline"], key, cameras, test_frame(settings), device_key)
+            result = time_run(settings["pipeline"], key, cameras, quick_frames(settings)[0], device_key)
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
         result = {"error": type(error).__name__}
     connection.send(result)
@@ -302,10 +350,10 @@ def _image_run(key: str, settings: dict, progress: Callable[[str], None], device
             "thresholds": settings["thresholds"], "seconds": round(time.monotonic() - started, 1)}
 
 
-def session_frames(pipeline, execution_provider: str, image, running_mode: str, device: str | None = None) -> dict:
-    """Start the pipeline on one camera in the running mode `video` or `live`, and run the test image as `FRAMES` frames.
+def session_frames(pipeline, execution_provider: str, images: list, running_mode: str, device: str | None = None) -> dict:
+    """Start the pipeline on one camera in the running mode `video` or `live`, and run each image of `images` in order.
 
-    A frame of `live` has a rising `timestamp_ms`. `frames` holds, for each frame, the outputs that `compare_results()`
+    `images` are the decoded test frames (`quick_frames()`). A frame of `live` has a rising `timestamp_ms`. `frames` holds, for each frame, the outputs that `compare_results()`
     reads, as plain arrays, so that a child can send them. `ms` is the fastest call after the first: a rough figure,
     a record only.
     """
@@ -317,7 +365,7 @@ def session_frames(pipeline, execution_provider: str, image, running_mode: str, 
     frames, times = [], []
     with pipelines.start_pipeline(config, camera_ids=[0], running_mode=running_mode, execution_provider=execution_provider,
                                   timing="off", device=device) as run:
-        for index in range(FRAMES):
+        for index, image in enumerate(images):
             before = time.perf_counter()
             found = run.process(pipelines.Frame(image, frame_index=index, timestamp_ms=index * 33.0 if running_mode == "live" else None))
             times.append((time.perf_counter() - before) * 1000)
@@ -334,15 +382,15 @@ def _session_child(key: str, settings: dict, device_key: str | None, modes: tupl
     """The child of `session_run()`: it sends each running mode as a step, then `{mode: <session_frames()>}`.
 
     An error in one mode gives `{"error": <exception class name>}` for that mode. An error before the first mode, for
-    example in the download of the test image, gives it for the whole result.
+    example a test frames file that is not valid, gives it for the whole result.
     """
     try:
         with gate.certification_run():  # the check runs the EP before the EP has a result
-            image, result = test_frame(settings), {}
+            images, result = quick_frames(settings), {}
             for mode in modes:
                 connection.send(mode)
                 try:
-                    result[mode] = session_frames(settings["pipeline"], key, image, mode, device_key)
+                    result[mode] = session_frames(settings["pipeline"], key, images, mode, device_key)
                 except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
                     result[mode] = {"error": type(error).__name__}
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path

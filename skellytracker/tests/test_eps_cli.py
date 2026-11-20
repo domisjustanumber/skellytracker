@@ -225,6 +225,7 @@ def test_install_with_progress_events(fake_pack, server, monkeypatch, capsys):  
 
 def test_a_failed_download_of_the_component_does_not_fail_the_install_of_the_ep(fake_pack, server, monkeypatch, capsys):  # noqa: F811
     set_host(monkeypatch, host(RTX, OLD))
+    hw_fakes.reviewed_rows_for_each_gpu(monkeypatch)  # the fake wheels are not the version set of the reviewed rows
     lock_urls_to(server, monkeypatch)
     monkeypatch.setattr(installer, "_verify", lambda key, progress: None)
     del server.files[DECODER_WHEEL]  # the server gives 404

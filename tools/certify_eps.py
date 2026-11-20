@@ -284,9 +284,8 @@ def pipeline_downloads(options: dict) -> tuple[tuple[str, int], ...]:
     sys.path.insert(0, str(REPO_ROOT))
     from skellytracker.core.eps.catalog import load_catalog
 
-    settings = load_catalog().data["certification"]
-    return (("the certification test image", settings["image"]["bytes"]),
-            *((Path(m["path"]).name, m["bytes"]) for m in settings.get("models") or () if not (MODEL_ROOT / m["path"]).is_file()))
+    settings = load_catalog().data["certification"]  # `certify()` downloads nothing: its test frames are a file of the package
+    return tuple((Path(m["path"]).name, m["bytes"]) for m in settings.get("models") or () if not (MODEL_ROOT / m["path"]).is_file())
 
 
 def time_run(pipeline: str, execution_provider: str, cameras: int, image, device: str | None = None) -> dict:

@@ -2,5 +2,5 @@
 
 from PyInstaller.utils.hooks import collect_data_files
 
-datas = collect_data_files("skellytracker", includes=["**/*.yaml", "**/*.json"], excludes=["**/tests/**"])
+datas = collect_data_files("skellytracker", includes=["**/*.yaml", "**/*.json", "**/test_media/*.zip"], excludes=["**/tests/**"])
 hiddenimports = []

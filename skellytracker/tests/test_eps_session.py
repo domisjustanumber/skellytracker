@@ -317,7 +317,7 @@ def test_judge_of_the_trial_session():
 def test_verify_stores_the_result_and_a_new_driver_runs_it_again(gpu_host, monkeypatch):
     jobs = []
 
-    def run_child(job, cancel=None):
+    def run_child(job, cancel=None, timeout=None):
         jobs.append(job)
         return {"level": job["level"], "ok": True, "reason": None, "max_abs_diff": 1e-6}
 
@@ -334,6 +334,20 @@ def test_verify_stores_the_result_and_a_new_driver_runs_it_again(gpu_host, monke
     (second,) = eps.verify(["cuda"])
     assert len(jobs) == 3 and second.key != first.key
     assert [verdict.ep_key for verdict in eps.verify()] == ["trt-rtx", "cuda", "cpu"]  # `directml` has no opt-in: skipped
+
+
+def test_verify_stores_no_verdict_of_a_child_that_a_shorter_time_limit_stopped(gpu_host, monkeypatch):
+    seen = []
+
+    def run_child(job, cancel=None, timeout=None):
+        seen.append(timeout)
+        return {"level": job["level"], "ok": False, "reason": "late", "max_abs_diff": None, "reason_code": "timed-out"}
+
+    monkeypatch.setattr(verification, "run_child", run_child)
+    (verdict,) = eps.verify(["cuda"], timeout=5.0)
+    assert verdict.reason_code == "timed-out" and seen == [5.0] and store.read_verdicts() == {}  # the budget of the caller ended
+    eps.verify(["cuda"])
+    assert seen[-1] == verification.TIMEOUT_SECONDS and len(store.read_verdicts()) == 1  # its own limit: a verdict
 
 
 def test_verify_refuses_a_pack_that_is_not_installed(monkeypatch):
@@ -427,7 +441,7 @@ def test_directml_selects_the_ort_device_of_the_requested_gpu(dml_host):
 
 def test_verify_of_directml_runs_on_the_chosen_gpu(dml_host, monkeypatch):
     jobs = []
-    monkeypatch.setattr(verification, "run_child", lambda job, cancel=None: jobs.append(job) or {"level": job["level"], "ok": True, "max_abs_diff": 0.0})
+    monkeypatch.setattr(verification, "run_child", lambda job, cancel=None, timeout=None: jobs.append(job) or {"level": job["level"], "ok": True, "max_abs_diff": 0.0})
     store.opt_in_field_test("directml")
     (verdict,) = eps.verify(["directml"], level="L2", device_key="gpu:8086:a780:0")
     assert verdict.ok and verdict.pack_id is None and jobs[0]["gpu"] == INTEL_DXGI and jobs[0]["pack"] is None

@@ -3,7 +3,8 @@
 The rule also applies to `coreml`, which runs on the chip of a Mac and selects no GPU: `chip_of()` gives the
 stand-in for its GPU, and the key of its results is the chip name.
 
-An EP on a GPU can run when the project has a reviewed pass for the GPU model and OS (`ep_evidence.yaml`), or
+An EP on a GPU can run when the project has a reviewed pass for the GPU model, the OS and the version set of this
+release (`ep_evidence.yaml`, `evidence.certified()`), or
 when a quick check of `skellytracker.certify()` passed on this PC. It cannot run after a quick check that
 failed on this PC. `check_start()` and `build_session()` call `require()`, so each run and each session obeys
 the rule. The rule has no setting and no environment variable.

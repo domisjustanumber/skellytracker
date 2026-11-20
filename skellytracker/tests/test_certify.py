@@ -4,6 +4,7 @@ They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real
 `child_fakes.py`.
 """
 
+import dataclasses
 import json
 import re
 import sys
@@ -92,7 +93,7 @@ def problems_of(report: dict) -> list[str]:
 @pytest.fixture
 def quick_host(monkeypatch, ep_store, tmp_path):  # noqa: F811
     """A Windows host with an RTX 3070 and the `trt-rtx` pack, no evidence row, a clean commit and a fake pipeline."""
-    fake_host = host(gpu())
+    fake_host = dataclasses.replace(host(gpu()), os_label="Windows 11 Home 26H2")
     for module in (state, recommendation, installer, certification, verification, host_module):
         monkeypatch.setattr(module, "probe_host", lambda: fake_host)
     monkeypatch.setattr(evidence, "load_evidence", lambda: ())
@@ -122,11 +123,11 @@ def fake_sessions(monkeypatch, **changes) -> list:
     callable with the arguments of `session_run()` that gives `(result, problem, exit_code)`. It gives the calls."""
     calls = []
 
-    def session_run(key, settings, modes, device_key=None, cancel=None, progress=None):
+    def session_run(key, settings, modes, device_key=None, cancel=None, progress=None, timeout=None):
         calls.append((key, modes, device_key))
         change = changes.get("cpu" if key == "cpu" else modes[0], {})
         if callable(change):
-            return change(key, settings, modes, device_key, cancel=cancel, progress=progress)
+            return change(key, settings, modes, device_key, cancel=cancel, progress=progress, timeout=timeout)
         for mode in modes:
             if progress is not None:
                 progress(mode)
@@ -142,19 +143,25 @@ def fake_jpeg(monkeypatch, found=None, problem=None, exit_code=0, **changes):
                "detail": "C:\\secretdir\\x", **dict(zip(("result", "reason"), changes.get(name.replace("-", "_"), ()), strict=False))}
               for name in package_certification.JPEG_CHECKS]
     monkeypatch.setattr(package_certification, "_jpeg_spawn",
-                        lambda key, device_key, cancel: ({"checks": checks} if found is None else found, problem, exit_code))
+                        lambda key, device_key, cancel, timeout=None: ({"checks": checks} if found is None else found, problem, exit_code))
 
 
 def fake_probe(monkeypatch, ok=True, code=None):
     calls = []
 
-    def verify(keys, device_key=None, force=False, cancel=None):
+    def verify(keys, device_key=None, force=False, cancel=None, timeout=None):
         calls.append((keys, device_key))
         return (Verdict(keys[0], "L3", ok, "k", reason=None if ok else "the folder secretdir failed", max_abs_diff=0.001,
                         reason_code=code, exit_code=3 if code == "crashed" else None),)
 
     monkeypatch.setattr(verification, "verify", verify)
     return calls
+
+
+def reviewed(ep: str, gpu_id: str = "10de:2484", **changes) -> dict:
+    """A reviewed pass of `ep_evidence.yaml` for the version set of this release."""
+    return {"ep": ep, "os": "Windows", "gpu": gpu_id, "set": evidence.set_hash(certification.load_catalog()), "source": "maintainer",
+            "result": "pass", "os_label": "Windows 11 Home 26H2", **changes}
 
 
 BAD_VIDEO = {"frames": [frame(box=50.0)] * 3}  # each frame gives `box-differs`
@@ -238,29 +245,44 @@ def test_a_probe_failure_skips_the_video_and_live_runs_and_records_the_failure(q
     assert (probe["result"], probe["reason"], probe["numbers"]["exit_code"]) == ("fail", "crashed", 3)
 
 
+def test_frame_0_has_each_threshold_and_a_later_frame_fails_only_on_the_people_the_finite_outputs_and_the_box(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    video = "trt-rtx@10de-2484-0:video"
+    frames = [frame(), frame(shift=3.0), frame()]  # frame 1 is over the keypoint limit (3 px on a box of 224 px): a record only
+    fake_sessions(monkeypatch, video={"frames": frames})
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
+    assert results(report)[video] == ("pass", None) and results(report)["trt-rtx@10de-2484-0"] == ("pass", None)
+    numbers = next(check["numbers"] for check in report["checks"] if check["name"] == video)
+    assert (numbers["keypoint_px_max"], numbers["keypoint_box_fraction_max"], numbers["frames"]) == (0.0, 0.0, 3)  # frame 0
+    assert numbers["later_keypoint_box_fraction_max"] == pytest.approx(3.0 / np.hypot(100.0, 200.0))
+    fake_sessions(monkeypatch, video={"frames": [frame(shift=3.0), frame(), frame()]})  # frame 0 has each threshold
+    assert results(skellytracker.certify("quick", execution_providers=["trt-rtx"]))[video] == ("fail", "keypoints-differ")
+    for later, reason in ((frame(box=50.0), "box-differs"), (frame(people=0), "people-differ"), (frame(nan=True), "not-finite")):
+        fake_sessions(monkeypatch, video={"frames": [frame(), later, frame()]})
+        assert results(skellytracker.certify("quick", execution_providers=["trt-rtx"]))[video] == ("fail", reason)
+
+
 def test_the_first_frame_that_differs_fails_the_video_check_and_a_hang_at_exit_adds_the_exit_check(quick_host, monkeypatch):
     fake_probe(monkeypatch)
-    frames = [frame(), frame(shift=3.0), frame(people=0)]  # the second frame gives `keypoints-differ`, the third `people-differ`
+    frames = [frame(), frame(shift=3.0), frame(people=0)]  # the second frame is a record only, the third gives `people-differ`
     fake_sessions(monkeypatch, video=lambda key, settings, modes, *a, **k: (session_found(key, modes, frames=frames), "hung-at-exit", 0))
     report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
     assert problems_of(report) == []
-    assert results(report) == {**CPU_ROWS, "trt-rtx@10de-2484-0:probe": ("pass", None), "trt-rtx@10de-2484-0:video": ("fail", "keypoints-differ"),
+    assert results(report) == {**CPU_ROWS, "trt-rtx@10de-2484-0:probe": ("pass", None), "trt-rtx@10de-2484-0:video": ("fail", "people-differ"),
                                "trt-rtx@10de-2484-0:video:exit": ("record-only", "hung-at-exit"),
-                               "trt-rtx@10de-2484-0:live": ("not-run", "video-not-passed"), "trt-rtx@10de-2484-0": ("fail", "keypoints-differ")}
-    numbers = next(check["numbers"] for check in report["checks"] if check["name"] == "trt-rtx@10de-2484-0:video")
-    assert (numbers["keypoint_px_max"], numbers["box_iou_min"], numbers["points_compared"], numbers["frames"]) == (3.0, 1.0, 0, 3)  # the worst values
+                               "trt-rtx@10de-2484-0:live": ("not-run", "video-not-passed"), "trt-rtx@10de-2484-0": ("fail", "people-differ")}
 
 
-def test_a_failed_live_check_does_not_change_the_ep_check(quick_host, monkeypatch):
+def test_a_failed_live_check_fails_the_roll_up_check_and_is_stored(quick_host, monkeypatch):
     fake_probe(monkeypatch)
+    pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
     for live, reason in (({"frames": [frame(nan=True)] * 3}, "not-finite"), ({"frames": [frame(people=0)] * 3}, "no-person"),
                          (lambda *a, **k: (None, "crashed", 5), "crashed"), ({"error": "RuntimeError"}, "RuntimeError")):
         fake_sessions(monkeypatch, live=live)
         report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
         found = results(report)
-        assert found["trt-rtx@10de-2484-0:live"] == ("fail", reason) and found["trt-rtx@10de-2484-0"] == ("pass", None) and problems_of(report) == []
-    pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
-    assert store.read_json(store.store_root() / "quick-checks.json")[pair]["result"] == "passed"
+        assert found["trt-rtx@10de-2484-0:live"] == found["trt-rtx@10de-2484-0"] == ("fail", reason) and problems_of(report) == []
+        assert store.read_json(store.store_root() / "quick-checks.json")[pair]["result"] == "failed"
 
 
 def test_with_no_cpu_reference_the_video_check_is_not_run(quick_host, monkeypatch):
@@ -375,7 +397,9 @@ def test_each_progress_message_is_the_complete_state_and_a_raising_callback_is_d
     assert messages[0]["checks"] == [{"name": name, "result": None} for name in (
         "cpu:video", "cpu:live", "trt-rtx@10de-2484-0:probe", "trt-rtx@10de-2484-0:video", "trt-rtx@10de-2484-0:live",
         "trt-rtx@10de-2484-0:jpeg-decode", "trt-rtx@10de-2484-0:jpeg-preprocess", "trt-rtx@10de-2484-0")]
-    assert messages[0]["total"] == 8 and messages[0]["done"] == 0 and messages[0]["seconds_left"] == 20 + 15 + 60 + 20 + 5
+    assert messages[0]["total"] == 8 and messages[0]["done"] == 0 and messages[0]["seconds_left"] == (
+        package_certification.CPU_REFERENCE_SECONDS + package_certification.PROBE_SECONDS + 60 + package_certification.LIVE_SECONDS
+        + package_certification.JPEG_SECONDS)
     running = [m for m in messages if m["step"] == {"name": "trt-rtx@10de-2484-0:video"}]
     assert running[0]["checks"][:4] == [{"name": "cpu:video", "result": "pass"}, {"name": "cpu:live", "result": "pass"},
                                         {"name": "trt-rtx@10de-2484-0:probe", "result": "pass"}, {"name": "trt-rtx@10de-2484-0:video", "result": None}]
@@ -390,34 +414,105 @@ def test_each_progress_message_is_the_complete_state_and_a_raising_callback_is_d
     assert results(skellytracker.certify("quick", broken))["trt-rtx@10de-2484-0"] == ("pass", None) and len(calls) == 1
 
 
-def test_the_plan_names_the_test_image_the_time_and_each_ep_that_will_not_run(quick_host, monkeypatch):
-    plan = skellytracker.certify_plan("quick", execution_providers=["trt-rtx", "cuda"])
-    settings = certification.load_catalog().data["certification"]
-    assert plan["seconds_estimate"] == package_certification.CPU_REFERENCE_SECONDS + 15 + settings["seconds"]["trt-rtx"] + 20 + 5
-    assert plan["downloads"] == [{"name": "sample_recording_a_pose_image.jpg", "bytes": settings["image"]["bytes"]}]
-    assert plan["details"] == {"execution_providers": ["trt-rtx", "cuda"], "checks": ["trt-rtx@10de-2484-0", "cuda@10de-2484-0"],
-                               "not_run": {"cuda@10de-2484-0": "ep-not-installed"}}
+def test_the_plan_gives_the_time_the_total_and_each_ep_that_will_not_run_and_downloads_nothing(quick_host, monkeypatch):
+    pc = package_certification
+    plan = skellytracker.certify_plan("quick", execution_providers=["directml", "cuda"])
+    assert plan["seconds_estimate"] == pc.CPU_REFERENCE_SECONDS + pc.PROBE_SECONDS + pc.VIDEO_SECONDS + pc.LIVE_SECONDS
+    assert plan["total"] == 2 + 4 and plan["risks"] == [] and plan["downloads"] == []  # the CPU reference and the 4 checks of `directml`
+    assert plan["details"] == {"execution_providers": ["directml", "cuda"], "checks": ["directml@10de-2484-0", "cuda@10de-2484-0"],
+                               "not_run": {"cuda@10de-2484-0": "ep-not-installed"}, "os_known": False}
     assert skellytracker.certify_plan("quick")["details"]["execution_providers"] == ["trt-rtx", "directml"]  # the default
+    assert skellytracker.certify_plan("quick")["seconds_estimate"] == pc.QUICK_BUDGET_SECONDS  # at most the budget
     assert plan["system_changes"] == [] and plan["questions"] == [] and plan["kind"] == "quick"
-    image = package_certification._image_path(store, settings)
-    image.parent.mkdir(parents=True)
-    image.write_bytes(b"x")
-    assert skellytracker.certify_plan("quick")["downloads"] == []
-    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
-    monkeypatch.setattr(evidence, "load_evidence", lambda: (row,))
+    nothing = skellytracker.certify_plan("quick", execution_providers=["cuda"])
+    assert (nothing["total"], nothing["seconds_estimate"]) == (0, 0)  # no check can run
+    old_set = reviewed("trt-rtx", set="0" * 64)  # a row of an other version set is not reviewed: it still gives `os_known`
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (old_set,))
+    plan = skellytracker.certify_plan("quick")
+    assert plan["details"]["execution_providers"] == ["trt-rtx", "directml"] and plan["details"]["os_known"] is True
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx"),))
     assert skellytracker.certify_plan("quick")["details"]["execution_providers"] == ["directml"]
-    monkeypatch.setattr(evidence, "load_evidence", lambda: (row, {**row, "ep": "directml"}))
-    assert skellytracker.certify_plan("quick")["details"]["execution_providers"] == []  # a reviewed row: nothing by default
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx", os_label="Windows 10 Pro"), reviewed("directml")))
+    plan = skellytracker.certify_plan("quick")
+    assert plan["details"]["execution_providers"] == [] and (plan["total"], plan["seconds_estimate"]) == (0, 0)  # each pair is reviewed
     report = skellytracker.certify("quick")
-    assert report["checks"] == [] and report["evidence"] == {"valid": False, "reasons": ["no-check"]}
+    assert report["checks"] == [] and report["evidence"] == {"valid": False, "reasons": ["no-check"]} and problems_of(report) == []
+    assert report["details"]["skipped"] == {"trt-rtx@10de-2484-0": "reviewed", "directml@10de-2484-0": "reviewed"}
     assert not certification.reports_dir().exists()
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx", os_label="Windows 10 Pro", result="fail"),))
+    assert skellytracker.certify_plan("quick")["details"]["os_known"] is False  # a failure, and an other OS key
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx"), reviewed("directml")))
     full = skellytracker.certify_plan("full")  # the level `full` also takes an EP with a reviewed row, and the CPU EP checks
     assert full["details"]["checks"] == ["trt-rtx@10de-2484-0", "directml@10de-2484-0"] and full["kind"] == "full"
-    cpu = (len(package_certification.CAMERA_COUNTS) * package_certification.PIPELINE_SECONDS + package_certification.JPEG_FULL_SECONDS)
-    assert full["seconds_estimate"] == 3 * cpu + package_certification.CPU_REFERENCE_SECONDS + 2 * (
-        package_certification.PROBE_SECONDS + package_certification.LIVE_SECONDS) + sum(
-        certification.load_catalog().data["certification"]["seconds"].get(key, package_certification.VIDEO_SECONDS)
-        for key in ("trt-rtx", "directml"))
+    assert full["downloads"] == [] and full["risks"] == [] and full["total"] == 6 + 2 * 8  # `<ep>:jpeg` counts as one check
+    cpu = (len(pc.CAMERA_COUNTS) * pc.PIPELINE_SECONDS + pc.JPEG_FULL_SECONDS)
+    assert full["seconds_estimate"] == 3 * cpu + pc.CPU_REFERENCE_SECONDS + 2 * (pc.PROBE_SECONDS + pc.LIVE_SECONDS) + sum(
+        certification.load_catalog().data["certification"]["seconds"].get(key, pc.VIDEO_SECONDS) for key in ("trt-rtx", "directml"))
+
+
+def test_the_os_key_is_the_name_and_the_release_of_the_os():
+    assert [evidence.os_key(label) for label in ("Windows 11 Home 26H2", "Ubuntu 24.04.1 LTS", "macOS 15.1", "macOS 15", None, "")] == [
+        "Windows 11", "Ubuntu 24.04", "macOS 15", "macOS 15", None, None]
+
+
+def test_a_reviewed_pair_is_skipped_also_when_the_caller_names_it_and_has_a_summary_item(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    calls = fake_sessions(monkeypatch)
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx"),))
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"], device="gpu:10de:2484:0")
+    assert problems_of(report) == [] and report["details"]["skipped"] == {"trt-rtx@10de-2484-0": "reviewed"}
+    assert not [name for name in results(report, jpeg=True) if name.startswith("trt-rtx")] and ("trt-rtx", ("video",), "gpu:10de:2484:0") not in calls
+    assert report["summary"] == [{"group": "ep", "name": "DirectML", "device": "10de:2484", "result": "pass"},
+                                 {"group": "ep", "name": "TensorRT RTX", "device": "10de:2484", "result": "skipped", "reason": "reviewed"},
+                                 {"group": "ep", "name": "CPU", "device": None, "result": "record-only"}]
+    fake_full(monkeypatch)
+    full = skellytracker.certify("full", execution_providers=["trt-rtx"])
+    assert results(full)["trt-rtx@10de-2484-0"] == ("pass", None) and full["details"]["skipped"] == {}  # the level `full` checks it
+
+
+def test_a_check_that_does_not_fit_in_the_budget_is_not_run_and_stores_nothing(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    fake_sessions(monkeypatch)
+    ep = "trt-rtx@10de-2484-0"
+    clock = [1000.0]
+    monkeypatch.setattr(package_certification.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(package_certification, "PROGRESS_INTERVAL", 0.0)
+
+    def slow_cpu(key, settings, modes, *args, **kwargs):  # the CPU reference takes 73 s: 2 s are left, less than a probe
+        clock[0] += 73.0
+        return session_found(key, modes), None, 0
+
+    fake_sessions(monkeypatch, cpu=slow_cpu)
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"])  # two EPs: the estimates decide
+    found = results(report)
+    assert found["cpu:video"] == ("pass", None) and found[f"{ep}:probe"] == ("not-run", "over-budget")
+    assert found[f"{ep}:video"] == ("not-run", "probe-not-passed") and found[ep] == ("not-run", "over-budget")
+    assert found["directml@10de-2484-0"] == ("not-run", "over-budget") and problems_of(report) == []
+    assert store.read_json(store.store_root() / "quick-checks.json") is None and certification.read_answers() == {}
+    timeouts = []
+
+    def cut(key, settings, modes, *args, timeout=None, **kwargs):  # the child runs to the end of the budget
+        timeouts.append(timeout)
+        return None, "timed-out", None
+
+    fake_sessions(monkeypatch, cpu=slow_cpu, video=cut)
+    clock[0] = 1000.0
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"])  # one EP: the whole budget, no skip on an estimate
+    found = results(report)
+    assert found[f"{ep}:probe"] == ("pass", None) and found[f"{ep}:video"] == found[ep] == ("not-run", "over-budget")
+    assert timeouts == [2.0] and store.read_json(store.store_root() / "quick-checks.json") is None  # 75 s - 73 s
+    fake_sessions(monkeypatch, video=lambda *a, **k: (None, "timed-out", None))
+    clock[0] = 1000.0
+    found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]))
+    assert found[f"{ep}:video"] == ("not-run", "over-budget")  # the clock stands still: the time limit is the budget
+    monkeypatch.setattr(package_certification, "QUICK_BUDGET_SECONDS", 1000)
+    clock[0] = 1000.0
+    found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]))
+    assert found[f"{ep}:video"] == ("fail", "timed-out")  # the child limit, not the budget: a real failure
+    clock[0] = 1000.0
+    fake_full(monkeypatch)
+    found = results(skellytracker.certify("full", execution_providers=["trt-rtx"]))
+    assert found[f"{ep}:video"] == ("fail", "timed-out")  # the level `full` has no budget
 
 
 def test_a_cancel_object_of_an_other_class_with_is_set_is_accepted(quick_host, monkeypatch):
@@ -432,18 +527,40 @@ def test_a_cancel_object_of_an_other_class_with_is_set_is_accepted(quick_host, m
     assert seen == [cancel, cancel, cancel]
 
 
-def test_the_run_deletes_the_test_image_that_it_downloaded(quick_host, monkeypatch):
+def test_with_no_valid_test_frames_the_session_checks_are_not_run_and_nothing_is_downloaded(quick_host, monkeypatch):
     fake_probe(monkeypatch)
-    image = package_certification._image_path(store, certification.load_catalog().data["certification"])
+    calls = fake_sessions(monkeypatch)
+    monkeypatch.setattr(certification._download, "fetch", lambda *a, **k: pytest.fail("certify() downloads nothing"))
+    settings = {"frames": {**certification.frames_record(), "sha256": "0" * 64}}
+    with pytest.raises(certification.FramesUnavailableError):
+        certification.quick_frames(settings)
+    with pytest.raises(certification.FramesUnavailableError):
+        certification.frames_file({"frames": {**settings["frames"], "path": "test_media/none.zip"}})
+    real = certification.frames_file
+    monkeypatch.setattr(certification, "frames_file", lambda found: real({**found, **settings}))
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
+    ep = "trt-rtx@10de-2484-0"
+    assert results(report) == {"cpu:video": ("not-run", "test-media-missing"), "cpu:live": ("not-run", "test-media-missing"),
+                               f"{ep}:probe": ("pass", None), f"{ep}:video": ("not-run", "test-media-missing"),
+                               f"{ep}:live": ("not-run", "test-media-missing"), ep: ("not-run", "test-media-missing")}
+    assert calls == [] and problems_of(report) == [] and store.read_json(store.store_root() / "quick-checks.json") is None
+    fake_full(monkeypatch)
+    found = results(skellytracker.certify("full", execution_providers=["trt-rtx"]))
+    assert found["cpu:video"] == found[f"{ep}:live"] == found["cpu:pipeline-1"] == ("not-run", "test-media-missing")
 
-    def download(key, settings, modes, *args, **kwargs):  # the CPU reference child downloads the test image
-        image.parent.mkdir(parents=True, exist_ok=True)
-        image.write_bytes(b"x")
-        return session_found(key, modes), None, 0
 
-    fake_sessions(monkeypatch, cpu=download)
-    report = skellytracker.certify("quick")
-    assert not image.exists() and report["cleanup"] == []
+def test_the_test_frames_are_a_file_of_the_package_with_the_sha256_and_the_count_of_the_catalog():
+    import importlib.resources
+    import zipfile
+
+    settings = {"frames": certification.frames_record()}
+    data = (importlib.resources.files("skellytracker.core") / "model_zoo" / settings["frames"]["path"]).read_bytes()
+    assert len(data) == settings["frames"]["bytes"] and certification.frames_file(settings) == data
+    with zipfile.ZipFile(certification.io.BytesIO(data)) as archive:
+        assert sorted(archive.namelist()) == [f"frame_{index:02d}.jpg" for index in range(settings["frames"]["count"])]
+    assert settings["frames"]["count"] == certification.FRAMES
+    frames = certification.quick_frames(settings)
+    assert len(frames) == certification.FRAMES and frames[0].shape == (1280, 720, 3) and frames[0].dtype == np.uint8
 
 
 def fake_full(monkeypatch, timing=None, jpeg=None):
@@ -474,8 +591,7 @@ def test_the_full_level_times_the_pipeline_and_runs_the_jpeg_certification_on_th
 
     assert package_certification.JPEG_FULL_EPS == (*decode_certification.GPU_FRAME_EPS, *decode_certification.AMD_EPS)
     fake_probe(monkeypatch)
-    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
-    monkeypatch.setattr(evidence, "load_evidence", lambda: (row,))  # a reviewed row: the level `full` still checks the EP
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx"),))  # a reviewed row: the level `full` still checks the EP
     assert skellytracker.certify_plan("quick")["details"]["checks"] == ["directml@10de-2484-0"]
     calls = fake_full(monkeypatch, timing=lambda key, cameras, found: (
         ({"error": "RuntimeError"}, None, 0) if (key, cameras) == ("trt-rtx", 6) else (found, "hung-at-exit" if cameras == 3 and key != "cpu" else None, 0)))
@@ -503,6 +619,7 @@ def test_the_full_level_times_the_pipeline_and_runs_the_jpeg_certification_on_th
     pair = certification.pair_key(certification.load_catalog(), "trt-rtx", gpu(), "Windows")
     local = store.read_json(store.store_root() / "quick-checks.json")[pair]
     assert (local["result"], local["jpeg"]) == ("passed", {"jpeg-decode": "pass", "jpeg-preprocess": "fail"})
+    monkeypatch.setattr(evidence, "load_evidence", lambda: ())  # the level `quick` never checks a reviewed pair
     skellytracker.certify("quick", execution_providers=["trt-rtx"])  # a newer quick pass does not delete the report of the level `full`
     assert path.exists() and len(list(certification.reports_dir().glob("*.json"))) == 2
 
@@ -608,7 +725,7 @@ def test_the_jpeg_checks_never_change_the_ep_check_and_their_results_are_stored(
     fake_jpeg(monkeypatch, found={}, problem="hung-at-exit")  # a child that gave no check, and then did not exit
     found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]), jpeg=True)
     assert found["trt-rtx@10de-2484-0:jpeg-decode"] == ("fail", "no-result") and found["trt-rtx@10de-2484-0:jpeg-preprocess:exit"] == ("record-only", "hung-at-exit")
-    monkeypatch.setattr(package_certification, "_jpeg_spawn", lambda key, device_key, cancel: (None, "crashed", 5))
+    monkeypatch.setattr(package_certification, "_jpeg_spawn", lambda key, device_key, cancel, timeout=None: (None, "crashed", 5))
     report = skellytracker.certify("quick", execution_providers=["trt-rtx"])
     row = next(c for c in report["checks"] if c["name"] == "trt-rtx@10de-2484-0:jpeg-decode")
     assert (row["result"], row["reason"], row["numbers"]) == ("fail", "crashed", {"exit_code": 5}) and results(report)["trt-rtx@10de-2484-0"] == ("pass", None)
@@ -732,9 +849,9 @@ def test_coreml_on_a_mac_needs_its_quick_check_and_its_result_has_the_key_of_the
     row = next(row for row in eps.status().eps if row.key == "coreml")
     assert row.usable and row.checks[0].local_result == "passed" and eps.check_start("coreml") == ()
     assert eps.recommend("performance", mac).chosen.ep_key == "coreml"
-    evidence_row = {"ep": "coreml", "os": "macOS", "gpu": "chip:apple-m2-pro", "set": "s", "source": "maintainer", "result": "pass"}
-    monkeypatch.setattr(evidence, "load_evidence", lambda: (evidence_row,))
-    assert skellytracker.certify_plan("quick")["details"]["checks"] == []  # a reviewed row of the chip: nothing by default
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("coreml", "chip:apple-m2-pro", os="macOS", os_label="macOS 15.1"),))
+    assert skellytracker.certify_plan("quick")["details"]["checks"] == []  # a reviewed row of the chip: no check
+    assert skellytracker.certify("quick")["details"]["skipped"] == {"coreml": "reviewed"}
 
 
 def test_the_summary_lists_each_ep_that_ran_with_its_gpu_jpeg_result_and_the_cpu_ep_last():

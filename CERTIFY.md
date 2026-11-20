@@ -34,8 +34,8 @@ You do not need to know the project. You need about 10 minutes and a terminal.
     about 1009 MB for `cuda`; on Linux, about 146 MB and about 1213 MB. DirectML and CoreML need
     no download.
   - The model files of the test pipeline: about 346 MB.
-  - One public test image: about 0.2 MB.
-- The suite deletes the model files and the test image at the end.
+- The test frames are a file of the package. The suite does not download them.
+- The suite deletes the model files at the end.
 - The first `uv run` also makes a Python environment in `.venv/` in your clone. It downloads
   Python 3.13.18 and the dependencies of the project. It does this before the suite starts. The
   suite does not delete `.venv/`. Delete the whole clone when you finish.
@@ -119,7 +119,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 1. Checkout and versions | Records the tag, the commit, whether the clone is clean, the Python version and the package versions. |
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
 | 3. EP packs: install and verify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
-| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, 3 frames of one test image) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
+| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, the 30 test frames of the package) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or

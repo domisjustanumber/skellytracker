@@ -168,10 +168,11 @@ COPIES = (
         (
             ("(decision 9VN4).", f"{DECISION_0001}."),
             (
-                "  Set this list for the repo. This repo has no golden reference file: the list is empty.\n",
+                "  Set this list for the repo. This repo has one folder of golden reference files: the test frames of the package.\n",
                 "  Set this list for the repo. The default is ``golden/``.\n",
             ),
-            ("GOLDEN_PATHS: tuple[str, ...] = ()\n", 'GOLDEN_PATHS: tuple[str, ...] = ("golden/",)\n'),
+            ('GOLDEN_PATHS: tuple[str, ...] = ("skellytracker/core/model_zoo/test_media/",)\n',
+             'GOLDEN_PATHS: tuple[str, ...] = ("golden/",)\n'),
         ),
     ),
     Copy(

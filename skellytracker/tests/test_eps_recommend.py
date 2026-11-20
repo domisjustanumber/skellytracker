@@ -239,7 +239,7 @@ def test_the_device_checks_and_the_recommendation_follow_the_quick_checks_of_thi
     assert [c.reason for c in best.skipped] == [gate.REASONS[gate.FAILED_CHECK], gate.REASONS[gate.NEEDS_CHECK]]
     record("cuda", RTX, "passed")
     assert eps.recommend("performance", two).chosen.ep_key == "cuda"
-    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": "s", "source": "maintainer", "result": "pass"}
+    row = {"ep": "trt-rtx", "os": "Windows", "gpu": "10de:2484", "set": evidence.set_hash(catalog), "source": "maintainer", "result": "pass"}
     monkeypatch.setattr(evidence, "load_evidence", lambda: (row, {**row, "ep": "cuda"}))
     assert not state._device_checks(catalog, "trt-rtx", two)[0].usable  # a failure on this PC wins over a reviewed row
     assert state._device_checks(catalog, "cuda", two)[0].usable  # a reviewed row, and no quick check

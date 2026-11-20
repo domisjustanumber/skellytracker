@@ -8,9 +8,11 @@ import functools
 import hashlib
 import importlib.resources
 import json
+import re
 
 import yaml
 
+from skellytracker.core.eps import catalog as catalog_module
 from skellytracker.core.eps.catalog import EpCatalog
 
 
@@ -50,10 +52,27 @@ def load_evidence() -> tuple[dict, ...]:
 
 
 def certified(key: str, gpu, os_name: str) -> bool:
-    """True when a row records a pass of the EP `key` on this GPU model on this OS, with any version set.
+    """True when a row records a pass of the EP `key` on this GPU model on this OS, for the version set of this release.
 
-    A GPU with no PCI ids matches no row. A row that is not a mapping, or has no field, matches nothing.
+    The `set` of the row must be equal to `set_hash()` of the EP catalog (ADR-X7WD item 2). A GPU with no PCI ids
+    matches no row. A row that is not a mapping, or has no field, matches nothing.
     """
     ids = gpu_id(gpu)
-    return ids is not None and any(isinstance(row, dict) and row.get("ep") == key and row.get("os") == os_name
-                                   and row.get("gpu") == ids and row.get("result") == "pass" for row in load_evidence())
+    if ids is None:
+        return False
+    current = set_hash(catalog_module.load_catalog())
+    return any(isinstance(row, dict) and row.get("ep") == key and row.get("os") == os_name and row.get("gpu") == ids
+               and row.get("set") == current and row.get("result") == "pass" for row in load_evidence())
+
+
+def os_key(os_label: str | None) -> str | None:
+    """The key of an OS: its name and its release, from the OS label (ADR-X7WD item 8). None when the label has no release.
+
+    `Windows 11 Home 26H2` gives `Windows 11`, `Ubuntu 24.04.1 LTS` gives `Ubuntu 24.04` and `macOS 15.1` gives
+    `macOS 15`. An edition or an update of the OS is not a part of the key.
+    """
+    match = re.match(r"(\D+?)\s+(\d+)(\.\d+)?", os_label or "")
+    if match is None:
+        return None
+    name, major, minor = match.groups()
+    return f"{name} {major}{'' if name == 'macOS' else minor or ''}"

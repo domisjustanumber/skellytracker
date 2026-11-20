@@ -1,0 +1,8 @@
+# The test frames of `certify()`, a file of the package (ADR-X7WD items 6 and 7): 30 JPEG frames of the public
+# freemocap sample recording (camera 3, frames 499 to 528), 720 x 1280, stored with no compression.
+# `path` is relative to `skellytracker/core/model_zoo/`. This record is not in the EP catalog: a change of the
+# frames must not change the catalog revision.
+path: test_media/quick_frames.zip
+sha256: a973456f417eab8e24ea8aa3f118a48142aa55143af69c73ee6799cb4f94c1f4
+bytes: 6215661
+count: 30
