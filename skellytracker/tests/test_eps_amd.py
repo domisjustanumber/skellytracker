@@ -176,11 +176,16 @@ def test_windows_ml_removes_only_the_package_that_the_install_added(monkeypatch,
     on(monkeypatch, "win_amd64", host(RADEON))
     present = fake_windowsml["m"] = FakeProvider("MIGraphXExecutionProvider", "NotReady")
     added = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
+    assert {row.key: row.installed for row in eps.status().eps if row.key in ("amdgpu", "migraphx")} == {"amdgpu": False, "migraphx": False}
     kept = windows_ml.install("migraphx")
     assert (kept["was_present"], kept["packages_installed"], kept["package_family_name"]) == (True, [], present.family)
     assert kept["version"] == "1.8.65.0"  # from the new enumeration, not from the provider object of the call
     record = windows_ml.install("amdgpu")
     assert (record["was_present"], record["packages_installed"]) == (False, [added.full_name])
+    rows = {row.key: row for row in eps.status().eps}  # no opt-in: the state hides the install, `installed` gives it
+    assert (rows["amdgpu"].state, rows["amdgpu"].installed, rows["migraphx"].installed) == ("field_test", True, True)
+    assert rows["directml"].installed is None and rows["cpu"].installed is None  # an EP that needs no pack
+    assert windows_ml.install("amdgpu") == record  # a second install keeps the record: `remove` still takes the package away
     assert windows_ml.remove_installed(kept) == [] and present.full_name in PACKAGES
     assert windows_ml.remove_installed(record) == [{"package": added.full_name, "result": "pass", "reason_code": None}]
     assert REMOVED == [added.full_name] and added.full_name not in PACKAGES and present.full_name in PACKAGES

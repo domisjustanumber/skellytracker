@@ -101,7 +101,8 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
                           install_hint=install_hint(key) if windows_ml and state in REPAIRABLE_STATES else None,
                           uses_gpu=row["gpu"], description=row["description"], devices=run_devices(key) if usable else (),
                           certified=None if gpu is None or not windows_ml else evidence.certified(key, gpu, host.os_name),
-                          checks=_device_checks(catalog, key, host))
+                          checks=_device_checks(catalog, key, host),
+                          installed=not (store.windows_ml_installs().get(key) or {"pending": True}).get("pending") if windows_ml else None)
     lock = catalog.pack_lock(pack["id"])
     if lock is None:
         return None  # a platform with no pack, for example macOS
@@ -124,7 +125,7 @@ def _pack_status(catalog, key: str, host) -> PackStatus | None:
         description=row["description"], devices=run_devices(key) if usable else (),  # `run_devices` reads only the cached host probe
         certified=None if gpu is None else evidence.certified(key, gpu, host.os_name), jpeg_decoder=decoder,
         jpeg_decoder_hint=install_hint(key) if decoder in ("missing", "other_version") and state != "unsupported" else None,
-        checks=_device_checks(catalog, key, host))
+        checks=_device_checks(catalog, key, host), installed=store.read_manifest(pack["id"], pack["version"]) is not None)
 
 
 def _apply_check_rule(row: PackStatus | None, catalog, host) -> PackStatus | None:

@@ -321,6 +321,10 @@ class PackStatus:
     - `checks`: one `DeviceCheck` for each GPU of this host that passes the floors of the EP, in the
       order of `run_devices(key)`, also when the EP is not installed. `checks[n].usable` gives the
       state of one GPU.
+    - `installed`: true when the EP store holds the pack of the EP, or the record of an install of its Windows ML
+      package that ended. False when it does not. None for an EP that needs no pack, for example `directml` and
+      `cpu`. It does not depend on `state`: a `field-test` EP with no opt-in has the state `field_test`, and
+      `installed` still tells an application if it offers the install or the removal.
     """
 
     key: str
@@ -345,6 +349,7 @@ class PackStatus:
     jpeg_decoder: ComponentState | None = None
     jpeg_decoder_hint: str | None = None
     checks: tuple[DeviceCheck, ...] = ()
+    installed: bool | None = None
 
 
 @dataclass(frozen=True)

@@ -233,6 +233,9 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
 
     `progress` gets `InstallProgress` with the phase `download`, no bytes, and `fraction`, the value
     from 0 to 1 that Windows ML gives, or None before the first value. Windows ML can give no value.
+    An install of an EP whose install by this store ended, with the package still on the PC, changes nothing: it
+    returns the record of that install. `remove(key)` then still removes the package that the first install added.
+
     `cancel` set before the start of the install raises `CancelledError` of `_download`, and changes
     nothing. `cancel` set during the install asks Windows ML to stop it (`AsyncOperation.cancel`).
     When the install then ends with an error, the `pending` record stays and it raises `CancelledError`:
@@ -245,6 +248,13 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
         if provider is None:
             raise EpUnavailableError(f"The Windows ML catalog offers no EP {ep_name} for this PC.")
         was_present = provider.ready_state.name != NOT_PRESENT
+        earlier = store.windows_ml_installs().get(key)
+        if was_present and earlier and not earlier.get("pending"):
+            # an install of this store that ended: a new record would say that the package was on the PC before
+            if progress is not None:
+                progress(InstallProgress(key, "download"))
+                progress(InstallProgress(key, "download", fraction=1.0))
+            return earlier
         try:
             before = installed_packages()  # all packages: the catalog gives the family only after `ensure_ready`
         except (OSError, subprocess.SubprocessError) as error:
