@@ -214,7 +214,9 @@ def section_eps(work: Path) -> dict:
             checks.append(check(key, "not-run", found[key]["reason_code"]))
             continue
         on_each_gpu = row.pack_id is None and catalog.device_row(key) is not None  # `directml` or a Windows ML EP: each GPU
-        for device in row.devices if on_each_gpu else (None,):
+        # `checks` holds each GPU that the EP can use. `devices` is empty in the new EP store of the suite: the check
+        # rule gives no GPU before a check passed there (ADR-ER5X)
+        for device in row.checks if on_each_gpu else (None,):
             name = certification._label(key, None if device is None else device.device_key)  # the label of `certify()` for the pair
             print(f"section 3: {name}", file=sys.stderr, flush=True)
             started = time.monotonic()

@@ -43,7 +43,8 @@ RADEON = gpu("amd", cc=None, vram=16 * GIB, bus="0000:03:00.0", device_id=0x73BF
 
 
 def row(key, state, reason_code=None, pack_id=None, devices=()):
-    return SimpleNamespace(key=key, state=state, reason_code=reason_code, pack_id=pack_id, devices=devices)
+    # as `eps.status()` in a new EP store: `checks` has each GPU, and `devices` is empty until a check passed there
+    return SimpleNamespace(key=key, state=state, reason_code=reason_code, pack_id=pack_id, devices=(), checks=devices)
 
 
 def device(device_key):
