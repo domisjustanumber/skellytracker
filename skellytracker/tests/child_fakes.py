@@ -4,19 +4,6 @@ import os
 import time
 
 
-def result_then_hang(key, settings, device_key, connection):
-    for step in ("download", "cpu", "ep"):
-        connection.send(step)
-    connection.send({"ran": True, "ok": True, "reason_code": None})
-    time.sleep(300)
-
-
-def crash_in_the_ep_step(key, settings, device_key, connection):
-    connection.send("cpu")
-    connection.send("ep")
-    os._exit(5)
-
-
 def crash(*args):
     os._exit(5)
 

@@ -289,15 +289,10 @@ hardware_classes:
   - {id: unknown-gpu, match: {}, candidates: [cpu], ranking_evidence: single-ep}
   - {id: cpu-only, match: {host: true}, candidates: [cpu], ranking_evidence: single-ep}
 
-# The certification run of `skellytracker-eps certify` (ADR-MF2R).
-# `image` is a public test image. No camera frame is in this repository. `seconds` is the time of the
-# wider run for each EP key, for the question to the user. `thresholds` compares the EP with the CPU EP.
+# The certification checks of `skellytracker.certify()` (ADR-MF2R, ADR-X7WD). The test frames are a file of the
+# package (`model_zoo/test_media/quick_frames.yaml`), not a part of this catalog. `thresholds` compares the EP with the CPU EP.
 certification:
   pipeline: yolox-rtmw-wholebody@skellytracker
-  image:
-    url: https://github.com/freemocap/skellysamples/releases/download/single_images_v07_12_26/sample_recording_a_pose_image.jpg
-    sha256: 5ec5b9e3a587ba06c8f9d0dfbc9749dda31c3380ab7f67d2395f267db79a580d
-    bytes: 212902
   # The time estimate in seconds of the check `video` of an EP. On 2026-11-20, one RTX 3070 on Windows gave 10.0 s for
   # `trt-rtx` with an empty engine cache and 4.5 s with the cache, and 4.9 s and 3.8 s for `cuda`. Not calibrated.
   seconds: {trt-rtx: 15, cuda: 8}

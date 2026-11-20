@@ -344,7 +344,7 @@ class Executor:
                 )
             self.models[node_id] = onnx_model.OnnxModelRunner(node, plan.precision, [item.session for item in opened[node_id]], graph)
             if off:
-                cause = f"a stored quick check of '{plan.execution_provider}' on this machine gives fail for jpeg-preprocess"
+                cause = f"a stored quick check of '{plan.execution_provider}' on this system gives fail for jpeg-preprocess"
                 self.start_warnings.append(PipelineWarning(
                     onnx_model.PREPROCESSED_ON_CPU, f"{node_id}: the preprocess runs on the CPU ({sessions.QUICK_CHECK_FAILED}): {cause}", (node_id,),
                     {"node": node_id, "reason": sessions.QUICK_CHECK_FAILED, "frame_sizes": None, "cause": cause},
@@ -488,7 +488,7 @@ class Executor:
             if index in self.decode_failed:  # a stored quick check: no GPU decoder opens, one warning for the run
                 if sessions.QUICK_CHECK_FAILED not in self.jpeg_warned:
                     pending[sessions.QUICK_CHECK_FAILED] = PipelineWarning(
-                        JPEG_DECODED_ON_CPU, f"a stored quick check of '{place[0]}' on this machine gives fail for a JPEG check: the run decodes "
+                        JPEG_DECODED_ON_CPU, f"a stored quick check of '{place[0]}' on this system gives fail for a JPEG check: the run decodes "
                         "the JPEG buffers of that GPU on the CPU", (), {"reason": sessions.QUICK_CHECK_FAILED},
                     )
                 continue

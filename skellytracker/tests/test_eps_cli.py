@@ -96,7 +96,7 @@ def test_status_json(rtx_host, capsys):
     hw_fakes.fake_pack("cuda")
     assert cli.main(["status", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
-    assert data["schema"] == "skellytracker.eps.status/1" and set(data) == {"schema", "core", "host", "recommended", "eps", "warnings", "certify_offers"}
+    assert data["schema"] == "skellytracker.eps.status/1" and set(data) == {"schema", "core", "host", "recommended", "eps", "warnings"}
     assert data["core"]["ort_version"] == installer.installed_ort()[1] and data["core"]["core_matches_pin"] is True
     assert [row["key"] for row in data["eps"]] == ["trt-rtx", "cuda", "amdgpu", "migraphx", "directml", "cpu"]
     assert [(row["state"], row["reason_code"]) for row in data["eps"]] == [

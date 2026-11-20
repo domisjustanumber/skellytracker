@@ -51,9 +51,9 @@ def device(device_key):
     return SimpleNamespace(device_key=device_key)
 
 
-def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None, verify_ok=None, catalog_eps=None,
-             probe_reason="probe-l3-failed"):
-    calls = {"install": [], "certify": [], "verify": []}
+def fake_eps(monkeypatch, rows, vendor="nvidia", gpus=None, verify_ok=None, catalog_eps=None, failed=None):
+    """`failed` maps an EP key to the level of the probe that fails, for example `{"trt-rtx": "L3"}`."""
+    calls = {"install": [], "verify": []}
     monkeypatch.setattr(ce, "windows_ml_eps", lambda catalog, host: dict(catalog_eps or {}))
     gpus = gpus or ((RADEON,) if vendor == "amd" else (RTX,))
     status = SimpleNamespace(eps=rows, host=host(*gpus),
@@ -67,21 +67,13 @@ def fake_eps(monkeypatch, rows, vendor="nvidia", probe_result="pass", gpus=None,
         calls["install"].append(from_dir)
         return SimpleNamespace(ok=(plan.packs[0].pack_id.removesuffix("-pack"),), failed=())
 
-    def certify(key, out=None):
-        calls["certify"].append(out)
-        failed = probe_result != "pass"
-        report = {"result": probe_result, "reason_code": probe_reason if failed else None,
-                  "probe": {"ok": not failed, "level": "L3", "max_abs_diff": 0.004, "reason_code": None},
-                  "gpu": {"vendor": "nvidia", "name": "Fake RTX", "id": "10de:2484", "driver_version": "610.88"},
-                  "versions": {"skellytracker": "2.0.0", "ort_version": "1.30.0"}}
-        return SimpleNamespace(report_json=json.dumps(report))
-
     monkeypatch.setattr(eps, "install", install)
-    monkeypatch.setattr(eps, "certify", certify)
+
     def verify(keys, level, force, device_key=None):
         calls["verify"].append((keys[0], device_key))
-        ok = (verify_ok or {}).get(device_key, True)
-        return (SimpleNamespace(ok=ok, level="L3", max_abs_diff=0.0 if ok else 0.5, exit_reason_code="hung-at-exit" if device_key else None),)
+        ok = (verify_ok or {}).get(device_key, True) and keys[0] not in (failed or {})
+        return (SimpleNamespace(ok=ok, level=(failed or {}).get(keys[0], "L3"), max_abs_diff=0.0 if ok else 0.5,
+                                exit_reason_code="hung-at-exit" if device_key else None),)
 
     monkeypatch.setattr(eps, "verify", verify)
     monkeypatch.setattr(store, "read_manifest", lambda pack_id, version: {"wheels": [["a.whl", "ab" * 32]]})
@@ -99,15 +91,14 @@ def test_section_3_tests_each_usable_ep_and_lists_the_others(work, monkeypatch):
     assert results == {"trt-rtx": ("pass", None), "cuda": ("not-run", "cc"), "coreml": ("not-run", "os"), "amdgpu": ("not-run", "os"),
                        "migraphx": ("not-run", "os"), "directml": ("not-run", "os"),
                        "cpu": ("pass", None)}  # `status()` gave no `directml` row: an other platform
-    assert found["result"] == "pass" and calls["install"] == [Path("wheels")] and calls["certify"] == [work / "certify-trt-rtx.json"]
+    assert found["result"] == "pass" and calls["install"] == [Path("wheels")] and ("trt-rtx", None) in calls["verify"]  # the probe
     trt = found["details"]["eps"]["trt-rtx"]
-    assert trt["probe"]["max_abs_diff"] == 0.004 and trt["wheels"] == [{"filename": "a.whl", "sha256": "ab" * 32}]
-    assert trt["gpu"]["id"] == "10de:2484" and trt["install"] == "ok"
-    assert trt["versions"] == {"ort_version": "1.30.0"}  # no package version: section 1 has the tag and the commit
+    assert trt["probe"]["max_abs_diff"] == 0.0 and trt["wheels"] == [{"filename": "a.whl", "sha256": "ab" * 32}]
+    assert trt["install"] == "ok" and trt["ort_version"] == ce.ort_version()
 
 
 def test_section_3_fails_on_a_failed_probe(work, monkeypatch):
-    fake_eps(monkeypatch, NVIDIA_ROWS, probe_result="fail")
+    fake_eps(monkeypatch, NVIDIA_ROWS, failed={"trt-rtx": "L3"})
     found = ce.section_eps(work)
     assert (found["result"], found["reason_code"]) == ("fail", "probe-l3-failed")
 
@@ -131,7 +122,7 @@ def test_section_3_on_an_amd_host_tests_each_offered_windows_ml_ep(work, monkeyp
 def test_section_3_has_no_second_environment(work, monkeypatch):
     """A load failure of migraphx is a `fail` of its one check: the suite builds no other environment."""
     rows = [row("migraphx", "untested-ort", pack_id="migraphx-rocm10.2"), row("cpu", "builtin")]
-    fake_eps(monkeypatch, rows, vendor="amd", probe_result="fail", probe_reason="probe-l2-failed")
+    fake_eps(monkeypatch, rows, vendor="amd", failed={"migraphx": "L2"})
     found = ce.section_eps(work)
     assert [c["name"] for c in found["checks"] if c["name"].startswith("migraphx")] == ["migraphx"]
     assert (found["result"], found["reason_code"]) == ("fail", "probe-l2-failed")

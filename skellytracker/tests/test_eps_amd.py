@@ -260,7 +260,7 @@ def test_a_record_of_an_ep_that_is_not_a_windows_ml_ep_is_refused(monkeypatch, e
 def test_windows_ml_register_never_downloads(monkeypatch, ep_store, fake_windowsml):  # noqa: F811
     on(monkeypatch, "win_amd64", host(RADEON))
     fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
-    with pytest.raises(EpUnavailableError, match="not on this PC"):
+    with pytest.raises(EpUnavailableError, match="not on this system"):
         registration.ensure_registered("amdgpu")
     assert fake_windowsml["a"].ensured == 0
     registered = []
@@ -281,7 +281,7 @@ def test_cli_install_of_a_windows_ml_ep_opts_in_and_installs(monkeypatch, ep_sto
     assert provider.ensured == 0 and "migraphx" not in store.field_test_opt_ins()
     assert cli.main(["install", "migraphx", "--field-test", "--yes"]) == 0
     assert provider.ensured == 1 and "migraphx" in store.field_test_opt_ins()
-    assert "Windows ML package 1.8.65.0, already on this PC" in capsys.readouterr().out
+    assert "Windows ML package 1.8.65.0, already on this system" in capsys.readouterr().out
     assert cli.main(["install", "migraphx", "--yes", "--progress", "jsonl"]) == 0
     events = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     progress = [event for event in events if event["event"] == "progress"]
@@ -358,7 +358,7 @@ def test_cli_remove_of_a_windows_ml_ep_removes_only_the_package_that_the_install
     assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 0
     assert cli.main(["remove", "--windows-ml", "migraphx"]) == 0
     out = capsys.readouterr().out
-    assert f"amdgpu: removed {added.full_name}" in out and "migraphx: the Windows ML package was on this PC before" in out
+    assert f"amdgpu: removed {added.full_name}" in out and "migraphx: the Windows ML package was on this system before" in out
     assert REMOVED == [added.full_name] * 2 and present.full_name in PACKAGES and "Other.App_1.0.0.0_x64__" + PUBLISHER in PACKAGES
     assert store.windows_ml_installs() == {}
     assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 1

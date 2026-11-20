@@ -4,7 +4,7 @@ Only this module imports `windowsml`, and only in a function. An EP key whose `w
 this platform (`EpCatalog.windows_ml()`) has no pack here. Windows installs its package, and the EP
 store keeps one record for each such key in `windows-ml.json`.
 
-- `find_eps()` lists the EPs that the catalog offers for this PC, with their ready state. It
+- `find_eps()` lists the EPs that the catalog offers for this system, with their ready state. It
   downloads nothing.
 - `install(key, progress=..., cancel=...)` makes the package of the EP ready (`ensure_ready_async`).
   For a package that is not on the PC, Windows downloads and installs it. Call it only after the
@@ -181,7 +181,7 @@ def remove(key: str) -> RemoveResult:
 
 
 def find_eps() -> dict[str, str]:
-    """The ready state (`Ready`, `NotReady` or `NotPresent`) of each EP name that the catalog offers for this PC."""
+    """The ready state (`Ready`, `NotReady` or `NotPresent`) of each EP name that the catalog offers for this system."""
     with _lock:
         return {provider.name: provider.ready_state.name for provider in _open().find_all_providers()}
 
@@ -229,7 +229,7 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
     Before the call it writes a `pending` record, so that a crash leaves a trace. After the call it
     records the EP name, the package version, the package family, `was_present`, `packages_installed`
     and the time in the EP store, and returns the record. It raises `EpUnavailableError` when the
-    catalog does not offer the EP for this PC, `Get-AppxPackage` fails, or the install fails.
+    catalog does not offer the EP for this system, `Get-AppxPackage` fails, or the install fails.
 
     `progress` gets `InstallProgress` with the phase `download`, no bytes, and `fraction`, the progress
     from 0 to 1 (Windows ML gives 0 to 100), or None before the first value. Windows ML can give no value.
@@ -246,7 +246,7 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
     with _lock:
         provider = _provider(ep_name)
         if provider is None:
-            raise EpUnavailableError(f"The Windows ML catalog offers no EP {ep_name} for this PC.")
+            raise EpUnavailableError(f"The Windows ML catalog offers no EP {ep_name} for this system.")
         was_present = provider.ready_state.name != NOT_PRESENT
         earlier = store.windows_ml_installs().get(key)
         if was_present and earlier and not earlier.get("pending"):
@@ -258,7 +258,7 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
         try:
             before = installed_packages()  # all packages: the catalog gives the family only after `ensure_ready`
         except (OSError, subprocess.SubprocessError) as error:
-            raise EpUnavailableError(f"The packages of this PC are not known, so the suite cannot remove the package later: "
+            raise EpUnavailableError(f"The packages of this system are not known, so the suite cannot remove the package later: "
                                      f"{sanitize_text(str(error))[:200]}") from error
         if cancel is not None and cancel.is_set():
             raise _download.CancelledError(key)
@@ -291,7 +291,7 @@ def register(key: str, hint: str | None = None) -> RegisteredEp:
         ep_name = load_catalog().ep(key)["ep_name"]
         provider = _provider(ep_name)
         if provider is None or provider.ready_state.name == NOT_PRESENT:
-            raise EpUnavailableError(f"The Windows ML package of the EP '{key}' is not on this PC.", hint)
+            raise EpUnavailableError(f"The Windows ML package of the EP '{key}' is not on this system.", hint)
         import onnxruntime
 
         from skellytracker.core.eps.registration import NO_DEVICE

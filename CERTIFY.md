@@ -119,7 +119,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 1. Checkout and versions | Records the tag, the commit, whether the clone is clean, the Python version and the package versions. |
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
 | 3. EP packs: install and verify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
-| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, the 30 test frames of the package) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
+| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU, first the EPs that the project has not reviewed on your largest GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, the 30 test frames of the package) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or
@@ -130,20 +130,26 @@ stopped it.
 
 ## Read the report
 
-The report file has the format `skellycertify.report/1.2.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.4.0` of the repository `skellycertify`. It
 has these parts:
 
 - One line with the package, its version, the time of the run and if the report is valid as evidence.
+  A run that you stopped has the word `incomplete` before the validity text.
 - The OS, the CPU and the RAM of your system.
 - A table with one row for each EP that ran on each GPU, and one row for GPU decode of JPEG frames.
   The result `record` means that the check only recorded facts. A GPU that no EP ran on has the
   result `not checked`.
+- A benchmark table with one row for each timing of the pipeline: the GPU, the EP, the stage
+  (`pipeline-1`, `pipeline-3` or `pipeline-6`, for 1, 3 or 6 cameras), the time of one frame of each
+  camera in milliseconds and the frames in each second.
 - The line `Cameras: not checked on this system.`
-- The line `Failed checks:` and a table with one row for each check that failed. A report with no
-  failed check has no such table.
+- The line `Checks that did not pass:` and a table with one row for each check that failed. A check
+  that did not run (`not run`) also has a row when its EP failed. A report with no such check has
+  no such table.
 - The heading `## Data` and a JSON block. It holds each check and each fact of the run.
 
-The column `Check` of the failed checks holds the check name:
+The column `Module` of that table holds the EP of the check, for example `CUDA`. A check of the
+suite has no module. The column `Test` holds the check name:
 
 - `suite:<slug>` is the result of a section of the suite: `suite:checkout` (1), `suite:hardware` (2),
   `suite:packs` (3) and `suite:full` (4). `suite:full` is in the table only when section 4 gave no

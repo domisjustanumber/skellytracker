@@ -554,7 +554,7 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         from skellytracker.core.pipelines import Frame, get_pipeline, load_pipeline, start_pipeline
 
         if not get_pipeline(PIPELINE_KEY).available:
-            raise _Stop("models_not_available", f"the ONNX files of {PIPELINE_KEY} are not on this machine")
+            raise _Stop("models_not_available", f"the ONNX files of {PIPELINE_KEY} are not on this system")
         try:
             check_start(execution_provider, device=device_of(execution_provider))
         except (EpRequestError, EpUnavailableError):

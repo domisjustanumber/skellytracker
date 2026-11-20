@@ -124,10 +124,9 @@ changes each character that a check name cannot hold to `-`.
 | `no-lock` | check `suite:checkout:python`, `suite:checkout:packages` | The checkout has no `uv.lock`. |
 | `telemetry-on` | check `suite:checkout:telemetry-switch` | `ORT_DISABLE_TELEMETRY` is not `1` or `true`. The check is `record-only`. |
 | `tool-missing`, `tool-failed`, `parse-failed` | check `suite:hardware:<method>` | The OS tool or file is absent, the tool exited with an error, or its output did not parse. |
-| `not-offered` | check `suite:packs:<key>` | The Windows ML catalog does not offer the AMD EP for this PC. |
+| `not-offered` | check `suite:packs:<key>` | The Windows ML catalog does not offer the AMD EP for this system. |
 | `catalog-<ExceptionClass>` | check `suite:packs:<key>` | The Windows ML catalog raised this exception class. |
 | `install-<code>` | check `suite:packs:<key>` | The install of the pack failed with this code of `eps.install()`, for example `install-offline`. |
-| `certify-<result>` | check `suite:packs:<key>` | The probe of `eps.certify()` gave this result with no reason code. |
 | a state code of the EP | check `suite:packs:<key>` | The host cannot use the EP, for example `os`, `vendor` or `cc`. |
 | a code of `windows_ml.remove_installed()` | check `suite:packs:remove-<package>` | The Windows ML package did not go, for example `package-not-removed`, `package-unknown` or `record-refused`. |
 | `cleanup-<ExceptionClass>` | check `suite:packs:remove-<key>` | The removal of the Windows ML packages raised this exception class. |

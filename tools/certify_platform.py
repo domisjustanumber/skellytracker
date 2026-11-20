@@ -36,8 +36,9 @@ The sections (``SECTIONS``): 1 ``checkout``, the checkout and the versions again
 ``skellytracker.certify("full")`` (``tools/certify_eps.py``).
 
 The report file obeys sections 4.1 and 4.2 of ``report-format.md`` of the repository ``skellycertify``.
-It has the title, the line of the module, the system list, the GPU table from the ``summary`` items, the
-camera line, the failed checks and, last, one fenced JSON block (``report_data()`` reads it):
+It has the title, the line of the module, the system list, the GPU table and the benchmark table from the
+``summary`` items, the camera line, the table of the checks that did not pass and, last, one fenced JSON block
+(``report_data()`` reads it):
 ``{"schema", "app": null, "modules": [<module report>], "note"}``. The one module report is the
 report of section 4, with ``kind`` ``full`` and ``created_utc`` set to the start of the run. When
 section 4 gave no report, it is the empty report of ``_base_report()`` of the package. Its ``checks``
@@ -100,7 +101,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellycertify.report/1.2.0"  # `SCHEMA` of `skellytracker/certification.py`
+REPORT_SCHEMA = "skellycertify.report/1.4.0"  # `SCHEMA` of `skellytracker/certification.py`
 SUITE_VERSION = 2
 RESULTS = ("pass", "fail", "not-run", "record-only")
 EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
@@ -403,7 +404,7 @@ def add_cleanup(results: list[dict], rows: list[dict]) -> None:
             if row["result"] == "fail" and section["result"] != "fail":
                 section.update(result="fail", reason_code=row["reason_code"])
         if row["result"] == "fail":
-            print(f"The Windows ML package of the EP '{row['key']}' ({row['package'] or 'name not known'}) may still be on this PC. "
+            print(f"The Windows ML package of the EP '{row['key']}' ({row['package'] or 'name not known'}) may still be on this system. "
                   "PowerShell removes a package with: Remove-AppxPackage <full name>.", file=sys.stderr)
 
 
@@ -672,36 +673,50 @@ def system_lines(modules: list[dict]) -> list[str]:
                                                         ("RAM", memory and f"{round(memory / 2**30)} GB")) if value]
 
 
+def shown(item: dict) -> str:
+    """The display of the result of a summary item (section 4.2 of the contract)."""
+    if item["result"] == "skipped":
+        return f"skipped ({'already reviewed' if item.get('reason') == 'reviewed' else item.get('reason')})"
+    return {"record-only": "record"}.get(item["result"], item["result"])
+
+
 def render(data: dict) -> str:
     """The report file of sections 4.1 and 4.2 of the contract: the short summary for a person, then the data as the last
     fenced JSON block. The tool writes one module with no app. The rows come from the `summary` items: nothing is computed."""
-    modules, shown = data["modules"], {"record-only": "record"}
+    modules = data["modules"]
     first = modules[0]
     proof, package = first["evidence"], first["package"]
     lines = ["# Certify report", "", " · ".join([
         f"{package['name']} {package['version'] or 'with no version'}", f"{first.get('kind')} run",
         f"{first['created_utc'][:16].replace('T', ' ')} UTC",
+        *(["incomplete"] if {"cancelled", "interrupted"} & set(proof["reasons"]) else []),
         "valid as evidence" if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}"])]
     system = system_lines(modules)
-    gpus, cameras, checked, unchecked = [], [], set(), {}
+    gpus, benchmarks, cameras, failed, checked, unchecked = [], [], [], [], set(), {}
     for m in modules:
         found = {g["id"]: g for g in (m.get("host") or {}).get("gpus") or []}
         unchecked.update({key: gpu for key, gpu in found.items() if key not in unchecked})
         for item in m.get("summary") or []:
-            result = shown.get(item["result"], item["result"])
             if item["group"] == "camera":
-                cameras.append(f"| {cell(item['name'])} | {result} |")
+                cameras.append(f"| {cell(item['name'])} | {shown(item)} |")
                 continue
             device = item["device"]
             where = "-" if device is None else gpu_cell(found.get(device) or {"id": device})
-            gpus.append(f"| {where} | {cell(item['name'])}{' GPU decode' if item['group'] == 'gpu-jpeg' else ''} | {result} |")
-            checked.add(device)
+            if item["group"] == "benchmark":
+                benchmarks.append(f"| {where} | {cell(item['name'])} | {cell(item['stage'])} | {item['ms_per_frame']:.1f} | {item['fps']:.1f} |")
+                continue
+            gpus.append(f"| {where} | {cell(item['name'])}{' GPU decode' if item['group'] == 'gpu-jpeg' else ''} | {shown(item)} |")
+            checked.update([device] if item["group"] == "ep" else [])
+        # each `fail`, and each `not-run` of a module whose summary item is `partial` or `fail`; the module has no `sections`
+        weak = {item["name"] for item in m.get("summary") or [] if item.get("result") in ("partial", "fail")}
+        failed += [f"| {cell(m['package']['name'])} | {cell(c.get('module'))} | {cell(c['name'])} | "
+                   f"{'fail' if c['result'] == 'fail' else 'not run'} | {cell(c['reason'])} |"
+                   for c in m["checks"] if c["result"] == "fail" or (c["result"] == "not-run" and c.get("module") in weak)]
     gpus += [f"| {gpu_cell(gpu)} | | not checked |" for key, gpu in unchecked.items() if key not in checked]
-    failed = [f"| {cell(m['package']['name'])} | {cell(c['name'])} | {cell(c['reason'])} |"
-              for m in modules for c in m["checks"] if c["result"] == "fail"]  # the module has no `sections`: each failed check
     for part in (system, gpus and ["| GPU | Module | Result |", "|---|---|---|", *gpus],
+                 benchmarks and ["| GPU | Module | Stage | ms/frame | FPS |", "|---|---|---|---|---|", *benchmarks],
                  ["| Camera | Result |", "|---|---|", *cameras] if cameras else ["Cameras: not checked on this system."],
-                 failed and ["Failed checks:", "", "| Module | Check | Reason |", "|---|---|---|", *failed],
+                 failed and ["Checks that did not pass:", "", "| Package | Module | Test | Result | Reason |", "|---|---|---|---|---|", *failed],
                  data["note"] and ["Note of the person:", "", *(f"> {line}" for line in data["note"].splitlines())]):
         if part:
             lines += ["", *part]
@@ -756,7 +771,7 @@ def plan_text(sections: tuple[Section, ...], selected: set[int], out: Path, opti
     # ADR-XSE7: the catalog gives the package name only after the install, so the text names the EP
     packages = (windows_eps or windows_ml_offer)() if os_platform == "win32" and 3 in selected else []
     lines += [f"Windows downloads and installs the Windows ML package of the AMD execution provider {name}, if Windows does not "
-              "have it yet. The suite removes that package at the end. It never removes a package that was on this PC before."
+              "have it yet. The suite removes that package at the end. It never removes a package that was on this system before."
               for name in packages]
     lines += ["Apart from that, the suite installs no system software. It needs no administrator rights." if packages else
               "The suite installs no system software and needs no administrator rights.",

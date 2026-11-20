@@ -11,7 +11,7 @@ the rule. The rule has no setting and no environment variable.
 
 The certification code must run an EP before the EP has a result. It runs inside `certification_run()`,
 which switches the rule off for this process. Only the certification code uses it: the probe, the `video` and `live`
-runs and the JPEG checks of the quick check, the image run of `eps.certify()`, the JPEG certification and the certify suite.
+runs, the timings and the JPEG checks of `skellytracker.certify()`, the JPEG certification and the certify suite.
 
 This module loads no library and uses no network. It reads `quick-checks.json` of the EP store.
 """
@@ -57,9 +57,9 @@ FAILED_CHECK = "quick-check-failed"  # the last quick check on this PC failed
 UNCLEAN_EXITS = "unclean-exits"  # two unclean exits in a row marked the EP as failed on this PC (`exits.py`)
 FAILED_CODES = (FAILED_CHECK, UNCLEAN_EXITS)  # the codes of an EP that failed on this PC
 REASONS = {
-    NEEDS_CHECK: "the project has no reviewed result for it on this GPU model, and no quick check passed on this machine",
-    FAILED_CHECK: "its last quick check failed on this machine",
-    UNCLEAN_EXITS: "the application ended two times in a row with no clean exit while it used this EP on this machine",
+    NEEDS_CHECK: "the project has no reviewed result for it on this GPU model, and no quick check passed on this system",
+    FAILED_CHECK: "its last quick check failed on this system",
+    UNCLEAN_EXITS: "the application ended two times in a row with no clean exit while it used this EP on this system",
 }
 
 _certification_runs = 0  # the depth of `certification_run()` in this process
@@ -88,7 +88,7 @@ def pack_version(catalog: EpCatalog, key: str) -> str:
 
 
 def pair_key(catalog: EpCatalog, key: str, gpu, os_name: str) -> str:
-    """The pair of an answer and of a local result. The pack version is in it, so a pack upgrade asks again.
+    """The pair of a local result. The pack version is in it, so a pack upgrade needs a new quick check.
 
     `gpu` comes from `ep_gpus()`, which gives only GPUs with PCI ids, so `gpu_id` is never None here. An EP of
     the Windows ML catalog takes the package version of its record, and a built-in EP takes `builtin`.
@@ -133,7 +133,7 @@ def rule_passes(catalog: EpCatalog, key: str, gpu, os_name: str) -> bool:
 
 
 def check_hint(key: str) -> str:
-    return f"Run `skellytracker-eps certify {key} --quick`."
+    return f"Run `skellytracker-eps certify {key}`."
 
 
 def require(catalog: EpCatalog, key: str, gpu, os_name: str, device_key: str | None = None) -> None:

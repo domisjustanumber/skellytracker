@@ -89,15 +89,52 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     text = out.read_text(encoding="utf-8")
     data = cp.report_data(text)
     assert text.startswith("# Certify report\n") and text.endswith("```\n")
-    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.2.0", None, None)
+    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.4.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
-    assert "Failed checks:" not in text and "## Sections" not in text  # no failed check: no table
+    assert "Checks that did not pass:" not in text and "## Sections" not in text  # no failed check: no table
     assert text.splitlines()[2].startswith("skellytracker ") and " · full run · " in text and " UTC · not valid as evidence: " in text
     checks = data["modules"][0]["checks"]
     checks[0].update(result="fail", reason="crashed")
-    table = cp.render(data).split("Failed checks:\n\n| Module | Check | Reason |\n|---|---|---|\n")[1].split("\n\n")[0]
-    assert table == f"| skellytracker | {checks[0]['name']} | crashed |"
+    table = cp.render(data).split("Checks that did not pass:\n\n| Package | Module | Test | Result | Reason |\n|---|---|---|---|---|\n")[1]
+    assert table.split("\n\n")[0] == f"| skellytracker |  | {checks[0]['name']} | fail | crashed |"  # a check of the suite has no module
+
+
+def test_the_markdown_of_format_1_4_0_shows_the_benchmarks_a_reviewed_item_the_not_run_checks_and_an_incomplete_run():
+    gpus = [{"vendor": "nvidia", "name": "NVIDIA GeForce RTX 3070", "id": "10de:2484", "vram_bytes": 8589934592}]
+    checks = [{"name": "directml@10de-2484-0:video", "module": "DirectML", "result": "fail", "reason": "box-differs"},
+              {"name": "directml@10de-2484-0:live", "module": "DirectML", "result": "not-run", "reason": "video-not-passed"},
+              {"name": "cuda@10de-2484-0:probe", "module": "CUDA", "result": "not-run", "reason": "ep-not-installed"}]
+    report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "full", "package": {"name": "skellytracker", "version": "2.0.0"},
+              "evidence": {"valid": False, "reasons": ["cancelled"]}, "checks": checks, "details": {}, "host": {"gpus": gpus},
+              "summary": [{"group": "ep", "name": "TensorRT RTX", "device": "10de:2484", "result": "skipped", "reason": "reviewed"},
+                          {"group": "ep", "name": "DirectML", "device": "10de:2484", "result": "fail"},
+                          {"group": "benchmark", "name": "CPU", "device": None, "stage": "pipeline-1", "ms_per_frame": 20.0, "fps": 50.0},
+                          {"group": "benchmark", "name": "DirectML", "device": "10de:2484", "stage": "pipeline-3", "ms_per_frame": 12.44,
+                           "fps": 80.39}]}
+    text = cp.render({"schema": "s", "app": None, "modules": [report], "note": None}).split("\n\n## Data")[0]
+    assert text == """# Certify report
+
+skellytracker 2.0.0 · full run · 2026-11-19 10:00 UTC · incomplete · not valid as evidence: cancelled
+
+| GPU | Module | Result |
+|---|---|---|
+| NVIDIA RTX 3070 8 GB | TensorRT RTX | skipped (already reviewed) |
+| NVIDIA RTX 3070 8 GB | DirectML | fail |
+
+| GPU | Module | Stage | ms/frame | FPS |
+|---|---|---|---|---|
+| - | CPU | pipeline-1 | 20.0 | 50.0 |
+| NVIDIA RTX 3070 8 GB | DirectML | pipeline-3 | 12.4 | 80.4 |
+
+Cameras: not checked on this system.
+
+Checks that did not pass:
+
+| Package | Module | Test | Result | Reason |
+|---|---|---|---|---|
+| skellytracker | DirectML | directml@10de-2484-0:video | fail | box-differs |
+| skellytracker | DirectML | directml@10de-2484-0:live | not run | video-not-passed |"""  # `cuda` has no summary item: its `not-run` check has no row
 
 
 def test_the_markdown_gives_the_system_list_and_the_gpu_table_from_the_summary_items():
@@ -169,9 +206,9 @@ def test_a_run_without_section_4_writes_a_valid_file_with_partial_run(tmp_path):
 def full_report(created: str = "2026-11-19T10:00:00Z") -> dict:
     """A module report of `certify("full")` with one EP check, as section 4 returns it."""
     base, reasons = certification._base_report("full", created, host(gpu()))
-    checks = [{"name": "cpu:pipeline-1", "result": "record-only", "reason": None, "numbers": {"median_ms": 20.0}},
-              {"name": "cuda@10de-2484-0:probe", "result": "pass", "reason": None},
-              {"name": "cuda@10de-2484-0", "result": "pass", "reason": None}]
+    checks = [{"name": "cpu:pipeline-1", "result": "record-only", "reason": None, "numbers": {"median_ms": 20.0}, "module": "CPU"},
+              {"name": "cuda@10de-2484-0:probe", "result": "pass", "reason": None, "module": "CUDA"},
+              {"name": "cuda@10de-2484-0", "result": "pass", "reason": None, "module": "CUDA"}]
     return {"schema": certification.SCHEMA, "id": "3f2b8c1e-9a4d-4e7b-b6a1-0c5d2e8f7a90", **base, "checks": checks,
             "cleanup": [{"name": "test-image", "result": "fail", "reason": "PermissionError"}],
             "details": {"pipeline": "p@skellytracker", "eps": {}, "versions": {"ort_version": "1.30.0"}, "scrub": {"exempted_terms": 0}},

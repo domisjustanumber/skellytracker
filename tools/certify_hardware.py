@@ -402,7 +402,7 @@ def eps_record(host) -> dict:
                             "skipped": [{"ep": c.ep_key, "state": c.status} for c in performance.skipped],
                             "offers": [offer.kind for offer in performance.offers]},
             "accuracy": {"ep": status.accuracy.chosen.ep_key, "precision": status.accuracy.precision},
-            "certify_offers": [offer.ep_key for offer in status.certify_offers], "warning_count": len(status.warnings),
+            "warning_count": len(status.warnings),
             "core_matches_pin": status.core_matches_pin}
 
 

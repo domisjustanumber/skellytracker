@@ -11,7 +11,6 @@ a folder of the same form.
     <root>/refs/<consumer_id>.json          one file for each consumer; the input of gc()
     <root>/verdicts.json                    the verification results
     <root>/field-test.json                  the opt-in to each `field-test` EP key (ADR-Z5X7)
-    <root>/certify.json                     the answer or the result of each certification pair
     <root>/quick-checks.json                the last local result of the quick check of each pair (ADR-21BK item 2)
     <root>/reports/                         the certification reports; nothing sends them
     <root>/windows-ml.json                  each EP key that this store installed from the Windows ML catalog (ADR-XSE7)

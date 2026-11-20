@@ -11,7 +11,7 @@ import sys
 from collections.abc import Mapping, Sequence
 
 from skellytracker.core.eps import catalog as catalog_module
-from skellytracker.core.eps import certification, evidence, exits, gate, store
+from skellytracker.core.eps import evidence, exits, gate, store
 from skellytracker.core.eps.catalog import load_catalog
 from skellytracker.core.eps.installer import core_mismatch, installed_ort
 from skellytracker.core.eps.recommendation import ep_gpus, install_hint, recommend, run_devices
@@ -166,7 +166,6 @@ def status() -> EpStatus:
         store_free_bytes=None if existing is None else shutil.disk_usage(existing).free, host=host,
         performance=recommend("performance", host), accuracy=recommend("accuracy", host),
         eps=tuple(row for row in rows if row is not None), warnings=tuple(warnings),
-        certify_offers=certification.certify_offers(catalog, host),
     )
 
 

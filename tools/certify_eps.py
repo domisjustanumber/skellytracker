@@ -8,8 +8,7 @@ Section 3. The EPs come from ``eps.status()``: each EP key of the catalog that a
 use (a plugin EP that is not ``unsupported``) and each built-in EP of this platform (``cpu``, and
 ``coreml`` on macOS). An EP that the host cannot use is ``not-run`` with its state code. A plugin EP
 is installed with ``eps.plan_install()`` and ``eps.install()``, the code path of
-``skellytracker-eps install KEY --yes`` (``--wheel-dir`` gives ``from_dir``), and then tested with
-``eps.certify(key, out=...)``. Its probe is ``verify()`` at level L3. A built-in EP gets
+``skellytracker-eps install KEY --yes`` (``--wheel-dir`` gives ``from_dir``). Each EP then gets the probe
 ``eps.verify([key], level="L3", force=True)``. Before ``eps.status()``, the section opts in to each
 ``field-test`` EP in the isolated store (ADR-Z5X7). A built-in EP that runs on one GPU (``directml``
 on Windows) gets that probe on each GPU of the host, as the check ``KEY@DEVICE_KEY``. Each result
@@ -106,8 +105,8 @@ def test_builtin(key: str, device_key: str | None = None) -> dict:
                       "exit_reason_code": verdict.exit_reason_code}}
 
 
-def test_pack(key: str, wheel_dir: str | None, work: Path) -> dict:
-    """Install the pack of `key` into the isolated store, then run `certify()` (its probe is `verify()` at L3)."""
+def test_pack(key: str, wheel_dir: str | None) -> dict:
+    """Install the pack of `key` into the isolated store, then run the probe of `test_builtin()` (`verify()` at L3)."""
     from skellytracker.core import eps
     from skellytracker.core.eps import store
 
@@ -122,15 +121,7 @@ def test_pack(key: str, wheel_dir: str | None, work: Path) -> dict:
         return {**facts, "result": "fail", "reason_code": f"install-{code}"}
     manifest = store.read_manifest(planned.pack_id, planned.version) or {}
     facts["wheels"] = [{"filename": name, "sha256": sha} for name, sha in manifest.get("wheels", ())]
-    try:
-        report = json.loads(eps.certify(key, out=work / f"certify-{key}.json").report_json)
-    except Exception as error:  # noqa: BLE001
-        return {**facts, "result": "fail", "reason_code": type(error).__name__}
-    versions = {name: value for name, value in report["versions"].items() if name != "skellytracker"}  # section 1 has the tag and commit
-    facts.update(certify_result=report["result"], probe=report["probe"], gpu=report["gpu"], versions=versions)
-    passed = report["result"] == "pass"
-    return {**facts, "result": "pass" if passed else "fail",
-            "reason_code": None if passed else report["reason_code"] or f"certify-{report['result']}"}
+    return {**facts, **test_builtin(key)}
 
 
 def ort_version() -> str | None:
@@ -224,7 +215,7 @@ def section_eps(work: Path) -> dict:
                 found[name] = {**test_builtin(key, device.device_key), "vendor": gpus[device.device_key].vendor,
                                **catalog_eps.get(key, {})}
             else:
-                found[name] = test_builtin(key) if row.pack_id is None else test_pack(key, wheel_dir, work)
+                found[name] = test_builtin(key) if row.pack_id is None else test_pack(key, wheel_dir)
             found[name].update(seconds=round(time.monotonic() - started, 1), ort_version=ort)
             checks.append(check(name, found[name]["result"], found[name]["reason_code"]))
     tested = [c for c in checks if c["result"] != "not-run"]
