@@ -158,8 +158,8 @@ class InstallPlan:
 
 @dataclass(frozen=True)
 class InstallProgress:
-    """One progress event of `install()`. `fraction` is the value from 0 to 1 that Windows ML gives for the install of
-    an EP of its catalog, with no bytes. It is None for a pack, and before the first value of Windows ML."""
+    """One progress event of `install()`. `fraction` is the progress from 0 to 1 of the install of
+    an EP of the Windows ML catalog, with no bytes (Windows ML gives 0 to 100). It is None for a pack, and before the first value of Windows ML."""
 
     key: str
     phase: Literal["download", "hash", "unpack", "register", "verify"]

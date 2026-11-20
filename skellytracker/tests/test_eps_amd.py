@@ -114,7 +114,7 @@ class FakeProvider:
 class FakeOperation:
     """`windowsml.AsyncOperation`: it runs `work` on a native thread, then calls `on_complete`. `wait()` raises its `OSError`."""
 
-    def __init__(self, work, on_complete, on_progress, values=(0.5, 1.0)):
+    def __init__(self, work, on_complete, on_progress, values=(50.0, 100.0)):
         self.error, self.cancelled, self.closed = None, False, False
 
         def run():
@@ -322,7 +322,7 @@ def test_a_cancel_during_a_windows_ml_install_asks_windows_ml_to_stop(monkeypatc
             gate.wait(10)
             raise OSError("the operation was cancelled")
 
-        operation = FakeOperation(work, on_complete, on_progress, values=(0.25,))
+        operation = FakeOperation(work, on_complete, on_progress, values=(25.0,))
         operation.cancel = lambda: (setattr(operation, "cancelled", True), gate.set())
         operations.append(operation)
         return operation

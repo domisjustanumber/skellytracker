@@ -8,7 +8,7 @@ store keeps one record for each such key in `windows-ml.json`.
   downloads nothing.
 - `install(key, progress=..., cancel=...)` makes the package of the EP ready (`ensure_ready_async`).
   For a package that is not on the PC, Windows downloads and installs it. Call it only after the
-  opt-in and the consent of the user. The API gives a fraction from 0 to 1, with no bytes. The record holds `was_present` (the catalog state before the call, or a package of the
+  opt-in and the consent of the user. The API gives a value from 0 to 100, with no bytes. `progress` gets it as a fraction from 0 to 1. The record holds `was_present` (the catalog state before the call, or a package of the
   family in the list before the call), the package family that the catalog reports, and
   `packages_installed`: the full name of each package of that family that the call added for the
   current user (`Get-AppxPackage` before and after the call). With `was_present`, the list is empty,
@@ -198,7 +198,7 @@ def _ensure_ready(provider, key: str, progress, cancel) -> bool:
     `progress` on the thread of the caller. It raises `OSError` when the operation fails.
     """
     done, latest = threading.Event(), [None]
-    operation = provider.ensure_ready_async(on_complete=done.set, on_progress=lambda value: latest.__setitem__(0, value))
+    operation = provider.ensure_ready_async(on_complete=done.set, on_progress=lambda value: latest.__setitem__(0, value / 100))  # Windows ML gives 0 to 100
     shown, asked = None, False
     try:
         while not done.wait(0.2):
@@ -231,8 +231,8 @@ def install(key: str, *, progress: Callable[[InstallProgress], None] | None = No
     and the time in the EP store, and returns the record. It raises `EpUnavailableError` when the
     catalog does not offer the EP for this PC, `Get-AppxPackage` fails, or the install fails.
 
-    `progress` gets `InstallProgress` with the phase `download`, no bytes, and `fraction`, the value
-    from 0 to 1 that Windows ML gives, or None before the first value. Windows ML can give no value.
+    `progress` gets `InstallProgress` with the phase `download`, no bytes, and `fraction`, the progress
+    from 0 to 1 (Windows ML gives 0 to 100), or None before the first value. Windows ML can give no value.
     An install of an EP whose install by this store ended, with the package still on the PC, changes nothing: it
     returns the record of that install. `remove(key)` then still removes the package that the first install added.
 

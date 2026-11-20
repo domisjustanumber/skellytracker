@@ -223,7 +223,8 @@ a system is a run of the certify process in a freemocap build
    Windows host ran the four sections ([ADR-SP4Z](entries/SP4Z-certify-suite-calls-the-full-level.md)):
    384 checks, no `fail`, 47 s for `packs` and 316 s for `full`. The section `hardware` gave one
    difference in 17 comparisons: `vram_mib` of the UHD 770 is 128 in skellytracker and 2047 in
-   `Win32_VideoController`. The cause is not examined. A build must write
+   `Win32_VideoController`. The two tools read two fields: skellytracker reads the dedicated memory of
+   DXGI, and `AdapterRAM` of this GPU holds 2147479552 bytes. It is not a defect of the probe. A build must write
    `skellytracker/_build_info.py`: the reader exists, the build step does not. `flit build` puts the
    file in the wheel and in the sdist, also when git ignores it (one trial on Windows, 2026-11-20).
 3. A run of the quick check of `coreml` on a Mac. No Mac ran it
@@ -231,7 +232,13 @@ a system is a run of the certify process in a freemocap build
 4. A run of an install from the Windows ML catalog with a download, its progress and its cancel. The
    code is built (`eps.install()`, `eps.remove(execution_provider=...)`,
    `skellytracker-eps remove --windows-ml KEY`). On one Windows host, only the async call on a
-   package that was on the PC ran: it ended in 0.01 s with no progress value.
+   package that was on the PC ran: it ended in 0.01 s with no progress value. On 2026-11-20 the same
+   host ran `_ensure_ready()` on the OpenVINO EP package of the catalog, which was not on the system
+   (the catalog offers no AMD EP there): a cancel after 2 s ended in 2.6 s and left no package; the
+   install ended in 10.3 s with the progress values 0, 90 and 100, so the package now divides the
+   value by 100; `remove_package()` gave `package-not-removed` in the process that installed, and
+   the removal passed from a new process. The cause is not examined. `install()` and `remove()` with
+   a catalog key of an AMD EP did not run.
 5. A run of the PyInstaller hook of ONNX Runtime on Linux and on macOS. The hook is built
    (`skellytracker/_pyinstaller/hook-onnxruntime.py`), and the freeze test ran on Windows only.
    `beartype_this_package()` checks nothing in a frozen app.
