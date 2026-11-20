@@ -531,10 +531,13 @@ class DetectionStage:
                 tensors = {}
                 metas = {}
                 _t = time.perf_counter()
+                _t_pre_ns = time.perf_counter_ns()
                 pool = self._get_executor(len(cam_ids))
                 fut_map = {cam_id: pool.submit(self.object_detector.preprocess, images[cam_id]) for cam_id in cams_needing_detect}
                 for cam_id, fut in fut_map.items():
                     tensors[cam_id], metas[cam_id] = fut.result()
+                if timing_ctx is not None:
+                    timing_ctx.record_stage("object_detection_preprocess", _t_pre_ns, time.perf_counter_ns())
                 if context is not None and context.timings is not None:
                     context.timings.stop(f"{self.name}.obj_preprocess", _t)
                 model_name = self.object_detector.config.model_name
@@ -634,10 +637,13 @@ class DetectionStage:
                 tensors = {}
                 metas = {}
                 _t = time.perf_counter()
+                _t_pre_ns = time.perf_counter_ns()
                 pool = self._get_executor(len(cam_ids))
                 fut_map = {cam_id: pool.submit(detector.preprocess, crops[cam_id]) for cam_id in batch_cam_ids}
                 for cam_id, fut in fut_map.items():
                     tensors[cam_id], metas[cam_id] = fut.result()
+                if timing_ctx is not None and batch_cam_ids:
+                    timing_ctx.record_stage("keypoint_detection_preprocess", _t_pre_ns, time.perf_counter_ns())
                 if context is not None and context.timings is not None:
                     context.timings.stop(f"{self.name}.kp_preprocess", _t)
                 model_name = detector.config.model_name

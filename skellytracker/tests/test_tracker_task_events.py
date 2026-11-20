@@ -288,8 +288,11 @@ def test_process_batch_emits_yolox_rtmw_stage_events(test_image) -> None:
         session.close()
 
     stages = {e.stage for e in collector.events}
-    assert {"object_detection_infer", "keypoint_detection_infer", "bbox_smoothing", "crop",
-            "keypoint_detection", "keypoint_merge"} <= stages
+    assert {"object_detection_preprocess", "object_detection_infer", "keypoint_detection_preprocess",
+            "keypoint_detection_infer", "bbox_smoothing", "crop", "keypoint_detection", "keypoint_merge"} <= stages
+    for name in ("object_detection", "keypoint_detection"):  # the preprocess ends before its inference starts
+        pre, run = (next(e for e in collector.events if e.stage == f"{name}_{part}") for part in ("preprocess", "infer"))
+        assert pre.camera_id is None and pre.start_time_ns <= pre.end_time_ns <= run.start_time_ns
     assert all(e.frame_number == 3 for e in collector.events)
     assert {e.camera_id for e in collector.events if e.stage == "crop"} == {"cam0", "cam1"}
     infer = next(e for e in collector.events if e.stage == "object_detection_infer")
