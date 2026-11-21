@@ -185,9 +185,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   minimal reproducer is ready), a run on Linux and a run on a host with few CPU cores.
 - **Exit hang of the CUDA EP plugin** ([ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)).
   Open: more full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough); a
-  full run on `trt-rtx`; a longer run of the minimal reproducer; a full-length run with
-  `ORT_DISABLE_TELEMETRY=1` ([ADR-C9ME](entries/C9ME-exit-hang-rate-with-the-telemetry-switch.md):
-  the minimal reproducer is too weak for this question); the report to ONNX Runtime.
+  full run on `trt-rtx`; a longer run of the minimal reproducer; the report to ONNX Runtime. With
+  `ORT_DISABLE_TELEMETRY=1`, the full run did not hang
+  ([ADR-J9KX](entries/J9KX-exit-hang-of-the-full-run-with-the-telemetry-switch.md)).
 - **Repair of a damaged store folder.** A damaged pack or component folder of the EP store gives a
   state whose hint is the install command, but the install does not repair a folder that exists.
   The remedy today: remove the pack or the component, then install it again
