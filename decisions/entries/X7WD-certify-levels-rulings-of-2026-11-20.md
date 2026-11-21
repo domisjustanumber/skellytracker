@@ -1,6 +1,6 @@
 # X7WD — Rulings of 2026-11-20 on the two certify levels: what each level checks, the limit, the test frames, one path
 
-**Status:** accepted, 2026-11-20 (user).
+**Status:** absorbed into [Layout](../../skellytracker/AGENTS.md#layout), [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`certification.py`](../../skellytracker/certification.py), [`check_camera_media.py`](../../tools/check_camera_media.py), 2026-11-21 (absorb at landing; PR: pending).
 
 ## Decision
 
@@ -69,7 +69,7 @@
 
 ## Open work
 
-- Not measured: the first engine build of TensorRT RTX against the limit of item 5, and the start
-  time of the MediaPipe pipeline.
+- Measured on one Windows host with an RTX 3070 (2026-11-20 and 2026-11-21): the `video` check of
+  TensorRT RTX took 10.0 s with an empty engine cache, and the MediaPipe smoke run took 3.2 s.
 - No row of the list `mediapipe` exists.
 - The [certification build list](../open-work.md#certification-build-list) holds the runs.

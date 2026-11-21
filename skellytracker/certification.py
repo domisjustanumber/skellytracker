@@ -4,6 +4,10 @@
     plan = skellytracker.certify_plan("quick")          # show the plan, then get the consent of the user
     report = skellytracker.certify("quick", progress=show, cancel=event)
 
+An application calls these two functions at its start on an OS with no reviewed pass (`details.os_known` is false).
+It calls them again with one EP and one GPU (`execution_providers`, `device`) when the user selects an EP with
+no reviewed pass on that GPU. This is the one certify path of an application (ADR-X7WD item 9).
+
 The hand-in list (ADR-21BK item 5) holds each report of `certify()` on this host with a check that ran:
 
     for row in skellytracker.pending_reports():         # the reports that the user did not hand in
@@ -104,7 +108,8 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
                  pipeline=None, test_media_dir: str | os.PathLike | None = None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
-    `downloads` is empty at the two levels: `certify()` downloads nothing. `details.checks` gives the
+    `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.4.0`, each download
+    of a plan has `source` and `sha256`. `details.checks` gives the
     name of each EP check, one for each EP and GPU. A pair with a reviewed pass is not in it at the level
     `quick`. No level installs an EP: `details.not_run` gives each of them that will not run, with its
     reason code, for example `ep-not-installed`. `system_changes`, `questions` and `risks` are empty.
@@ -116,7 +121,9 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
     of MediaPipe, because that needs an import of `mediapipe`.
     `seconds_estimate` counts the same checks. At the level `quick` it is at most `QUICK_BUDGET_SECONDS`.
     `details.os_known` is true when `ep_evidence.yaml` has a reviewed pass for the OS key of this system
-    (`os_key()` of `core/eps/evidence.py`, for example `Windows 11`), for any EP, GPU and version set.
+    (`os_key()` of `core/eps/evidence.py`), for any EP, GPU and version set. The OS key is the name and the
+    release of the OS, for example `Windows 11`, `Ubuntu 24.04` or `macOS 15`. An update of the OS is not a new OS
+    (ADR-X7WD item 8).
     `test_media_dir` does not change the plan: the test frames are never a download.
     """
     _check_level(level)
@@ -155,8 +162,10 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
             test_media_dir: str | os.PathLike | None = None) -> dict:
     """Run the certification checks of this package at `level`, and return the module report.
 
-    - `level`: `quick` or `full`. Each other value raises `ValueError`. The level `full` runs the checks
-      of the level `quick` and more checks, in minutes (see "Level `full`").
+    - `level`: `quick` or `full`. Each other value raises `ValueError`. The level `quick` checks that
+      unknown things are safe to use. It never checks a known-good thing (ADR-X7WD item 1). The level `full`
+      measures this system, and it can also check known-good things. It runs the checks of the level `quick`
+      and more checks, in minutes (see "Level `full`").
     - `progress`: a callable that gets each progress message, a `dict` with the complete state, at most
       10 times a second. If it raises, it gets no other message, and the run continues.
     - `cancel`: an object with `is_set()`. A set cancel stops the running child process within about a
@@ -201,7 +210,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       `not-finite` on an output that is not finite, and with `no-person` on a frame with no person. It
       compares nothing. It starts only after
       `<ep>:video` passed, else it is `not-run` with `video-not-passed`.
-    It downloads nothing (ADR-X7WD item 6). With a model file that is not on this host, each of these checks
+    It downloads nothing (ADR-X7WD item 6): the installer of the application brings the model files and the EP
+    packs. With a model file that is not on this host, each of these checks
     is `not-run` with `models-missing`. With a test frames file that is absent or has a wrong sha256,
     `cpu:video`, `cpu:live` and each `<ep>:video` and `<ep>:live` are `not-run` with `test-media-missing`.
     Each EP on each GPU gives the checks `<ep>:probe`, `<ep>:video`, `<ep>:live`
@@ -238,8 +248,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     - It is not an EP check. It stores no local result, opts in nothing, never changes an EP check and has no
       summary item: the format has no summary group for it.
 
-    The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` from the start of the
-    call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
+    The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` (75, not calibrated) from the
+    start of the call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
     Before each check that starts a child (the CPU reference, a probe, `<ep>:video`, `<ep>:live`, the two JPEG
     checks, `mediapipe:smoke`), a
     check whose time estimate is more than the time that is left does not start: it is `not-run` with

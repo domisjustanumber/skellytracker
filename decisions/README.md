@@ -40,7 +40,6 @@ These entries are `accepted`.
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
 | [K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) | Host facts only in `core/system`, `core/metrics`; ONNX Runtime and its hook through this package; EP page from `status()` | accepted |
-| [X7WD](entries/X7WD-certify-levels-rulings-of-2026-11-20.md) | Quick checks only unknown things; reviewed is by version set; 75 s limit; test frames in the package; one certify path; order of full; MediaPipe; format 1.4.0 | accepted |
 
 ### Evidence
 
