@@ -70,7 +70,8 @@ def problems_of(report: dict) -> list[str]:
         found += [f"duplicate {check['name']}"] if check["name"] in seen else []
         seen.add(check["name"])
         key = check["name"].split("@")[0].split(":")[0]  # a check of the suite of `tools/certify_platform.py` has no module
-        expected = None if key == "suite" else package_certification.SUMMARY_NAMES[key]  # the name of the summary item of the EP
+        # the name of the summary item of the EP; `mediapipe:smoke` is not an EP
+        expected = {"suite": None, "mediapipe": "MediaPipe"}[key] if key in ("suite", "mediapipe") else package_certification.SUMMARY_NAMES[key]
         found += [] if check.get("module") == expected else [f"module of {check['name']}"]
     evidence = report.get("evidence", {})
     found += [] if evidence.get("valid") is (not evidence.get("reasons")) else ["evidence.valid"]
@@ -96,11 +97,15 @@ def problems_of(report: dict) -> list[str]:
 
 @pytest.fixture
 def quick_host(monkeypatch, ep_store, tmp_path):  # noqa: F811
-    """A Windows host with an RTX 3070 and the `trt-rtx` pack, no evidence row, a clean commit and a fake pipeline."""
+    """A Windows host with an RTX 3070 and the `trt-rtx` pack, no evidence row of an EP, a clean commit and a fake pipeline.
+
+    It has a reviewed row of MediaPipe, so a run of the default selection has no `mediapipe:smoke` (see `mediapipe_due()`).
+    """
     fake_host = dataclasses.replace(host(gpu()), os_label="Windows 11 Home 26H2")
     for module in (state, recommendation, installer, verification, host_module):
         monkeypatch.setattr(module, "probe_host", lambda: fake_host)
     monkeypatch.setattr(evidence, "load_evidence", lambda: ())
+    monkeypatch.setattr(evidence, "mediapipe_reviewed", lambda version, python, os_name_key: True)
     monkeypatch.setenv(store.CACHE_VARIABLE, str(tmp_path / "cache"))
     monkeypatch.setattr(package_certification, "_commit", lambda: (COMMIT, False))
     monkeypatch.setattr(package_certification, "_pipeline", lambda catalog, pipeline: ({}, "yolox-rtmw-wholebody@skellytracker", None))
@@ -450,7 +455,8 @@ def test_the_plan_gives_the_time_the_total_and_each_ep_that_will_not_run_and_dow
     assert plan["details"]["execution_providers"] == [] and (plan["total"], plan["seconds_estimate"]) == (0, 0)  # each pair is reviewed
     report = skellytracker.certify("quick")
     assert report["checks"] == [] and report["evidence"] == {"valid": False, "reasons": ["no-check"]} and problems_of(report) == []
-    assert report["details"]["skipped"] == {"trt-rtx@10de-2484-0": "reviewed", "directml@10de-2484-0": "reviewed"}
+    assert report["details"]["skipped"] == {"trt-rtx@10de-2484-0": "reviewed", "directml@10de-2484-0": "reviewed",
+                                            "mediapipe:smoke": "reviewed"}  # the reviewed MediaPipe row of `quick_host`
     assert not certification.reports_dir().exists()
     monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx", os_label="Windows 10 Pro", result="fail"),))
     assert skellytracker.certify_plan("quick")["details"]["os_known"] is False  # a failure, and an other OS key
@@ -868,7 +874,7 @@ def test_coreml_on_a_mac_needs_its_quick_check_and_its_result_has_the_key_of_the
     assert eps.recommend("performance", mac).chosen.ep_key == "coreml"
     monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("coreml", "chip:apple-m2-pro", os="macOS", os_label="macOS 15.1"),))
     assert skellytracker.certify_plan("quick")["details"]["checks"] == []  # a reviewed row of the chip: no check
-    assert skellytracker.certify("quick")["details"]["skipped"] == {"coreml": "reviewed"}
+    assert skellytracker.certify("quick")["details"]["skipped"] == {"coreml": "reviewed", "mediapipe:smoke": "reviewed"}
 
 
 def test_the_summary_lists_each_ep_that_ran_with_its_gpu_jpeg_result_and_the_cpu_ep_last():
@@ -937,3 +943,114 @@ def test_certify_reads_the_test_frames_from_the_test_media_folder_and_never_writ
     assert results(report)["trt-rtx@10de-2484-0"] == ("pass", None) and folders == [str(tmp_path)]
     assert str(tmp_path) not in json.dumps(report) and problems_of(report) == []
     assert skellytracker.certify_plan("quick", test_media_dir=tmp_path)["downloads"] == []
+
+
+def mediapipe_due(monkeypatch, version: str | None = "1.2.2") -> list:
+    """No reviewed row of MediaPipe, and `version` of MediaPipe installed, or no MediaPipe with None. Give the lookups of a row."""
+    real, seen = package_certification.importlib.metadata.version, []
+
+    def version_of(name):
+        if name != "mediapipe":
+            return real(name)
+        if version is None:
+            raise package_certification.importlib.metadata.PackageNotFoundError(name)
+        return version
+
+    monkeypatch.setattr(package_certification.importlib.metadata, "version", version_of)
+    monkeypatch.setattr(evidence, "mediapipe_reviewed", lambda *args: seen.append(args) or False)
+    return seen
+
+
+def holistic(present=True, xy=(1.0, 1.0), score=0.5) -> types.SimpleNamespace:
+    """One frame of `mediapipe_frames()`: point 1 is missing (NaN, score 0), which is normal; point 2 has `xy` and `score`."""
+    return types.SimpleNamespace(present=np.array([present]), score=np.array([[0.9, 0.0, score]]),
+                                 xy=np.array([[[50.0, 60.0], [np.nan, np.nan], list(xy)]]))
+
+
+def fake_mediapipe(monkeypatch, *answer) -> list:
+    """Fake `mediapipe_run()`: it gives `answer` (`(result, problem, exit_code)`), or 3 good frames. It gives the time limits."""
+    calls = []
+
+    def mediapipe_run(settings, cancel=None, timeout=None):
+        calls.append(timeout)
+        return answer or ({"live": {"frames": [holistic()] * 3}}, None, 0)
+
+    monkeypatch.setattr(certification, "mediapipe_run", mediapipe_run)
+    return calls
+
+
+def test_the_quick_level_runs_the_mediapipe_smoke_run_last_when_no_row_records_a_pass(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    seen, calls = mediapipe_due(monkeypatch), fake_mediapipe(monkeypatch)
+    report = skellytracker.certify("quick")
+    assert problems_of(report) == [] and report["checks"][-1]["name"] == "mediapipe:smoke"  # after each EP check
+    assert results(report)["mediapipe:smoke"] == ("pass", None) and results(report)["trt-rtx@10de-2484-0"] == ("pass", None)
+    assert report["checks"][-1]["module"] == "MediaPipe" and report["checks"][-1]["numbers"]["frames"] == 3 and len(calls) == 1
+    assert seen[-1] == ("1.2.2", f"{sys.version_info.major}.{sys.version_info.minor}", "Windows 11")
+    assert [item["name"] for item in report["summary"]] == ["TensorRT RTX", "TensorRT RTX", "DirectML", "CPU"]  # no summary item
+    assert report["details"]["skipped"] == {} and len(local_results()) == 2  # it stores nothing
+    for answer, expected in (((None, "crashed", 5), ("fail", "crashed")), (({"live": {"error": "RuntimeError"}}, None, 0), ("fail", "RuntimeError")),
+                             (({"error": "models-missing"}, None, 0), ("not-run", "models-missing")),  # no model file in the cache
+                             (({"live": {"frames": [holistic(), holistic(present=False)]}}, None, 0), ("fail", "no-person")),
+                             (({"live": {"frames": [holistic(xy=(np.inf, 1.0))]}}, None, 0), ("fail", "not-finite")),
+                             (({"live": {"frames": [holistic(xy=(1.0, np.nan))]}}, None, 0), ("fail", "not-finite")),
+                             (({"live": {"frames": [holistic(score=np.nan)]}}, None, 0), ("fail", "not-finite")),
+                             (({"live": {"frames": [holistic()]}}, "hung-at-exit", 0), ("pass", None))):
+        fake_mediapipe(monkeypatch, *answer)
+        report = skellytracker.certify("quick")
+        assert results(report)["mediapipe:smoke"] == expected and problems_of(report) == []
+    assert results(report)["mediapipe:smoke:exit"] == ("record-only", "hung-at-exit")  # its module is `MediaPipe` too
+    assert "mediapipe:smoke" not in results(skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"]))
+    assert "mediapipe:smoke" not in results(skellytracker.certify("quick", device="gpu:10de:2484:0"))
+    calls = fake_mediapipe(monkeypatch)
+    monkeypatch.setattr(evidence, "mediapipe_reviewed", lambda *args: True)  # a reviewed row: no check
+    report = skellytracker.certify("quick")
+    assert "mediapipe:smoke" not in results(report) and report["details"]["skipped"] == {"mediapipe:smoke": "reviewed"} and calls == []
+
+
+def test_the_mediapipe_smoke_run_is_not_run_with_no_mediapipe_no_test_frames_or_no_time_left(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    calls = fake_mediapipe(monkeypatch)
+    mediapipe_due(monkeypatch, version=None)
+    report = skellytracker.certify("quick")
+    assert results(report)["mediapipe:smoke"] == ("not-run", "models-missing") and calls == [] and problems_of(report) == []
+    mediapipe_due(monkeypatch)
+    monkeypatch.setattr(package_certification, "MEDIAPIPE_SECONDS", 1000)  # more than the budget
+    assert results(skellytracker.certify("quick"))["mediapipe:smoke"] == ("not-run", "over-budget") and calls == []
+    monkeypatch.setattr(package_certification, "MEDIAPIPE_SECONDS", 6)
+    calls = fake_mediapipe(monkeypatch, None, "timed-out", None)  # the end of the budget stops the child
+    assert results(skellytracker.certify("quick"))["mediapipe:smoke"] == ("not-run", "over-budget")
+    assert 0 < calls[0] <= package_certification.QUICK_BUDGET_SECONDS
+    calls = fake_mediapipe(monkeypatch)
+    real = certification.frames_file
+    monkeypatch.setattr(certification, "frames_file", lambda found: real({**found, "frames": {**found["frames"], "sha256": "0" * 64}}))
+    assert results(skellytracker.certify("quick"))["mediapipe:smoke"] == ("not-run", "test-media-missing") and calls == []
+
+
+def test_the_plan_counts_the_mediapipe_smoke_run_only_when_it_will_run(quick_host, monkeypatch):
+    pc = package_certification
+    reviewed_plan, named = skellytracker.certify_plan("quick"), skellytracker.certify_plan("quick", execution_providers=["trt-rtx", "directml"])
+    assert reviewed_plan["total"] == named["total"] and reviewed_plan["seconds_estimate"] == named["seconds_estimate"]
+    full = skellytracker.certify_plan("full")
+    mediapipe_due(monkeypatch)
+    plan = skellytracker.certify_plan("quick")
+    assert plan["total"] == reviewed_plan["total"] + 1
+    assert plan["seconds_estimate"] == min(reviewed_plan["seconds_estimate"] + pc.MEDIAPIPE_SECONDS, pc.QUICK_BUDGET_SECONDS)
+    assert skellytracker.certify_plan("quick", execution_providers=["trt-rtx", "directml"])["total"] == named["total"]
+    assert skellytracker.certify_plan("full")["total"] == full["total"]  # the level `full` has no MediaPipe smoke run
+    monkeypatch.setattr(evidence, "load_evidence", lambda: (reviewed("trt-rtx"), reviewed("directml")))
+    assert (skellytracker.certify_plan("quick")["total"], skellytracker.certify_plan("quick")["seconds_estimate"]) == (1, pc.MEDIAPIPE_SECONDS)
+    mediapipe_due(monkeypatch, version=None)
+    assert skellytracker.certify_plan("quick")["total"] == 0  # no MediaPipe: the check is `not-run`
+
+
+def test_a_mediapipe_row_is_reviewed_only_for_a_pass_of_the_same_version_python_and_os(monkeypatch):
+    row = {"version": "1.2.2", "python": "3.13", "os": "Windows 11", "source": "maintainer", "result": "pass"}
+    assert evidence.mediapipe_reviewed("1.2.2", "3.13", "Windows 11") is False  # the file has no row
+    monkeypatch.setattr(evidence, "yaml", types.SimpleNamespace(safe_load=lambda text: {"mediapipe": ["not a row", row]}))
+    assert evidence.mediapipe_reviewed("1.2.2", "3.13", "Windows 11") is True
+    for args in (("1.2.3", "3.13", "Windows 11"), ("1.2.2", "3.12", "Windows 11"), ("1.2.2", "3.13", "Windows 10"), (None, "3.13", "Windows 11"),
+                 ("1.2.2", "3.13", None)):
+        assert evidence.mediapipe_reviewed(*args) is False
+    monkeypatch.setattr(evidence, "yaml", types.SimpleNamespace(safe_load=lambda text: {"mediapipe": [{**row, "result": "fail"}]}))
+    assert evidence.mediapipe_reviewed("1.2.2", "3.13", "Windows 11") is False

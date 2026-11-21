@@ -25,6 +25,16 @@ rows:
   - {ep: cuda, os: Windows, gpu: "10de:2484", set: 4abfaa7678817ed4a8ccb5f3e355ba28672589e8a3468bb6805e491dfe03a302,
      source: maintainer, result: pass, pack: 0.2.0, ort: 1.30.0.202609102321, windowsml: 2.6.74rc0, driver: "610.88", os_build: 26300,
      os_label: Windows 11 Home 26H2}
+# `mediapipe`: the reviewed passes of the check `mediapipe:smoke` of `certify()` (ADR-X7WD item 11). The level `quick` runs
+# that check only when no row records a pass for the MediaPipe version, the Python version and the OS of the system.
+# `evidence.mediapipe_reviewed()` reads it. A person writes a row after a review of a report. Each row has these fields:
+# - `version`: the version of the `mediapipe` distribution, as a string, for example `"1.2.2"`.
+# - `python`: the major and the minor version of Python, as a string, for example `"3.13"`. Use quotes: YAML reads 3.10 as 3.1.
+# - `os`: the OS key of the report (`evidence.os_key()`), for example `Windows 11`, `Ubuntu 24.04` or `macOS 15`.
+# - `source`: `maintainer` or `field`.
+# - `result`: `pass` or `fail`. Only `pass` stops the check.
+# A row can also have `os_build` and `os_label`, as in `rows`. They are a record only.
+mediapipe: []
 # `telemetry`: the reviewed telemetry record of a library package of the ONNX stack on one OS (ADR-BZ7X). The runtime does
 # not read it. `tools/onnx_stack.py` reads it: its docstring gives the rules. A person writes a row after a scan.
 # - `package`, `version`: the package and its exact version. `os`: `Windows`, `Linux` or `macOS`.

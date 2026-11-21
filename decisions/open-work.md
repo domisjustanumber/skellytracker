@@ -241,8 +241,7 @@ a system is a run of the certify process in a freemocap build
    format of `skellycertify` must first define the fields of a `passive` record.
 7. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
    The name of the field or the value is not decided.
-8. The MediaPipe smoke run of [ADR-X7WD](entries/X7WD-certify-levels-rulings-of-2026-11-20.md)
-   item 11. It is not built.
+8. No row of the list `mediapipe` exists. No real run of `mediapipe:smoke` inside `certify()` yet.
 9. A real quick run on `trt-rtx` and `cuda` with the code of
    [ADR-X7WD](entries/X7WD-certify-levels-rulings-of-2026-11-20.md), and a real run that skips a
    reviewed pair.

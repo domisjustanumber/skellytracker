@@ -65,6 +65,19 @@ def certified(key: str, gpu, os_name: str) -> bool:
                and row.get("set") == current and row.get("result") == "pass" for row in load_evidence())
 
 
+def mediapipe_reviewed(version: str | None, python: str, os_name_key: str | None) -> bool:
+    """True when a row of the list `mediapipe` of `ep_evidence.yaml` records a pass of the check `mediapipe:smoke` of
+    `certify()` for this MediaPipe version, this Python version (`3.13`) and this OS key (`os_key()`). ADR-X7WD item 11.
+
+    A row that is not a mapping, or has no field, matches nothing. With no version, no row matches.
+    """
+    text = importlib.resources.files("skellytracker.core.eps").joinpath("ep_evidence.yaml").read_text(encoding="utf-8")
+    rows = (yaml.safe_load(text) or {}).get("mediapipe") or ()
+    return None not in (version, os_name_key) and any(
+        isinstance(row, dict) and row.get("version") == version and row.get("python") == python and row.get("os") == os_name_key
+        and row.get("result") == "pass" for row in rows)
+
+
 def os_key(os_label: str | None) -> str | None:
     """The key of an OS: its name and its release, from the OS label (ADR-X7WD item 8). None when the label has no release.
 

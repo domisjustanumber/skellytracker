@@ -26,6 +26,7 @@ WARMUP_CALLS, TIMED_CALLS = 10, 100  # the calls of `time_run()`: the warm-up ca
 TIMING_TIMEOUT_SECONDS = 900.0  # not calibrated: the start of the child, a pipeline start with an engine build on each camera, 110 calls
 WIDE_TIMEOUT_SECONDS = 600.0  # not calibrated: the start of the child, two pipeline starts with a TensorRT RTX engine build, two calls
 FRAMES = 30  # the test frames of one run of `session_frames()`: `count` of `frames_record()`; a test checks it
+MEDIAPIPE_PIPELINE = "mediapipe-holistic-tasks@skellytracker"  # the pipeline of the check `mediapipe:smoke` (ADR-X7WD item 11)
 
 
 class FramesUnavailableError(RuntimeError):
@@ -260,6 +261,51 @@ def _session_child(key: str, settings: dict, device_key: str | None, modes: tupl
         result = {"error": type(error).__name__}
     connection.send(result)
     connection.close()
+
+
+def mediapipe_frames(images: list) -> dict:
+    """Start the pipeline `MEDIAPIPE_PIPELINE` on one camera in the running mode `live`, and run each image in order.
+
+    A frame has a rising `timestamp_ms`. `frames` holds `present`, `score` and `xy` of the output `holistic` of each
+    frame, as plain arrays, so that a child can send them. The pipeline has no ONNX model, so the run takes no EP.
+    """
+    import numpy as np
+
+    from skellytracker.core import pipelines
+
+    frames = []
+    with pipelines.start_pipeline(pipelines.load_pipeline(MEDIAPIPE_PIPELINE), camera_ids=[0], running_mode="live", timing="off") as run:
+        for index, image in enumerate(images):
+            found = run.process(pipelines.Frame(image, frame_index=index, timestamp_ms=index * 33.0))["holistic"]
+            frames.append(SimpleNamespace(present=np.array(found.present), score=np.array(found.score), xy=np.array(found.xy)))
+    return {"frames": frames}
+
+
+def _mediapipe_child(settings: dict, connection) -> None:
+    """The child of `mediapipe_run()`: it sends `{"live": <mediapipe_frames()>}`, with the result shape of `_session_child()`.
+
+    A model file that is not in the cache gives `{"error": "models-missing"}`: `certify()` downloads nothing.
+    """
+    try:
+        from skellytracker.core.detectors.keypoint_detectors.mediapipe import mediapipe_model_manager as assets
+
+        images = quick_frames(settings)
+        if not assets.cached_model_path(assets.HOLISTIC_MODEL_URL).exists():
+            result = {"error": "models-missing"}
+        else:
+            try:
+                result = {"live": mediapipe_frames(images)}
+            except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+                result = {"live": {"error": type(error).__name__}}
+    except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
+        result = {"error": type(error).__name__}
+    connection.send(result)
+    connection.close()
+
+
+def mediapipe_run(settings: dict, *, cancel=None, timeout: float = WIDE_TIMEOUT_SECONDS) -> tuple:
+    """Run `mediapipe_frames()` on the test frames in a `spawn` child, and give `(result, problem, exit_code)` of `spawn_child()`."""
+    return verification.spawn_child(_mediapipe_child, (settings,), timeout=timeout, cancel=cancel)
 
 
 def session_run(key: str, settings: dict, modes: tuple, device_key: str | None = None, *, cancel=None,

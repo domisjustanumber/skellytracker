@@ -56,6 +56,11 @@ LIVE_SECONDS = 6  # not calibrated: `<ep>:live`: one more child and one more pip
 CPU_REFERENCE_SECONDS = 12  # not calibrated: the CPU reference: `cpu:video` and `cpu:live` in one child
 QUICK_BUDGET_SECONDS = 75  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5)
 CPU_CHECKS = ("cpu:video", "cpu:live")  # the CPU reference of the run, at the two levels
+MEDIAPIPE_CHECK = "mediapipe:smoke"  # the MediaPipe smoke run of the level `quick` (ADR-X7WD item 11); it is not an EP
+MEDIAPIPE_MODULE = "MediaPipe"  # the `module` of `mediapipe:smoke`; it has no summary item: the format has no group for it
+# not calibrated: one Windows system (MediaPipe 1.2.2, Python 3.13, CPU) measured about 3 s in one process for the import,
+# the pipeline start and the 30 frames; the `spawn` child adds its start
+MEDIAPIPE_SECONDS = 6
 JPEG_SECONDS = 5  # not calibrated: the time estimate of the two JPEG checks; 1.0 to 1.3 s on one RTX 3070
 JPEG_TIMEOUT_SECONDS = 120.0
 JPEG_EPS = ("cuda", "trt-rtx")  # `GPU_FRAME_EPS` of `core/decode/certification.py`; a test checks that they agree
@@ -105,7 +110,10 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
     reason code, for example `ep-not-installed`. `system_changes`, `questions` and `risks` are empty.
     `pipeline` does not change the plan. `total` is the count of the checks that will run: the checks of
     each pair that can run, with its EP check, and the CPU reference (`cpu:video` and `cpu:live`) when a
-    pair can run. It is 0 when no pair can run. The level `full` always counts the checks of the CPU EP.
+    pair can run. The pairs give 0 when no pair can run. The level `full` always counts the checks of the CPU EP.
+    At the level `quick`, it also counts `mediapipe:smoke` when that check will run: the default selection,
+    MediaPipe installed and no reviewed row for it (see `certify()`). The plan does not look for the model file
+    of MediaPipe, because that needs an import of `mediapipe`.
     `seconds_estimate` counts the same checks. At the level `quick` it is at most `QUICK_BUDGET_SECONDS`.
     `details.os_known` is true when `ep_evidence.yaml` has a reviewed pass for the OS key of this system
     (`os_key()` of `core/eps/evidence.py`, for example `Windows 11`), for any EP, GPU and version set.
@@ -127,9 +135,10 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
         first, rest = _full_order(selected, host)
         selected = [*first, *rest]
     runnable = [item for item in selected if item[4] is None]
-    seconds = sum(_estimates(runnable, settings, full).values())
+    smoke = _mediapipe_state(level, execution_providers, device, host) == "run"
+    seconds = sum(_estimates(runnable, settings, full).values()) + (MEDIAPIPE_SECONDS if smoke else 0)
     plan["seconds_estimate"] = seconds if full else min(seconds, QUICK_BUDGET_SECONDS)
-    plan["total"] = (len(_cpu_names(full)) if runnable or full else 0) + sum(
+    plan["total"] = (len(_cpu_names(full)) if runnable or full else 0) + smoke + sum(
         len(_names(label, key, device_key, full)) for label, key, device_key, *_ in runnable)
     os_key = evidence.os_key(host.os_label)
     plan["details"] = {"execution_providers": list(dict.fromkeys(key for _, key, *_ in selected)),
@@ -211,9 +220,28 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     example a pack that is not installed, gives `not-run` with `ep-<state code>`. Each EP runs, also
     when an other EP fails.
 
+    The MediaPipe smoke run (ADR-X7WD item 11): the check `mediapipe:smoke`, with the `module` `MediaPipe`.
+    - Only the level `quick` has it, and only with the default selection: the caller names no EP and no
+      device. It is the last check of the run, after each EP check.
+    - It runs only when no row of the list `mediapipe` of `ep_evidence.yaml` records a pass for the installed
+      MediaPipe version, the Python version (`<major>.<minor>`, for example `3.13`) and the OS key of this
+      system (`os_key()`, for example `Windows 11`). With such a row, the run has no check `mediapipe:smoke`,
+      and `details.skipped` gives `{"mediapipe:smoke": "reviewed"}`.
+    - It runs the pipeline `mediapipe-holistic-tasks@skellytracker` on the 30 test frames in the running
+      mode `live`, with a rising `timestamp_ms`, in its own `spawn` child. It passes when each frame has a
+      present row, and each point that MediaPipe found in that row has finite values. A missing point has
+      NaN values: that is normal. It fails with `not-finite` on a value that is not finite, with `no-person`
+      on a frame with no present row, and with the error of the run as `<ep>:live` does.
+    - It is `not-run` with `models-missing` when MediaPipe is not installed, or when the model file of
+      MediaPipe is not in its cache: it downloads nothing. It is `not-run` with `test-media-missing` when
+      the test frames file is not valid.
+    - It is not an EP check. It stores no local result, opts in nothing, never changes an EP check and has no
+      summary item: the format has no summary group for it.
+
     The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` from the start of the
-    call. The order is the CPU reference, then the pairs in the order of the selection. Before each check
-    that starts a child (the CPU reference, a probe, `<ep>:video`, `<ep>:live`, the two JPEG checks), a
+    call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
+    Before each check that starts a child (the CPU reference, a probe, `<ep>:video`, `<ep>:live`, the two JPEG
+    checks, `mediapipe:smoke`), a
     check whose time estimate is more than the time that is left does not start: it is `not-run` with
     `over-budget`. The time limit of each child is the smaller of its own limit and the time that is left,
     and a child that the end of the budget stops is also `not-run` with `over-budget`. A run that names
@@ -259,7 +287,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
 
     Each check has `module`: the name of `SUMMARY_NAMES` of its EP, for example `CUDA`, and `CPU` for each check
     `cpu:*`. A JPEG check and an `exit` check have the module of their EP. The `name` of the summary item of the EP
-    is the same text.
+    is the same text. `mediapipe:smoke` and its `exit` check have the module `MediaPipe`.
 
     `summary` is the list of the summary items of the report for a person, from the format `1.4.0`. An item has
     `group`, `name`, `device` and `result`. Each EP that ran on a GPU has one item of the group `ep`, with the
@@ -274,9 +302,10 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     cameras) and `fps` (the calls in each second, from the median). A `benchmark` item has no `result`.
 
     Evidence: the item of the quick level is one EP on one GPU of this host. Thus a run of a part of the EPs is
-    complete for each EP that it checks, and is not `partial-run`. A run with no EP to check has no
-    check and is not valid as evidence (`no-check`), also when each pair is reviewed: that is a correct
-    quick run. A `quick` report never gives a reviewed row.
+    complete for each EP that it checks, and is not `partial-run`. A run with no EP to check and no
+    `mediapipe:smoke` has no check and is not valid as evidence (`no-check`), also when each pair is
+    reviewed: that is a correct quick run. A `quick` report never gives a reviewed row of `rows`. A person
+    can write a row of the list `mediapipe` after a review of a report with a `mediapipe:smoke` that passed.
 
     The package cannot see the pipelines of an application, so it never refuses a run with `gpu-busy`:
     the application must not call it while a pipeline holds the GPU.
@@ -312,9 +341,13 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     def pair_names(items):
         return [name for label, key, device_key, *_ in items for name in _names(label, key, device_key, full)]
 
-    names = [*(CPU_CHECKS if cpu else ()), *pair_names(first), *(_cpu_names()[len(CPU_CHECKS):] if full else ()), *pair_names(rest)]
+    smoke = _mediapipe_state(level, execution_providers, device, host)
+    names = [*(CPU_CHECKS if cpu else ()), *pair_names(first), *(_cpu_names()[len(CPU_CHECKS):] if full else ()), *pair_names(rest),
+             *((MEDIAPIPE_CHECK,) if smoke in ("run", "models-missing") else ())]  # the last check of the run
     report["checks"] = [{"name": name, "result": None, "reason": None} for name in names]
-    sender.estimates = _estimates(selected, catalog.data["certification"], full)
+    if smoke == "models-missing":
+        report["checks"][-1].update(result="not-run", reason="models-missing")
+    sender.estimates = {**_estimates(selected, catalog.data["certification"], full), **({MEDIAPIPE_CHECK: MEDIAPIPE_SECONDS} if smoke == "run" else {})}
     resolved = _pipeline(catalog, pipeline) if names else None  # a config that does not load raises before the start
     sender.send("starting", None, report["checks"], None)
     if names:
@@ -329,7 +362,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     sender.send("cleaning-up", None, report["checks"], None)
     for row in report["checks"]:  # after the run: the JPEG checks of the level `full` and the `exit` checks join during it
         row["module"] = _module(row["name"])
-    report["details"]["skipped"] = {label: "reviewed" for label, *_ in skipped}
+    report["details"]["skipped"] = {label: "reviewed" for label, *_ in skipped} | ({MEDIAPIPE_CHECK: "reviewed"} if smoke == "reviewed" else {})
     report["evidence"] = {"valid": not reasons, "reasons": reasons}
     report["summary"] = _summary(report, [{"group": "ep", "name": _module(key), "device": evidence.gpu_id(gpu),
                                            "result": "skipped", "reason": "reviewed"} for _, key, _, gpu, _ in skipped])
@@ -556,9 +589,10 @@ def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
 
 
 def _module(name: str) -> str:
-    """The `module` of a check: the name of `SUMMARY_NAMES` of the EP key at the start of the check name or label."""
+    """The `module` of a check: the name of `SUMMARY_NAMES` of the EP key at the start of the check name or label, or
+    `MEDIAPIPE_MODULE` for `mediapipe:smoke` and its `exit` check."""
     key = name.split("@")[0].split(":")[0]
-    return SUMMARY_NAMES.get(key, key)
+    return MEDIAPIPE_MODULE if key == "mediapipe" else SUMMARY_NAMES.get(key, key)
 
 
 def _full_order(selected: list[tuple], host) -> tuple[list[tuple], list[tuple]]:
@@ -613,6 +647,26 @@ def _estimates(selected: list[tuple], settings: dict, full: bool) -> dict[str, i
     if full:
         found |= {name: JPEG_FULL_SECONDS if name.endswith(":jpeg") else PIPELINE_SECONDS for name in _cpu_names()[len(CPU_CHECKS):]}
     return found
+
+
+def _mediapipe_state(level: str, execution_providers, device, host) -> str | None:
+    """The state of `mediapipe:smoke` (ADR-X7WD item 11): None when the run has no such check, else `reviewed`, `models-missing` or `run`.
+
+    Only the level `quick` with the default selection (no EP and no device from the caller) has the check. `reviewed`:
+    a row of the list `mediapipe` of `ep_evidence.yaml` records a pass for the MediaPipe version, the Python version and
+    the OS key of this system. `models-missing`: MediaPipe is not installed.
+    """
+    if level != "quick" or execution_providers is not None or device is not None:
+        return None
+    from skellytracker.core.eps import evidence
+
+    try:
+        version = importlib.metadata.version("mediapipe")
+    except importlib.metadata.PackageNotFoundError:
+        version = None
+    if evidence.mediapipe_reviewed(version, f"{sys.version_info.major}.{sys.version_info.minor}", evidence.os_key(host.os_label)):
+        return "reviewed"
+    return "models-missing" if version is None else "run"
 
 
 def _selection(catalog, host, execution_providers, device=None, *, skip_certified: bool = True) -> list[tuple]:
@@ -755,6 +809,8 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
         finally:
             if temporary and rows[label]["result"] != "pass":
                 _cleanup(report, "field-test-opt-in", lambda key=key: store.drop_field_test_opt_in(key))
+    if rows.get(MEDIAPIPE_CHECK, {}).get("result", "") is None:  # after each EP check
+        _mediapipe(report, settings, media, sender, cancel)
     _against_cpu(report)
     runtime = probe_runtime()  # imports onnxruntime in this process; the children load the EPs
     ort = dict(zip(runtime.ort_packages, runtime.ort_package_versions, strict=True))
@@ -945,6 +1001,55 @@ def _live(report: dict, label: str, key: str, device_key: str | None, settings: 
         reason = ("not-finite" if not all(_finite(frame) for frame in frames)
                   else "no-person" if not all(frame["boxes"].present.any() for frame in frames) else None)
         row.update(result="fail" if reason else "pass", reason=reason, numbers={"frames": len(frames), "ep_ms": run["ms"]})
+    if problem:
+        _add_exit(report, row["name"], problem)
+
+
+def _holistic_finite(frame) -> bool:
+    """Finite values for each point that MediaPipe found in a present row, and a finite score for each point.
+
+    A missing point has NaN coordinates and the score 0 (`HolisticKeypoints`): it is normal. A point with a value that
+    is not NaN is a found point: each of its coordinates must be finite.
+    """
+    import numpy as np
+
+    xy, score = frame.xy[frame.present], frame.score[frame.present]
+    return bool(np.isfinite(xy[~np.isnan(xy).all(axis=-1)]).all() and np.isfinite(score).all())
+
+
+def _mediapipe(report: dict, settings: dict, media: str | None, sender: _Progress, cancel) -> None:
+    """The check `mediapipe:smoke` (ADR-X7WD item 11): the pipeline `mediapipe-holistic-tasks` on the test frames in the
+    running mode `live`, in a `spawn` child. It is not an EP check: it stores nothing and never changes an EP check.
+
+    It passes when each frame has a present row with finite values (`_holistic_finite()`). It fails with `not-finite`,
+    with `no-person` on a frame with no present row, and with the error of the run as `<ep>:live` does.
+    """
+    from skellytracker.core.eps import certification
+
+    row = _row(report, MEDIAPIPE_CHECK)
+    if cancel is not None and cancel.is_set():
+        return  # `certify()` gives each check that did not end `cancelled`
+    if media is not None:
+        row.update(result="not-run", reason=media)
+        return
+    if _over_budget(sender, row["name"]):
+        row.update(result="not-run", reason="over-budget")
+        return
+    sender.send("running", row["name"], report["checks"])
+    started, timeout = time.monotonic(), _timeout(sender, certification.WIDE_TIMEOUT_SECONDS)
+    found, problem, exit_code = certification.mediapipe_run(settings, cancel=cancel, timeout=timeout)
+    problem = _cut(problem, timeout, certification.WIDE_TIMEOUT_SECONDS)
+    run = _session_result([row], "live", found, problem, exit_code)
+    if run is None:
+        return
+    if "error" in run:
+        row.update(result="fail", reason=run["error"])
+    else:
+        frames = run["frames"]
+        reason = ("not-finite" if not all(_holistic_finite(frame) for frame in frames)
+                  else "no-person" if not all(frame.present.any() for frame in frames) else None)
+        row.update(result="fail" if reason else "pass", reason=reason,
+                   numbers={"frames": len(frames), "seconds": round(time.monotonic() - started, 1)})
     if problem:
         _add_exit(report, row["name"], problem)
 

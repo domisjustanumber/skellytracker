@@ -137,6 +137,31 @@ def test_a_session_child_keeps_the_error_of_each_mode(monkeypatch):
     assert certification.session_run("cpu", {"pipeline": "p"}, ("video",), progress=steps.append)[0] == {"error": "FramesUnavailableError"}
 
 
+def test_the_mediapipe_child_runs_the_frames_in_live_with_no_ep_and_downloads_no_model_file(monkeypatch, tmp_path):
+    pytest.importorskip("mediapipe")  # the child imports the model manager of MediaPipe
+    from skellytracker.core.detectors.keypoint_detectors.mediapipe import mediapipe_model_manager as assets
+
+    frames, starts = [], []
+    holistic = types.SimpleNamespace(present=[True], score=[[0.9, 0.0]], xy=[[[1.0, 2.0], [np.nan, np.nan]]])
+    run = FakeRun("none", [])
+    run.process = lambda frame: {"holistic": holistic}
+    monkeypatch.setattr(pipelines, "load_pipeline", lambda key: starts.append(key) or "config")
+    monkeypatch.setattr(pipelines, "Frame", lambda image, frame_index, timestamp_ms: frames.append((frame_index, timestamp_ms)) or image)
+    monkeypatch.setattr(pipelines, "start_pipeline", lambda config, **options: starts.append(options) or run)
+    monkeypatch.setattr(certification, "quick_frames", lambda settings: ["image"] * 3)
+    monkeypatch.setattr(verification, "spawn_child", in_process)
+    monkeypatch.setattr(assets, "CACHE_DIR", tmp_path)
+    monkeypatch.setattr(assets, "_download_model", lambda **k: pytest.fail("certify() downloads nothing"))
+    assert certification.mediapipe_run({})[0] == {"error": "models-missing"} and starts == []
+    assets.cached_model_path(assets.HOLISTIC_MODEL_URL).write_bytes(b"model")
+    found, _, _ = certification.mediapipe_run({})
+    assert starts == ["mediapipe-holistic-tasks@skellytracker", {"camera_ids": [0], "running_mode": "live", "timing": "off"}]
+    assert frames == [(0, 0.0), (1, 33.0), (2, 66.0)] and len(found["live"]["frames"]) == 3
+    assert found["live"]["frames"][0].xy.shape == (1, 2, 2)
+    run.process = lambda frame: (_ for _ in ()).throw(RuntimeError("the folder secretdir"))
+    assert certification.mediapipe_run({})[0] == {"live": {"error": "RuntimeError"}}
+
+
 def test_ask_needs_a_terminal_on_stdin_and_on_stdout(monkeypatch):
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True, raising=False)
     monkeypatch.setattr(cli.sys.stdout, "isatty", lambda: False, raising=False)

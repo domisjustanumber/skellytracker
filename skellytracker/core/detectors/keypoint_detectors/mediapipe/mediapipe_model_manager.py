@@ -56,10 +56,14 @@ def _filename_from_url(url: str) -> str:
     return f"{url_hash}_{base_name}"
 
 
+def cached_model_path(url: str) -> Path:
+    """Return the path of a model in the cache. It downloads nothing, and the file can be absent."""
+    return CACHE_DIR / _filename_from_url(url)
+
+
 def get_model_path(url: str) -> Path:
     """Return local path for a model, downloading it if not already cached."""
-    filename = _filename_from_url(url)
-    local_path = CACHE_DIR / filename
+    local_path = cached_model_path(url)
     if not local_path.exists():
         _download_model(url=url, target_path=local_path)
     return local_path
