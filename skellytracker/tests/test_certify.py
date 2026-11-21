@@ -813,6 +813,17 @@ def test_a_new_report_removes_an_older_pass_that_it_repeats_and_keeps_a_failure_
     assert len(list(certification.reports_dir().glob("*.json"))) == 3
 
 
+def test_an_older_report_whose_only_pass_is_the_mediapipe_check_goes(quick_host):
+    folder = certification.reports_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    for number in (1, 2):
+        store.write_json(folder / f"report-{number}.json", {"schema": package_certification.SCHEMA, "kind": "quick",
+                                                            "created_utc": f"2030-01-01T00:00:0{number}Z",
+                                                            "checks": [{"name": package_certification.MEDIAPIPE_CHECK, "result": "pass"}]})
+    package_certification._prune_reports()
+    assert [path.stem for path in folder.glob("*.json")] == ["report-2"]
+
+
 def test_the_scrub_removes_a_private_name_and_counts_a_public_one(monkeypatch):
     monkeypatch.setattr(package_certification, "_private_words", lambda: ["secretname", "Windows"])
     report = {"host": {"os": {"name": "Windows"}}, "checks": [{"name": "trt-rtx", "reason": None}],

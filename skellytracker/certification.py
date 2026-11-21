@@ -461,7 +461,7 @@ def _prune_reports() -> None:
     """Delete each older report of a pass that a newer report repeats (ADR-ER5X item 7).
 
     A report stays when it has a failed check, when the user handed it in (`opened` or `covered`), and when
-    it is the newest pass of an EP on a GPU. A report with no check that passed is not a report of a pass:
+    it is the newest pass of an EP on a GPU or of `mediapipe:smoke`. A report with no check that passed is not a report of a pass:
     it stays. A file that this function cannot delete stays.
     """
     from skellytracker.core.eps import certification, store
@@ -476,7 +476,8 @@ def _prune_reports() -> None:
             if report.get("kind") != "quick":  # a report of the level `full` always stays
                 continue
             checks = [check for check in report.get("checks", ()) if isinstance(check, dict)]
-            passed = {check.get("name") for check in checks if check.get("result") == "pass" and ":" not in str(check.get("name"))}
+            passed = {check.get("name") for check in checks if check.get("result") == "pass"
+                      and (":" not in str(check.get("name")) or check.get("name") == MEDIAPIPE_CHECK)}
             if passed and not any(check.get("result") == "fail" for check in checks):
                 found.append((str(report.get("created_utc") or ""), path.stem, path, passed))
         newer: set = set()
