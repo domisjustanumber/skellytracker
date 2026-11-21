@@ -162,22 +162,23 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md)), measured in
   [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
   [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md) and
-  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md). Open:
+  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md), and on the pinned versions in
+  [ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md). Open:
+  - On `cuda`, a call with no detector run is slower on the GPU path: +15 to +47 %
+    ([ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md) item 2). What the run
+    must do about it is not decided.
   - No run measured the keypoint preprocess with two or more boxes in a frame.
   - A model session with a dynamic batch pads the batch on the GPU path.
   - No run measured the gain of the CPU decode thread pool
     ([ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md)) on a full call.
-- **Repeat on the pinned versions.** ONNX Runtime 1.31.1 and `cuda-cu13` 0.3.0 gave the numbers of
-  [ADR-1SZ9](entries/1SZ9-gpu-preprocess-and-gpu-jpeg-decode-in-the-pipeline-run.md),
-  [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md),
-  [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md),
-  [ADR-S1TG](../specs/pipeline/decisions/entries/S1TG-cpu-jpeg-decode-threads.md) (decode timing),
-  the Evidence of [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md) and of
+- **Repeat on the pinned versions.**
+  [ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md) repeats the numbers of
+  ADR-1SZ9, ADR-FBV5, ADR-BP5Y and ADR-S1TG and the test counts on ONNX Runtime 1.30.0 and
+  `cuda-cu13` 0.2.0. Open: repeat the Evidence of
+  [ADR-88ZB](entries/88ZB-gpu-jpeg-decoder-component-of-the-ep-catalog.md) and of
   [ADR-J1HK](../specs/model-sidecar/decisions/entries/J1HK-resize-pixel-tolerance.md), and the
-  resize-limit runs in the [spec open work](../specs/model-sidecar/decisions/open-work.md). Repeat
-  them on ONNX Runtime 1.30.0 and `cuda-cu13` 0.2.0, with 3 repeats or more and the spread. Also
-  record the count of the GPU tests that pass and the counts of `run_jpeg_certification` (52 checks)
-  on `cuda` and `trt-rtx`, with `gpu-jpeg-cu13` beside `cuda-cu13` 0.2.0: no saved output holds them.
+  resize-limit runs in the [spec open work](../specs/model-sidecar/decisions/open-work.md), on these
+  versions, with 3 repeats or more and the spread.
 - **Intel QSV JPEG decode.** Not built:
   [ADR-71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md) shows no gain. No
   run tested the two cases that can open it again: an NV12 preprocess that converts after the resize
@@ -187,7 +188,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   minimal reproducer is ready), a run on Linux and a run on a host with few CPU cores.
 - **Exit hang of the CUDA EP plugin** ([ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)).
   Open: more full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough); a
-  full run on `trt-rtx`; a longer run of the minimal reproducer; the report to ONNX Runtime.
+  full run on `trt-rtx`; a longer run of the minimal reproducer; a full-length run with
+  `ORT_DISABLE_TELEMETRY=1` ([ADR-C9ME](entries/C9ME-exit-hang-rate-with-the-telemetry-switch.md):
+  the minimal reproducer is too weak for this question); the report to ONNX Runtime.
 - **Repair of a damaged store folder.** A damaged pack or component folder of the EP store gives a
   state whose hint is the install command, but the install does not repair a folder that exists.
   The remedy today: remove the pack or the component, then install it again

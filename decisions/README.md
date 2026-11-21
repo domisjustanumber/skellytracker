@@ -62,6 +62,8 @@ you make a measurement ([Rules](#rules)).
 | [975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md) | nvImageCodec 0.10.0.9 one-image decode hangs with fewer CUDA streams than threads: 19 of 62 cells; workaround, self-test | evidence |
 | [71YY](entries/71YY-intel-qsv-jpeg-decode-against-the-cpu-thread-pool.md) | Intel QSV JPEG decode (PyAV, UHD 770): slower than the CPU thread pool to BGR at 2, 4 and 28 CPUs; 4:2:2 loses chroma; not built | evidence |
 | [C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md) | Exit hang of `cuda-cu13` 0.3.0 on Windows: 9 of 192 long runs; hard end 0 of 60; 1DS telemetry client in the DLL; switch not tested | evidence |
+| [58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md) | Native JPEG numbers on ONNX Runtime 1.30.0, `cuda-cu13` 0.2.0: detector call -35 to -63 %; keypoint-only call on `cuda` +15 to +47 % on the GPU path | evidence |
+| [C9ME](entries/C9ME-exit-hang-rate-with-the-telemetry-switch.md) | Exit hang of the minimal reproducer, `cuda-cu13` 0.3.0: 0 of 120 with `ORT_DISABLE_TELEMETRY=1`, 1 of 120 without; not separated (p = 1.0) | evidence |
 
 ### Proposed
 
