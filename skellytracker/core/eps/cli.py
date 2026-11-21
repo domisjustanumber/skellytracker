@@ -312,6 +312,9 @@ def cmd_remove(args) -> int:
         print(f"{args.windows_ml}: removed {package}")
     for package, code in result.failed:
         print(f"{args.windows_ml}: not removed" + (f" {package}" if package else "") + f" ({code})", file=sys.stderr)
+    if any(code == "package-in-use" for _, code in result.failed):
+        print(f"{args.windows_ml}: an application that is open uses the Windows ML package. Close the application, "
+              f"then run the removal again.", file=sys.stderr)
     if result.was_present:
         print(f"{args.windows_ml}: the Windows ML package was on this system before the install, so it stays.")
     return errors.EXIT_FAILURE if result.failed else errors.EXIT_OK

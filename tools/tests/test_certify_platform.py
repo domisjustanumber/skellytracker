@@ -89,7 +89,7 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     text = out.read_text(encoding="utf-8")
     data = cp.report_data(text)
     assert text.startswith("# Certify report\n") and text.endswith("```\n")
-    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.5.0", None, None)
+    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.6.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
     assert "Checks that did not pass:" not in text and "## Sections" not in text  # no failed check: no table
@@ -139,7 +139,8 @@ Checks that did not pass:
 
 def test_the_markdown_gives_the_system_list_and_the_gpu_table_from_the_summary_items():
     gpus = [{"vendor": "intel", "name": "Intel(R) UHD Graphics 770", "id": "8086:a780", "vram_bytes": 134217728},
-            {"vendor": "nvidia", "name": "NVIDIA GeForce RTX 3070", "id": "10de:2484", "vram_bytes": 8589934592}]
+            {"vendor": "nvidia", "name": "NVIDIA GeForce RTX 3070", "id": "10de:2484", "vram_bytes": 8589934592,
+             "shared_memory_bytes": 34194001920}]  # format 1.6.0: JSON only, the GPU table does not show it
     report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "full", "package": {"name": "skellytracker", "version": "2.0.0"},
               "evidence": {"valid": True, "reasons": []}, "checks": [], "details": {},
               "host": {"os": {"label": "Windows 11 Home 26H2"}, "cpu": {"name": "AMD Ryzen 7 7700X 8-Core Processor"},
@@ -175,7 +176,8 @@ def test_the_component_table_follows_the_benchmark_table_with_the_display_words(
               "evidence": {"valid": True, "reasons": []}, "checks": [], "details": {},
               "summary": [{"group": "benchmark", "name": "CPU", "device": None, "stage": "pipeline-1", "ms_per_frame": 20.0, "fps": 50.0},
                           {"group": "component", "name": "MediaPipe", "device": None, "result": "skipped", "reason": "reviewed"},
-                          {"group": "component", "name": "Other", "device": None, "result": "pass"}]}
+                          {"group": "component", "name": "Other", "device": None, "result": "pass"},
+                          {"group": "component", "name": "Blender", "device": None, "result": "skipped", "reason": "not-installed"}]}
     text = cp.render({"schema": "s", "app": None, "modules": [report], "note": None}).split("\n\n## Data")[0]
     assert text.split("\n\n", 2)[2] == """| GPU | Module | Stage | ms/frame | FPS |
 |---|---|---|---|---|
@@ -185,6 +187,7 @@ def test_the_component_table_follows_the_benchmark_table_with_the_display_words(
 |---|---|
 | MediaPipe | skipped (already reviewed) |
 | Other | pass |
+| Blender | skipped (not installed) |
 
 Cameras: not checked on this system."""  # a component item is not a row of the GPU table
     report["summary"] = report["summary"][:1]

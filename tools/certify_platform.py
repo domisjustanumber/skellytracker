@@ -103,7 +103,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellycertify.report/1.5.0"  # `SCHEMA` of `skellytracker/certification.py`
+REPORT_SCHEMA = "skellycertify.report/1.6.0"  # `SCHEMA` of `skellytracker/certification.py`
+SKIPPED_SHOWN = {"reviewed": "already reviewed", "not-installed": "not installed"}  # section 4.2: the display of a `skipped` reason
 # rule 20 of section 6 of the contract: an IPv4 address; the Markdown part prints each match with spaces for the dots
 IPV4 = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b")
 SUITE_VERSION = 2
@@ -684,7 +685,7 @@ def system_lines(modules: list[dict]) -> list[str]:
 def shown(item: dict) -> str:
     """The display of the result of a summary item (section 4.2 of the contract)."""
     if item["result"] == "skipped":
-        return f"skipped ({'already reviewed' if item.get('reason') == 'reviewed' else item.get('reason')})"
+        return f"skipped ({SKIPPED_SHOWN.get(item.get('reason'), item.get('reason'))})"
     return {"record-only": "record"}.get(item["result"], item["result"])
 
 

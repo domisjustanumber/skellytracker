@@ -203,6 +203,6 @@ from skellytracker.certification import certify_frames, check_label, record_fail
 
 | Signature | Result |
 |-----------|--------|
-| `certify_frames(test_media_dir=None)` | The 30 test frames of `certify()` as a `list` of JPEG `bytes`, in order. It decodes nothing and downloads nothing. A frames file that is absent or not valid raises `FramesUnavailableError`. |
+| `certify_frames(test_media_dir=None)` | The 30 test frames of `certify()` as a `list` of JPEG `bytes`, in order. It decodes nothing and downloads nothing. When `test_media_dir` does not hold the frames file, it uses the file of the package. A frames file that is absent or not valid raises `FramesUnavailableError`. |
 | `check_label(execution_provider, device_key)` | The name of the check of an EP on a GPU, a `str`, for example `cuda@10de-2484-0` for the device key `gpu:10de:2484:0`. With `device_key=None`, it is the EP key. |
 | `record_failed_pair(execution_provider, device_key)` | `None`. It stores the result `failed` of the quick check of the EP on that GPU on this system. It never stores a pass. An unknown EP key or device key raises `EpRequestError`, a `ValueError`. |

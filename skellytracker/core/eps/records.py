@@ -356,7 +356,8 @@ class RemoveResult:
 
     `removed` holds the full name of each package that the call removed. `failed` holds `(package full
     name or None, reason code)`. `was_present` is true when the package was on the PC before the install of
-    this EP store: the call never removes such a package.
+    this EP store: the call never removes such a package. The reason code `package-in-use` tells that a running
+    process uses the package, for example the process of the install. Close that application, then run the removal again.
     """
 
     removed: tuple[str, ...] = ()

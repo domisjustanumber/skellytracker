@@ -164,7 +164,7 @@ def dxgi_adapters() -> list[GpuInfo]:
                     key=bus or f"luid:{luid:#x}", vendor=pci.vendor_of(desc.vendor_id), name=desc.description or None,
                     pci_bus_id=bus, pci_vendor_id=int(desc.vendor_id), pci_device_id=int(desc.device_id),
                     pci_subsys_id=int(desc.subsys_id), is_software=software, luid=luid, driver_version=driver,
-                    vram_total_bytes=int(desc.dedicated_video) or None,
+                    vram_total_bytes=int(desc.dedicated_video) or None, shared_memory_bytes=int(desc.shared_system),
                 ))
             finally:
                 _method(adapter, 2)()  # 2: IUnknown::Release

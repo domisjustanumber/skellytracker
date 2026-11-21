@@ -104,12 +104,17 @@ def compare_results(cpu: dict, ep: dict, thresholds: dict, *, keypoints: bool = 
 def frames_record(test_media_dir: str | os.PathLike | None = None) -> dict:
     """The record of the test frames file: `path`, `sha256`, `bytes` and `count` (`model_zoo/test_media/quick_frames.yaml`).
 
-    `dir` is `test_media_dir` as a string, or None for the file of the package.
+    `dir` is `test_media_dir` as a string, or None for the file of the package. It is also None when the folder does not
+    hold `<sha256>.zip`: the run then uses the file of the package (section 2.8 of the format of `skellycertify`). A file
+    that is in the folder stays the file of the run, also with a wrong sha256, so `frames_file()` refuses it.
     """
     import yaml
 
     record = yaml.safe_load((importlib.resources.files("skellytracker.core") / "model_zoo" / "test_media" / "quick_frames.yaml").read_text(encoding="utf-8"))
-    return {**record, "dir": None if test_media_dir is None else os.fspath(test_media_dir)}
+    folder = None if test_media_dir is None else os.fspath(test_media_dir)
+    if folder is not None and not (Path(folder) / f"{record['sha256']}{Path(record['path']).suffix}").is_file():
+        folder = None
+    return {**record, "dir": folder}
 
 
 def frames_file(settings: dict) -> bytes:

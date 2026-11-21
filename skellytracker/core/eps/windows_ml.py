@@ -22,7 +22,8 @@ store keeps one record for each such key in `windows-ml.json`.
   is not in `packages_before`. The certify suite calls it at the end of a run.
 - `remove(key)` calls `remove_installed()` with the record of the key in this EP store, and deletes
   the record when no row fails. `eps.remove(execution_provider=key)` and
-  `skellytracker-eps remove --windows-ml KEY` call it.
+  `skellytracker-eps remove --windows-ml KEY` call it. Windows refuses to remove a package that a running process
+  uses, also the process that called `install()`: the row then gets `package-in-use`.
 
 The catalog gives the package family and the version only after `ensure_ready`, and only on a new
 enumeration: the provider object of the call keeps the empty values.
@@ -78,9 +79,17 @@ def installed_packages() -> dict[str, str]:
     return dict(line.strip().split("|", 1) for line in done.stdout.splitlines() if "|" in line)
 
 
-def _remove_appx(full_name: str) -> bool:
-    """True when `Remove-AppxPackage` of one full name exited with 0. It needs no administrator rights for the current user."""
-    return _powershell(f"Remove-AppxPackage -Package $env:{PACKAGE_VARIABLE}", **{PACKAGE_VARIABLE: full_name}).returncode == 0
+def _remove_appx(full_name: str) -> str | None:
+    """`Remove-AppxPackage` of one full name: None when it exited with 0, else a reason code. It needs no administrator rights.
+
+    `package-in-use`: Windows refused with HRESULT 0x80073D02 (ERROR_PACKAGES_IN_USE). A process that called `ensure_ready`
+    on the package, or that loaded it, still runs. Only the end of that process releases the package, so a removal in the
+    process of the install always fails. Each other failure is `package-not-removed`.
+    """
+    done = _powershell(f"Remove-AppxPackage -Package $env:{PACKAGE_VARIABLE}", **{PACKAGE_VARIABLE: full_name})
+    if done.returncode == 0:
+        return None
+    return "package-in-use" if "0x80073d02" in f"{done.stdout}{done.stderr}".lower() else "package-not-removed"
 
 
 def family_of(full_name: str) -> str | None:
@@ -94,7 +103,7 @@ def remove_package(full_name: str, family: str) -> str | None:
 
     It refuses a full name that is not of `family` (the family that the catalog reported for the EP),
     also when Windows lists the package under an other family. A package that is not on the PC is
-    not an error. It tries one time.
+    not an error. It tries one time. A package that a running process uses gives `package-in-use` (`_remove_appx()`).
     """
     if not family or family_of(full_name) != family:
         return "package-name-mismatch"
@@ -103,9 +112,10 @@ def remove_package(full_name: str, family: str) -> str | None:
         return None
     if packages[full_name] != family:
         return "package-name-mismatch"
-    if not _remove_appx(full_name) or full_name in installed_packages():
+    code = _remove_appx(full_name)
+    if code is None and full_name in installed_packages():
         return "package-not-removed"
-    return None
+    return code
 
 
 def _catalog_family(ep_name: str) -> str | None:
@@ -166,6 +176,8 @@ def remove(key: str) -> RemoveResult:
     It calls `remove_installed()` with the record of the key in `windows-ml.json`. With no record, `failed`
     holds `(None, "no-record")`. When no row fails, it deletes the record, and the EP is then `not_installed`.
     With `was_present`, it removes no package: the package was on the PC before the install, and it stays.
+    A package in use gives `(package, "package-in-use")` and the record stays: close the application that uses the
+    package, for example the process that ran `install()`, then run the removal again. It does not try again itself.
     An unknown or reserved key raises `EpRequestError`.
     """
     load_catalog().ep(key)

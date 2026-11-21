@@ -185,7 +185,7 @@ def test_the_frame_removes_the_package_of_section_3_also_after_a_crash(tmp_path,
     removed = []
     monkeypatch.setattr(windows_ml, "installed_packages", lambda: dict(packages))
     monkeypatch.setattr(windows_ml, "_catalog_family", lambda ep_name: None)  # no Windows ML catalog: the family of the record
-    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: removed.append(name) or packages.pop(name) is not None)
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: (removed.append(name), packages.pop(name))[0])  # None: exit 0
     monkeypatch.setattr(cp, "windows_ml_offer", lambda: ["AMDGPUExecutionProvider"])
     record = {"amdgpu": {"ep_name": "AMDGPUExecutionProvider", "version": "1.8.65.0", "package_family_name": "AMD.WinML.EP_8wekyb3d8bbwe",
                          "was_present": False, "packages_installed": [added]}}

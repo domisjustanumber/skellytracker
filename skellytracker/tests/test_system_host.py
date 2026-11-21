@@ -46,10 +46,12 @@ def test_second_adapter_and_software_adapter_are_dropped():
 def test_merge_keeps_the_os_facts_and_other_vendors(monkeypatch):
     install_nvml(monkeypatch, FakeNvml([nvml_gpu()]))
     amd = adapter("0000:03:00.0", 0x1002, 0x73BF, luid=9, name="Radeon RX 6800")
-    merged = host_module.merge_gpus(nvml.read_gpus(), [adapter("0000:01:00.0", luid=5), amd])
+    shared = dataclasses.replace(adapter("0000:01:00.0", luid=5), shared_memory_bytes=32 * 2**30)  # DXGI `SharedSystemMemory`
+    merged = host_module.merge_gpus(nvml.read_gpus(), [shared, amd])
     assert [g.key for g in merged] == ["0000:01:00.0", "0000:03:00.0"]
     nvidia, other = merged
     assert nvidia.luid == 5 and nvidia.driver_version == "610.88" and nvidia.vram_total_bytes == 8 * 2**30
+    assert nvidia.shared_memory_bytes == 32 * 2**30 and other.shared_memory_bytes is None
     assert nvidia.nvidia.compute_capability == "8.6" and nvidia.nvidia.brand == "geforce"
     assert nvidia.pci_vendor_id == 0x10DE and nvidia.pci_device_id == 0x2484
     assert other.vendor == "amd" and other.driver_version == "32.0.16.1088" and other.nvidia is None

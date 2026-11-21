@@ -4,6 +4,7 @@ Fakes only: no GPU, no network, no `windowsml` call and no ONNX Runtime session.
 """
 
 import json
+import subprocess
 import sys
 import threading
 import types
@@ -87,6 +88,13 @@ def test_windows_takes_migraphx_and_amdgpu_from_the_windows_ml_catalog(monkeypat
 PUBLISHER = "8wekyb3d8bbwe"
 PACKAGES: dict[str, str] = {}  # the fake `Get-AppxPackage`: full name -> family
 REMOVED: list[str] = []  # each full name of the fake `Remove-AppxPackage`
+REAL_REMOVE_APPX = windows_ml._remove_appx
+
+
+def remove_appx(name: str) -> None:
+    """The fake `_remove_appx()` that works: the package goes, and it gives no reason code."""
+    REMOVED.append(name)
+    PACKAGES.pop(name, None)
 
 
 class FakeProvider:
@@ -154,7 +162,7 @@ def fake_windowsml(monkeypatch):
     monkeypatch.setattr(windows_ml, "_catalog", None)
     monkeypatch.setattr(windows_ml, "_registered", {})
     monkeypatch.setattr(windows_ml, "installed_packages", lambda: dict(PACKAGES))
-    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or PACKAGES.pop(name, None) is not None)
+    monkeypatch.setattr(windows_ml, "_remove_appx", remove_appx)
     return providers
 
 
@@ -196,15 +204,50 @@ def test_windows_ml_records_a_removal_that_fails_and_refuses_an_other_family(mon
     on(monkeypatch, "win_amd64", host(RADEON))
     added = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
     record = windows_ml.install("amdgpu")
-    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or False)  # for example a package in use
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or "package-not-removed")
     assert windows_ml.remove_installed(record) == [{"package": added.full_name, "result": "fail", "reason_code": "package-not-removed"}]
     assert REMOVED == [added.full_name] and added.full_name in PACKAGES  # one try, no loop
-    other = "Other.App_1.0.0.0_x64__" + PUBLISHER
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name))  # exit 0, but the package stays
+    assert windows_ml.remove_package(added.full_name, added.family) == "package-not-removed"
+    assert REMOVED == [added.full_name] * 2
+    other ="Other.App_1.0.0.0_x64__" + PUBLISHER
     wrong = {**record, "packages_installed": [other]}  # a name that is not of the family that the catalog reported
     assert windows_ml.remove_installed(wrong) == [{"package": other, "result": "fail", "reason_code": "package-name-mismatch"}]
     assert windows_ml.remove_package("Bad Name", added.family) == "package-name-mismatch"
-    assert windows_ml.remove_package(added.full_name, "") == "package-name-mismatch" and REMOVED == [added.full_name]
+    assert windows_ml.remove_package(added.full_name, "") == "package-name-mismatch" and REMOVED == [added.full_name] * 2
     assert other in PACKAGES
+
+
+# the stderr of `Remove-AppxPackage` in a trial on 2026-11-21, while the process of the install still ran (shortened)
+IN_USE_STDERR = ("Remove-AppxPackage : Deployment failed with HRESULT: 0x80073D02, The package could not be installed because resources \n"
+                 "it modifies are currently in use.\nError 0x80073D02: The request cannot be processed because package \n"
+                 "Microsoft.WinML.Intel.OpenVINO.EP.Framework.2_2.1080.97.0_x64__8wekyb3d8bbwe is in use.\n")
+
+
+def test_a_package_in_use_gives_package_in_use_and_the_cli_says_to_close_the_application(monkeypatch, ep_store,  # noqa: F811
+                                                                                         fake_windowsml, capsys):
+    on(monkeypatch, "win_amd64", host(RADEON))
+    added = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
+    windows_ml.install("amdgpu")
+    monkeypatch.setattr(windows_ml, "_remove_appx", REAL_REMOVE_APPX)  # the real parse; only PowerShell is fake
+    scripts = []
+
+    def powershell(script, **variables):
+        scripts.append((script, variables))
+        return subprocess.CompletedProcess(["powershell.exe"], 1, "", IN_USE_STDERR)
+
+    monkeypatch.setattr(windows_ml, "_powershell", powershell)
+    assert eps.remove(execution_provider="amdgpu") == eps.RemoveResult(failed=((added.full_name, "package-in-use"),))
+    assert len(scripts) == 1 and scripts[0][1] == {windows_ml.PACKAGE_VARIABLE: added.full_name}  # one try, no loop
+    assert "amdgpu" in store.windows_ml_installs()  # the record stays: the removal can run again after the end of the process
+    assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 1
+    err = capsys.readouterr().err
+    assert f"amdgpu: not removed {added.full_name} (package-in-use)" in err
+    assert "Close the application, then run the removal again." in err
+    monkeypatch.setattr(windows_ml, "_powershell", lambda script, **variables: subprocess.CompletedProcess([], 1, "", "HRESULT: 0x80070005"))
+    assert windows_ml._remove_appx(added.full_name) == "package-not-removed"  # each other failure
+    monkeypatch.setattr(windows_ml, "_powershell", lambda script, **variables: subprocess.CompletedProcess([], 0, "", ""))
+    assert windows_ml._remove_appx(added.full_name) is None
 
 
 def test_an_install_that_did_not_end_removes_nothing_and_is_not_installed(monkeypatch, ep_store, fake_windowsml):  # noqa: F811
@@ -350,11 +393,12 @@ def test_cli_remove_of_a_windows_ml_ep_removes_only_the_package_that_the_install
     added = fake_windowsml["a"] = FakeProvider("AMDGPUExecutionProvider", "NotPresent")
     windows_ml.install("migraphx")
     windows_ml.install("amdgpu")
-    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or False)  # for example a package in use
+    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or "package-not-removed")
     assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 1
-    assert f"amdgpu: not removed {added.full_name} (package-not-removed)" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert f"amdgpu: not removed {added.full_name} (package-not-removed)" in err and "Close the application" not in err
     assert "amdgpu" in store.windows_ml_installs()  # the record stays for a later try
-    monkeypatch.setattr(windows_ml, "_remove_appx", lambda name: REMOVED.append(name) or PACKAGES.pop(name, None) is not None)
+    monkeypatch.setattr(windows_ml, "_remove_appx", remove_appx)
     assert cli.main(["remove", "--windows-ml", "amdgpu"]) == 0
     assert cli.main(["remove", "--windows-ml", "migraphx"]) == 0
     out = capsys.readouterr().out

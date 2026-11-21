@@ -130,7 +130,7 @@ stopped it.
 
 ## Read the report
 
-The report file has the format `skellycertify.report/1.5.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.6.0` of the repository `skellycertify`. It
 has these parts:
 
 - One line with the package, its version, the time of the run and if the report is valid as evidence.
@@ -149,7 +149,10 @@ has these parts:
 - The line `Checks that did not pass:` and a table with one row for each check that failed. A check
   that did not run (`not run`) also has a row when its EP failed. A report with no such check has
   no such table.
-- The heading `## Data` and a JSON block. It holds each check and each fact of the run.
+- The heading `## Data` and a JSON block. It holds each check and each fact of the run. Its list
+  `test_media` names the test frames file that the checks used, `quick_frames.zip`, with its
+  SHA-256, its size and its source: `bundled` (the file of the package) or `shared` (the file of the
+  test media folder). Each GPU item also has `shared_memory_bytes` on Windows.
 
 The privacy rules do not allow an IPv4 address in the part before the JSON block (rule 20 of the
 format). That part thus shows each text with the form of an IPv4 address, for example the version

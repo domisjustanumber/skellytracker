@@ -119,13 +119,19 @@ lists the codes.
 
 ## The report
 
-The report has the format `skellycertify.report/1.5.0`. It holds:
+The report has the format `skellycertify.report/1.6.0`. It holds:
 
 - `checks`: each check, with `name`, `result`, `reason` and `module` (the EP, for example `CUDA`).
 - `evidence`: `valid` and `reasons`.
 - `summary`: one item for each EP that ran on a GPU. The level `full` adds `benchmark` items with
   `ms_per_frame` and `fps`. The check `mediapipe:smoke` has a `component` item with the name
-  `MediaPipe`. It has the result `skipped` with the reason `reviewed` when a reviewed row skips the check.
+  `MediaPipe`. It has the result `skipped` with the reason `reviewed` when a reviewed row skips the check,
+  and with the reason `not-installed` when MediaPipe is not installed.
+- `test_media`: the test frames file that the checks used, `quick_frames.zip`, with its SHA-256, its
+  size and its source. The source is `shared` for the file of `test_media_dir` and `bundled` for the
+  file of the package. When `test_media_dir` does not hold the file, the run uses the file of the package.
+- `host.gpus`: each GPU, with `vram_bytes` and `shared_memory_bytes`. `shared_memory_bytes` is the
+  shared system memory that the GPU can use. It is `null` on Linux and macOS.
 - `details`: the EPs, the versions and the skipped pairs.
 
 The report holds no path, no host name, no user name, no serial number and no bus address. Read the

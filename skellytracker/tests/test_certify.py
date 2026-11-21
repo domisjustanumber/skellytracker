@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.5.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.6.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -48,7 +48,7 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.5.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.6.0" else ["schema"]
     found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]
@@ -73,6 +73,16 @@ def problems_of(report: dict) -> list[str]:
         # the name of the summary item of the EP; `mediapipe:smoke` is not an EP
         expected = {"suite": None, "mediapipe": "MediaPipe"}[key] if key in ("suite", "mediapipe") else package_certification.SUMMARY_NAMES[key]
         found += [] if check.get("module") == expected else [f"module of {check['name']}"]
+    media = report.get("test_media", [])  # section 3.9
+    found += [] if isinstance(media, list) and len(media) <= 50 else ["test_media"]
+    for item in media if isinstance(media, list) else ():
+        name = item.get("name")
+        found += [] if (isinstance(name, str) and 0 < len(name) <= 120 and not re.search(r"[/\\]", name)
+                        and re.fullmatch(r"[0-9a-f]{64}", str(item.get("sha256"))) and type(item.get("bytes")) is int and item["bytes"] >= 0
+                        and item.get("source") in ("bundled", "shared")) else [f"test_media item {name!r}"]
+    for item in (report.get("host") or {}).get("gpus") or []:  # section 3.3
+        shared = item.get("shared_memory_bytes")
+        found += [] if shared is None or (type(shared) is int and shared >= 0) else [f"shared_memory_bytes {shared!r}"]
     evidence = report.get("evidence", {})
     found += [] if evidence.get("valid") is (not evidence.get("reasons")) else ["evidence.valid"]
     found += [f"evidence reason {code!r}" for code in evidence.get("reasons", []) if not REASON.match(code)]
@@ -223,6 +233,9 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert report["package"] == {"name": "skellytracker", "version": package_certification._package()[0]["version"],
                                  "commit": COMMIT, "tree_modified": False}
     assert report["host"]["os"]["arch"] == "x86_64" and report["host"]["gpus"][0]["id"] == "10de:2484"
+    assert report["host"]["gpus"][0]["shared_memory_bytes"] is None  # the fake GPU has no value
+    record = certification.frames_record()
+    assert report["test_media"] == [{"name": "quick_frames.zip", "sha256": record["sha256"], "bytes": record["bytes"], "source": "bundled"}]
     video = next(check for check in report["checks"] if check["name"] == "trt-rtx@10de-2484-0:video")
     modules = {check["name"]: check["module"] for check in report["checks"]}
     assert (modules["cpu:live"], modules["trt-rtx@10de-2484-0:jpeg-decode"], modules["directml@10de-2484-0"]) == ("CPU", "TensorRT RTX", "DirectML")
@@ -639,6 +652,7 @@ def test_with_no_valid_test_frames_the_session_checks_are_not_run_and_nothing_is
                                f"{ep}:probe": ("pass", None), f"{ep}:video": ("not-run", "test-media-missing"),
                                f"{ep}:live": ("not-run", "test-media-missing"), ep: ("not-run", "test-media-missing")}
     assert calls == [] and problems_of(report) == [] and store.read_json(store.store_root() / "quick-checks.json") is None
+    assert report["test_media"] == []  # a file with a wrong sha256 is never used
     fake_full(monkeypatch)
     found = results(skellytracker.certify("full", execution_providers=["trt-rtx"]))
     assert found["cpu:video"] == found[f"{ep}:live"] == found["cpu:pipeline-1"] == ("not-run", "test-media-missing")
@@ -1024,9 +1038,8 @@ def test_certify_frames_gives_the_jpeg_bytes_from_the_package_or_from_the_test_m
     assert len(frames) == certification.FRAMES and all(isinstance(data, bytes) and data[:2] == b"\xff\xd8" for data in frames)
     record = certification.frames_record()
     stored = tmp_path / f"{record['sha256']}.zip"  # the name rule of the test media folder: the sha256 and the extension
-    with pytest.raises(certification.FramesUnavailableError):
-        package_certification.certify_frames(tmp_path)
-    stored.write_bytes(b"not the frames")
+    assert package_certification.certify_frames(tmp_path) == frames  # no file in the folder: the file of the package
+    stored.write_bytes(b"not the frames")  # a file with a wrong sha256 is never used, and the package file does not replace it
     with pytest.raises(certification.FramesUnavailableError):
         package_certification.certify_frames(str(tmp_path))
     stored.write_bytes(certification.frames_file({"frames": record}))
@@ -1034,17 +1047,41 @@ def test_certify_frames_gives_the_jpeg_bytes_from_the_package_or_from_the_test_m
 
 
 def test_certify_reads_the_test_frames_from_the_test_media_folder_and_never_writes_its_path(quick_host, monkeypatch, tmp_path):
+    """Format 1.6.0, sections 2.8 and 3.9: the shared file, else the bundled copy; `test_media` names the file that the checks used."""
     fake_probe(monkeypatch)
     folders = []
     fake_sessions(monkeypatch, cpu=lambda key, settings, modes, *a, **k: (folders.append(settings["frames"]["dir"]), (session_found(key, modes), None, 0))[1])
-    report = skellytracker.certify("quick", execution_providers=["trt-rtx"], test_media_dir=tmp_path)  # no frames file there
-    assert results(report)["cpu:video"] == ("not-run", "test-media-missing") and folders == []
     record = certification.frames_record()
-    (tmp_path / f"{record['sha256']}.zip").write_bytes(certification.frames_file({"frames": record}))
+    item = {"name": "quick_frames.zip", "sha256": record["sha256"], "bytes": record["bytes"]}
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"], test_media_dir=tmp_path)  # no frames file there
+    assert results(report)["trt-rtx@10de-2484-0"] == ("pass", None) and folders == [None]  # the fallback: the bundled copy
+    assert report["test_media"] == [{**item, "source": "bundled"}] and problems_of(report) == []
+    stored = tmp_path / f"{record['sha256']}.zip"
+    stored.write_bytes(certification.frames_file({"frames": record}))
     report = skellytracker.certify("quick", execution_providers=["trt-rtx"], test_media_dir=tmp_path)
-    assert results(report)["trt-rtx@10de-2484-0"] == ("pass", None) and folders == [str(tmp_path)]
+    assert results(report)["trt-rtx@10de-2484-0"] == ("pass", None) and folders == [None, str(tmp_path)]
+    assert report["test_media"] == [{**item, "source": "shared"}]
     assert str(tmp_path) not in json.dumps(report) and problems_of(report) == []
+    stored.write_bytes(b"not the frames")  # a wrong sha256: never used, and no fallback to the bundled copy
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"], test_media_dir=tmp_path)
+    assert results(report)["cpu:video"] == ("not-run", "test-media-missing") and folders == [None, str(tmp_path)]
+    assert report["test_media"] == [] and problems_of(report) == []
     assert skellytracker.certify_plan("quick", test_media_dir=tmp_path)["downloads"] == []
+
+
+def test_a_run_whose_checks_read_no_frame_lists_no_test_media(quick_host, monkeypatch):
+    calls = fake_sessions(monkeypatch)
+    report = skellytracker.certify("quick", execution_providers=["cuda"])  # the pack is not installed: no CPU reference, no session
+    assert set(results(report).values()) == {("not-run", "ep-not-installed")} and calls == []
+    assert report["test_media"] == [] and problems_of(report) == []
+
+
+def test_each_gpu_of_the_report_has_its_shared_memory():
+    shared = dataclasses.replace(gpu(), shared_memory_bytes=34194001920)
+    found = package_certification._host(host(shared, gpu(vendor="intel", cc=None, bus="0000:00:02.0", device_id=0x4680)))["gpus"]
+    by_id = {item["id"]: item for item in found}
+    assert by_id["10de:2484"]["shared_memory_bytes"] == 34194001920 and by_id["8086:4680"]["shared_memory_bytes"] is None  # no value
+    assert by_id["10de:2484"]["vram_bytes"] == shared.vram_total_bytes  # the dedicated memory keeps its meaning
 
 
 def mediapipe_due(monkeypatch, version: str | None = "1.2.2") -> list:
@@ -1122,9 +1159,13 @@ def test_the_mediapipe_smoke_run_is_not_run_with_no_mediapipe_no_test_frames_or_
     mediapipe_due(monkeypatch, version=None)
     report = skellytracker.certify("quick")
     assert results(report)["mediapipe:smoke"] == ("not-run", "models-missing") and calls == [] and problems_of(report) == []
+    # format 1.6.0: only a `component` item can be `skipped` with `not-installed`
+    assert report["summary"][-1] == {"group": "component", "name": "MediaPipe", "device": None, "result": "skipped", "reason": "not-installed"}
     mediapipe_due(monkeypatch)
     monkeypatch.setattr(package_certification, "MEDIAPIPE_SECONDS", 1000)  # more than the budget
-    assert results(skellytracker.certify("quick"))["mediapipe:smoke"] == ("not-run", "over-budget") and calls == []
+    report = skellytracker.certify("quick")
+    assert results(report)["mediapipe:smoke"] == ("not-run", "over-budget") and calls == []
+    assert all(item["group"] != "component" for item in report["summary"])  # installed: a `not-run` check has no item
     monkeypatch.setattr(package_certification, "MEDIAPIPE_SECONDS", 6)
     calls = fake_mediapipe(monkeypatch, None, "timed-out", None)  # the end of the budget stops the child
     assert results(skellytracker.certify("quick"))["mediapipe:smoke"] == ("not-run", "over-budget")

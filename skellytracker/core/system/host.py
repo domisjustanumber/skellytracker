@@ -89,7 +89,7 @@ def merge_gpus(nvml_gpus: list, os_gpus: list[GpuInfo]) -> tuple[GpuInfo, ...]:
             pci_vendor_id=gpu.pci_vendor_id, pci_device_id=gpu.pci_device_id, pci_subsys_id=gpu.pci_subsys_id,
             is_integrated=None if os_gpu is None else os_gpu.is_integrated, is_software=False,
             luid=None if os_gpu is None else os_gpu.luid, driver_version=gpu.driver_version,
-            vram_total_bytes=gpu.vram_total_bytes,
+            vram_total_bytes=gpu.vram_total_bytes, shared_memory_bytes=None if os_gpu is None else os_gpu.shared_memory_bytes,
             nvidia=NvidiaGpuInfo(uuid=gpu.uuid, compute_capability=gpu.compute_capability, brand=gpu.brand),
         ))
     nvml_buses = {gpu.pci_bus_id for gpu in nvml_gpus}

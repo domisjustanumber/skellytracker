@@ -231,18 +231,16 @@ a system is a run of the certify process in a freemocap build
    (the catalog offers no AMD EP there): a cancel after 2 s ended in 2.6 s and left no package; the
    install ended in 10.3 s with the progress values 0, 90 and 100, so the package now divides the
    value by 100; `remove_package()` gave `package-not-removed` in the process that installed, and
-   the removal passed from a new process. The cause is not examined. `install()` and `remove()` with
-   a catalog key of an AMD EP did not run.
+   the removal passed from a new process
+   ([ADR-P47E](entries/P47E-report-format-1-6-0-and-a-windows-ml-package-in-use.md) item 6). Not
+   built: the removal of a `pending` record in a new process, which gives `package-unknown`.
+   `install()` and `remove()` with a catalog key of an AMD EP did not run.
 5. A run of the PyInstaller hook of ONNX Runtime on Linux and on macOS. The hook is built
    (`skellytracker/_pyinstaller/hook-onnxruntime.py`), and the freeze test ran on Windows only.
    `beartype_this_package()` checks nothing in a frozen app.
 6. The passive record, the shadow comparison and the calibration of its limit, in phase 2
    ([ADR-Q9R6](entries/Q9R6-certify-rulings-of-2026-11-21.md) item 3). The format of
    `skellycertify` must first define the fields of a `passive` record.
-   The media record waits for its field there: each report gives the name, the sha256 and the source
-   (`package` or `test_media_dir`) of its test media. A `test_media_dir` with no `<sha256>.zip` then
-   uses the file of the package. A wrong sha256 still gives `test-media-missing`
-   ([ADR-Q9R6](entries/Q9R6-certify-rulings-of-2026-11-21.md) item 4).
 7. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
    The name of the field or the value is not decided.
 8. No row of the list `mediapipe` exists. No real run of `mediapipe:smoke` inside `certify()` yet.

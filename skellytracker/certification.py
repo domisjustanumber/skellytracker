@@ -20,7 +20,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.5.0`. An application that
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.6.0`. An application that
 runs its own check on the test frames reads them with `certify_frames()` of this module. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
@@ -42,7 +42,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-SCHEMA = "skellycertify.report/1.5.0"
+SCHEMA = "skellycertify.report/1.6.0"
 SUMMARY_NAMES = {"trt-rtx": "TensorRT RTX", "cuda": "CUDA", "directml": "DirectML", "coreml": "Core ML", "amdgpu": "AMD GPU",
                  "migraphx": "MIGraphX", "cpu": "CPU"}  # the short fixed name of each EP in `summary`; a name never changes
 RAN = ("pass", "fail", "record-only")
@@ -90,14 +90,16 @@ PATH_PATTERN = re.compile(r"(?:\b[A-Za-z]:[\\/]|\\\\[^\\\s]|/(?:home|Users|root)
 COMPARED_NUMBERS = ("people_cpu", "people_ep", "box_iou_min", "points_compared", "keypoint_px_max", "keypoint_box_fraction_max",
                     "keypoint_box_fraction_median", "keypoint_box_fraction_p99")
 TIMING = re.compile(r"^(.+):(pipeline-\d+)$")  # the name of a pipeline timing of the level `full`: the label and the stage
+FRAME_CHECK = re.compile(r":(?:video|live|pipeline-\d+)$|^mediapipe:smoke$")  # the checks that read the test frames file
 
 
 def certify_frames(test_media_dir: str | os.PathLike | None = None) -> list[bytes]:
     """The 30 test frames of `certify()`, as the JPEG bytes of each frame in order. It decodes nothing and downloads nothing.
 
     `test_media_dir` is the test media folder of the format of `skellycertify` (section 2.8): the frames file there is
-    `<sha256>.zip`, with the sha256 of the record. With None, the file is the file of the package. A file that is absent
-    or has a wrong sha256 or a wrong count raises `FramesUnavailableError` of `core/eps/certification.py`.
+    `<sha256>.zip`, with the sha256 of the record. With None, or when the folder does not hold that file, the file is the
+    file of the package. A file that is absent or has a wrong sha256 or a wrong count raises `FramesUnavailableError` of
+    `core/eps/certification.py`.
     """
     from skellytracker.core.eps import certification
 
@@ -108,7 +110,7 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
                  pipeline=None, test_media_dir: str | os.PathLike | None = None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
-    `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.5.0`, each download
+    `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.6.0`, each download
     of a plan has `source` and `sha256`. `details.checks` gives the
     name of each EP check, one for each EP and GPU. A pair with a reviewed pass is not in it at the level
     `quick`. No level installs an EP: `details.not_run` gives each of them that will not run, with its
@@ -191,8 +193,9 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       path. The default is `certification.pipeline` of the EP catalog. A config that does not load
       raises, as `load_pipeline()` does.
     - `test_media_dir`: the test media folder of the format (section 2.8), or None. The frames file there is
-      `<sha256>.zip`, with the sha256 of `frames_record()`. With None, the run uses the file of the package. The
-      path is never in the report.
+      `<sha256>.zip`, with the sha256 of `frames_record()`. With None, or when the folder does not hold that file, the
+      run uses the file of the package (format 1.6.0, section 2.8). A file in the folder with a wrong sha256 is never
+      used: the session checks are then `not-run` with `test-media-missing`. The path is never in the report.
 
     The quick check shows that a post-hoc session (the running mode `video`) and a realtime session (the
     running mode `live`) start and run. Each check below runs in its own `spawn` child. The frames are the
@@ -255,6 +258,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     - It has one summary item of the group `component`: `{"group": "component", "name": "MediaPipe", "device": None,
       "result": ...}`, with the result of the check when it is `pass` or `fail`. A check that is `not-run` has no item,
       as an EP that is `not-run`. With a reviewed row, the item has the result `skipped` and the reason `reviewed`.
+      When MediaPipe is not installed, the check stays `not-run` with `models-missing`, and the item has the result
+      `skipped` and the reason `not-installed` (format 1.6.0). A missing model file alone gives no item.
 
     The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` (65, not calibrated) from the
     start of the call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
@@ -301,13 +306,16 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     EP store: `installed_pack_version`, and `wheels_match_lock`, true when the sha256 values of the wheels that
     the install recorded are those of the lock of the catalog. A report of
     the schema `1.0.0` on this host, with a time in its file name and no `id`, stays in the hand-in list
-    with its old id. The package never deletes a report of the level `full`.
+    with its old id. The package never deletes a report of the level `full`. `test_media` lists the test frames file
+    when a check that reads it ran (`FRAME_CHECK`): `{"name": "quick_frames.zip", "sha256", "bytes", "source"}`, with the
+    `source` `shared` for the file of `test_media_dir` and `bundled` for the file of the package. It is an empty list
+    when no such check ran or when the file is not valid. A run with no check has no `test_media`.
 
     Each check has `module`: the name of `SUMMARY_NAMES` of its EP, for example `CUDA`, and `CPU` for each check
     `cpu:*`. A JPEG check and an `exit` check have the module of their EP. The `name` of the summary item of the EP
     is the same text. `mediapipe:smoke` and its `exit` check have the module `MediaPipe`.
 
-    `summary` is the list of the summary items of the report for a person, from the format `1.5.0`. An item has
+    `summary` is the list of the summary items of the report for a person, from the format `1.6.0`. An item has
     `group`, `name`, `device` and `result`. Each EP that ran on a GPU has one item of the group `ep`, with the
     result of its check: an EP that is `not-run` has no item. `name` is the short fixed name of the EP, for
     example `TensorRT RTX`, `CUDA`, `DirectML` or `CPU`. `device` is the `id` of the GPU in `host.gpus`, or None.
@@ -386,7 +394,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     report["details"]["skipped"] = {label: "reviewed" for label, *_ in skipped} | ({MEDIAPIPE_CHECK: "reviewed"} if smoke == "reviewed" else {})
     report["evidence"] = {"valid": not reasons, "reasons": reasons}
     report["summary"] = _summary(report, [{"group": "ep", "name": _module(key), "device": evidence.gpu_id(gpu),
-                                           "result": "skipped", "reason": "reviewed"} for _, key, _, gpu, _ in skipped])
+                                           "result": "skipped", "reason": "reviewed"} for _, key, _, gpu, _ in skipped],
+                                 mediapipe_installed=smoke != "models-missing")
     report = _scrub(report)
     report = {"schema": SCHEMA, "id": str(uuid.uuid4()), **report}  # after the scrub: a private word must not change the id
     if report["checks"] and not abandoned:
@@ -613,7 +622,7 @@ def record_failed_pair(execution_provider: str, device_key: str) -> None:
             time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), {})
 
 
-def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
+def _summary(report: dict, skipped: Sequence[dict] = (), mediapipe_installed: bool = True) -> list[dict]:
     """The summary items of section 3.7 of the contract, from the checks of the report: the EPs that ran, in the order of the run.
 
     An `ep` item has the result of the row of the pair. The CPU EP has no such row: its item is `fail` when one of its
@@ -622,7 +631,8 @@ def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
     checks `jpeg:gpu_decode.*` of the level `full`, where one `fail` gives `fail`. `device` is the id of the GPU in
     `host.gpus`, or None. The items of `skipped` (a pair with a reviewed pass) follow the pairs that ran, before the CPU EP.
     The `component` item of `mediapipe:smoke` follows the CPU EP: the result of the check when it ran, or `skipped` with
-    `reviewed` when `details.skipped` gives the check as `reviewed`. A `benchmark` item follows for each timing of the level `full` with a median, in the order of the checks.
+    `reviewed` when `details.skipped` gives the check as `reviewed`, or `skipped` with `not-installed` when the check is
+    in the report and `mediapipe_installed` is false. A `benchmark` item follows for each timing of the level `full` with a median, in the order of the checks.
     """
     rows = {row["name"]: row["result"] for row in report["checks"]}
     eps = report["details"].get("eps", {})
@@ -647,6 +657,8 @@ def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
         items.append({**smoke, "result": rows[MEDIAPIPE_CHECK]})
     elif report["details"].get("skipped", {}).get(MEDIAPIPE_CHECK) == "reviewed":
         items.append({**smoke, "result": "skipped", "reason": "reviewed"})
+    elif MEDIAPIPE_CHECK in rows and not mediapipe_installed:  # only a `component` item can have `not-installed`
+        items.append({**smoke, "result": "skipped", "reason": "not-installed"})
     for row in report["checks"]:
         timing, median = TIMING.match(row["name"]), (row.get("numbers") or {}).get("median_ms")
         if timing and row["result"] == "record-only" and median:
@@ -888,6 +900,10 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
     ort_name = "onnxruntime-windowsml" if "onnxruntime-windowsml" in ort else next(iter(ort), None)
     details["versions"] = {"ort_distribution": ort_name, "ort_version": ort.get(ort_name), "windowsml": runtime.windowsml_version,
                            "catalog_revision": catalog.revision, "set_hash": evidence.set_hash(catalog)}
+    frames = settings["frames"]  # section 3.9 of the format: the test media file that a check used, never its path
+    used = media is None and any(row["result"] in RAN and FRAME_CHECK.search(row["name"]) for row in report["checks"])
+    report["test_media"] = [{"name": Path(frames["path"]).name, "sha256": frames["sha256"], "bytes": frames["bytes"],
+                             "source": "bundled" if frames["dir"] is None else "shared"}] if used else []
     report["details"] = details
 
 
@@ -1398,7 +1414,7 @@ def _host(host) -> dict:
                    "build": host.os_build, "label": host.os_label, "arch": ARCHES.get(host.arch.lower(), host.arch.lower())},
             "cpu": {"name": host.cpu_name}, "memory_bytes": host.memory_total_bytes,
             "gpus": [{"vendor": gpu.vendor, "name": gpu.name, "id": evidence.gpu_id(gpu), "driver_version": gpu.driver_version,
-                      "vram_bytes": gpu.vram_total_bytes} for gpu in host.gpus]}
+                      "vram_bytes": gpu.vram_total_bytes, "shared_memory_bytes": gpu.shared_memory_bytes} for gpu in host.gpus]}
 
 
 def _private_words() -> list[str]:

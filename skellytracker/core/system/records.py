@@ -26,6 +26,8 @@ class GpuInfo:
     the `pci.ids` database: `/usr/share/hwdata/pci.ids`, else `/usr/share/misc/pci.ids`. It is
     `None` when no file holds the ids. On macOS, `vram_total_bytes` is the IOKit value
     `VRAM,totalMB`. It is `None` for an Apple Silicon GPU, because that GPU has unified memory.
+    `shared_memory_bytes` is the shared system memory that the GPU can use: `SharedSystemMemory` of DXGI on Windows.
+    It is `None` on Linux and macOS.
     """
 
     key: str
@@ -40,6 +42,7 @@ class GpuInfo:
     luid: int | None = None
     driver_version: str | None = None
     vram_total_bytes: int | None = None
+    shared_memory_bytes: int | None = None
     nvidia: NvidiaGpuInfo | None = None
 
 
