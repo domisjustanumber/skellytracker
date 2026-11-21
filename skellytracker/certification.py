@@ -58,7 +58,7 @@ PROBE_SECONDS = 3  # not calibrated: one L3 probe
 VIDEO_SECONDS = 6  # not calibrated: `<ep>:video` of an EP with no `certification.seconds` (the catalog gives `trt-rtx` and `cuda`, with the first engine build)
 LIVE_SECONDS = 6  # not calibrated: `<ep>:live`: one more child and one more pipeline start on the EP
 CPU_REFERENCE_SECONDS = 12  # not calibrated: the CPU reference: `cpu:video` and `cpu:live` in one child
-QUICK_BUDGET_SECONDS = 75  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5)
+QUICK_BUDGET_SECONDS = 65  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5, the number of ADR-Q9R6 item 1)
 CPU_CHECKS = ("cpu:video", "cpu:live")  # the CPU reference of the run, at the two levels
 MEDIAPIPE_CHECK = "mediapipe:smoke"  # the MediaPipe smoke run of the level `quick` (ADR-X7WD item 11); it is not an EP
 MEDIAPIPE_MODULE = "MediaPipe"  # the `module` of `mediapipe:smoke` and the `name` of its `component` summary item
@@ -119,7 +119,7 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
     At the level `quick`, it also counts `mediapipe:smoke` when that check will run: the default selection,
     MediaPipe installed and no reviewed row for it (see `certify()`). The plan does not look for the model file
     of MediaPipe, because that needs an import of `mediapipe`.
-    `seconds_estimate` counts the same checks. At the level `quick` it is at most `QUICK_BUDGET_SECONDS`.
+    `seconds_estimate` counts the same checks. At the level `quick` it is at most `QUICK_BUDGET_SECONDS` (65 s).
     `details.os_known` is true when `ep_evidence.yaml` has a reviewed pass for the OS key of this system
     (`os_key()` of `core/eps/evidence.py`), for any EP, GPU and version set. The OS key is the name and the
     release of the OS, for example `Windows 11`, `Ubuntu 24.04` or `macOS 15`. An update of the OS is not a new OS
@@ -159,7 +159,7 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
 
 def certify(level: str, progress: Callable[[dict], object] | None = None, cancel=None, *,
             execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None, pipeline=None,
-            test_media_dir: str | os.PathLike | None = None) -> dict:
+            test_media_dir: str | os.PathLike | None = None, abandon=None) -> dict:
     """Run the certification checks of this package at `level`, and return the module report.
 
     - `level`: `quick` or `full`. Each other value raises `ValueError`. The level `quick` checks that
@@ -170,6 +170,12 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       10 times a second. If it raises, it gets no other message, and the run continues.
     - `cancel`: an object with `is_set()`. A set cancel stops the running child process within about a
       second. Each check that did not end is `not-run` with `cancelled`.
+    - `abandon`: an object with `is_set()`, as `cancel` (ADR-Q9R6 item 2). Use it when the caller of the run is gone,
+      for example after a crash of the application. A set abandon stops the running child as a set cancel does, and
+      the clean-up runs. Each check that did not end, and each check that a stop ended, is `not-run` with `abandoned`.
+      From the time it is set, the run stores no local result. It writes no report file and deletes no older report.
+      The returned report has an `id` with no file behind it, `evidence.valid` false and the reason `abandoned`
+      (not `cancelled`, also when `cancel` is set).
     - `execution_providers`: the EP keys to check. The default is each GPU EP of this host: each usable
       plugin EP, and also `directml` and each EP of the Windows ML catalog (the `field-test` EPs with no
       pack), and `coreml` on a Mac. An unknown or reserved key raises `EpRequestError` (a `ValueError`).
@@ -250,7 +256,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       "result": ...}`, with the result of the check when it is `pass` or `fail`. A check that is `not-run` has no item,
       as an EP that is `not-run`. With a reviewed row, the item has the result `skipped` and the reason `reviewed`.
 
-    The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` (75, not calibrated) from the
+    The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` (65, not calibrated) from the
     start of the call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
     Before each check that starts a child (the CPU reference, a probe, `<ep>:video`, `<ep>:live`, the two JPEG
     checks, `mediapipe:smoke`), a
@@ -361,16 +367,19 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
         report["checks"][-1].update(result="not-run", reason="models-missing")
     sender.estimates = {**_estimates(selected, catalog.data["certification"], full), **({MEDIAPIPE_CHECK: MEDIAPIPE_SECONDS} if smoke == "run" else {})}
     resolved = _pipeline(catalog, pipeline) if names else None  # a config that does not load raises before the start
+    stop = cancel if abandon is None else _Stop(cancel, abandon)  # the checks and the children read one object
     sender.send("starting", None, report["checks"], None)
     if names:
-        _quick(report, selected, catalog, host, sender, cancel, resolved, full, len(first), test_media_dir)
+        _quick(report, selected, catalog, host, sender, stop, resolved, full, len(first), test_media_dir, abandon)
     else:
         reasons.append("no-check")
-    if cancel is not None and cancel.is_set():
+    abandoned = abandon is not None and abandon.is_set()
+    if stop is not None and stop.is_set():
+        code = "abandoned" if abandoned else "cancelled"
         for row in report["checks"]:
-            if row["result"] is None:
-                row.update(result="not-run", reason="cancelled")
-        reasons.append("cancelled")
+            if row["result"] is None or (abandoned and row["reason"] == "cancelled"):
+                row.update(result="not-run", reason=code)
+        reasons.append(code)
     sender.send("cleaning-up", None, report["checks"], None)
     for row in report["checks"]:  # after the run: the JPEG checks of the level `full` and the `exit` checks join during it
         row["module"] = _module(row["name"])
@@ -380,7 +389,7 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
                                            "result": "skipped", "reason": "reviewed"} for _, key, _, gpu, _ in skipped])
     report = _scrub(report)
     report = {"schema": SCHEMA, "id": str(uuid.uuid4()), **report}  # after the scrub: a private word must not change the id
-    if report["checks"]:
+    if report["checks"] and not abandoned:
         from skellytracker.core.eps import certification
 
         path = certification.reports_dir() / f"{report['id']}.json"
@@ -509,6 +518,16 @@ def _marks_path(store) -> Path:
     return store.store_root() / "hand-in.json"
 
 
+class _Stop:
+    """Set when the cancel or the abandon of `certify()` is set: the one stop object of the checks and the children."""
+
+    def __init__(self, cancel, abandon):
+        self.events = [event for event in (cancel, abandon) if event is not None]
+
+    def is_set(self) -> bool:
+        return any(event.is_set() for event in self.events)
+
+
 def _check_level(level) -> None:
     if level not in LEVELS:
         raise ValueError(f"the level must be 'quick' or 'full', not {level!r}")
@@ -559,9 +578,39 @@ def _cut(problem: str | None, timeout: float, limit: float) -> str | None:
     return "over-budget" if problem == "timed-out" and timeout < limit else problem
 
 
-def _label(key: str, device_key: str | None) -> str:
-    """The name of the check of an EP on a GPU: `cuda@10de-2484-0`. It has no `:`, so each name with `:` is a part of it."""
-    return key if device_key is None else f"{key}@{device_key.removeprefix('gpu:').replace(':', '-')}"
+def check_label(execution_provider: str, device_key: str | None) -> str:
+    """The name of the check of an EP on a GPU in a report of `certify()`, for example `cuda@10de-2484-0` for the
+    device key `gpu:10de:2484:0`. It is the EP key alone with no device key. It has no `:`, so each check name with
+    `:` is a part of it."""
+    if device_key is None:
+        return execution_provider
+    return f"{execution_provider}@{device_key.removeprefix('gpu:').replace(':', '-')}"
+
+
+_label = check_label  # the old private name; the code of this module uses it
+
+
+def record_failed_pair(execution_provider: str, device_key: str) -> None:
+    """Store the result `failed` in `quick-checks.json` for the EP on the GPU of `device_key` on this system.
+
+    An application calls it when its process ended during the quick check of that pair, for example from a crash
+    record. It writes the row that a failed check of `certify()` writes, and keeps each other pair. It can never
+    store a pass. An unknown or reserved EP key, and a device key that is not a GPU of this host that the EP can
+    use, raise `EpRequestError` (a `ValueError`).
+    """
+    from skellytracker.core import errors
+    from skellytracker.core.eps import certification, evidence, store
+    from skellytracker.core.eps.catalog import load_catalog
+    from skellytracker.core.eps.recommendation import ep_gpus
+    from skellytracker.core.system.host import probe_host
+
+    catalog, host = load_catalog(), probe_host()
+    catalog.ep(execution_provider)  # an unknown or reserved key raises `EpRequestError`
+    gpu = dict(ep_gpus(catalog, execution_provider, host)).get(device_key)
+    if gpu is None:
+        raise errors.EpRequestError(f"{device_key!r} is not the device key of a GPU of this host that {execution_provider!r} can use")
+    _record(certification, store, evidence, catalog, host, execution_provider, gpu, "fail", "", (),
+            time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), {})
 
 
 def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
@@ -754,10 +803,11 @@ def _pipeline(catalog, pipeline) -> tuple[dict, str, str | None]:
 
 
 def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress, cancel, resolved: tuple,
-           full: bool = False, first: int = 0, test_media_dir: str | os.PathLike | None = None) -> None:
+           full: bool = False, first: int = 0, test_media_dir: str | os.PathLike | None = None, abandon=None) -> None:
     """Run the CPU reference, then the checks of each EP of `selected`, and more checks for each EP with `full`.
 
-    With `full`, the CPU timings run after the first `first` pairs of `selected` (`_full_order()`).
+    With `full`, the CPU timings run after the first `first` pairs of `selected` (`_full_order()`). After a set
+    `abandon`, it stores no local result.
     """
     from skellytracker.core.eps import certification, evidence, gate, store
     from skellytracker.core.system.runtime import probe_runtime
@@ -792,7 +842,7 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
                 rows[name].update(result="not-run", reason=setup)
             sender.send("running", None, report["checks"])
             continue
-        jpeg, stored = () if full else names[3:-1], {}
+        jpeg, stored, kept = () if full else names[3:-1], {}, False
         temporary = catalog.ep_status(key) == "field-test" and key not in store.field_test_opt_ins()
         if temporary:
             store.opt_in_field_test(key)
@@ -820,13 +870,15 @@ def _quick(report: dict, selected: list[tuple], catalog, host, sender: _Progress
                 rows[label].update(result="pass", reason=None)
             else:
                 rows[label].update(result="fail" if failed else "not-run", reason=(failed or not_run)["reason"])
-            if rows[label]["result"] in ("pass", "fail"):
+            # a set abandon stores nothing: a crash record can have stored the failure of this pair (ADR-Q9R6 item 2)
+            if rows[label]["result"] in ("pass", "fail") and not (abandon is not None and abandon.is_set()):
                 _record(certification, store, evidence, catalog, host, key, gpu, rows[label]["result"], pipeline_key,
                         details["eps"][label].get("models", ()), report["created_utc"],
                         stored if full else {name.rsplit(":", 1)[1]: rows[name]["result"] for name in jpeg})
+                kept = rows[label]["result"] == "pass"
             sender.send("running", None, report["checks"])
         finally:
-            if temporary and rows[label]["result"] != "pass":
+            if temporary and not kept:  # the opt-in stays only with a stored pass
                 _cleanup(report, "field-test-opt-in", lambda key=key: store.drop_field_test_opt_in(key))
     if rows.get(MEDIAPIPE_CHECK, {}).get("result", "") is None:  # after each EP check
         _mediapipe(report, settings, media, sender, cancel)

@@ -202,6 +202,11 @@ Each EP result counts on each GPU, also DirectML on a GPU that is not an AMD GPU
   suite.
 - The first run of `trt-rtx` in section 4 builds an engine. It takes longer than the next runs.
   The report records the start time.
+- On an Intel GPU, section 4 can print two error lines of DirectML with the words `device-lost`
+  and the code `0x887A0005`. They come from two checks that only record facts:
+  `preprocess_graph_amd_ep.frame_upload` and `preprocess_graph_amd_ep.output_binding_forms`. Each
+  one tries a form of DirectML memory that does not work on each GPU. The checks after them run.
+  One system with an Intel UHD Graphics 770 showed this.
 - The suite prints progress lines such as `Section 3: EP packs: install and verify ...` and
   `section 4: cuda@10de-2484-0:pipeline-3` to the terminal. Wait for the line `Report written to`.
 

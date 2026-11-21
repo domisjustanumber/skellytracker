@@ -388,6 +388,82 @@ def test_a_cancel_stops_the_cpu_reference_child_and_the_video_child(quick_host, 
     assert time.monotonic() - set_at[0] < 3 and set(results(report).values()) == {("not-run", "cancelled")}
 
 
+def report_files() -> list:
+    folder = certification.reports_dir()
+    return sorted(folder.iterdir()) if folder.exists() else []
+
+
+def test_the_quick_limit_is_65_seconds():
+    assert package_certification.QUICK_BUDGET_SECONDS == 65
+
+
+def test_an_abandon_stops_the_child_and_the_run_writes_no_report_and_stores_nothing(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    other = {"cuda|1|Windows|10de:2484": {"result": "passed"}}
+    store.write_json(store.store_root() / "quick-checks.json", other)
+    abandon = threading.Event()
+
+    def video(key, settings, modes, device_key, cancel=None, **kwargs):  # the application ends while the child runs
+        abandon.set()
+        return (None, "cancelled", None) if cancel.is_set() else (session_found(key, modes), None, 0)
+
+    fake_sessions(monkeypatch, video=video)
+    report = skellytracker.certify("quick", execution_providers=["directml"], abandon=abandon)
+    ep = "directml@10de-2484-0"
+    assert results(report) == {**CPU_ROWS, f"{ep}:probe": ("pass", None), f"{ep}:video": ("not-run", "abandoned"),
+                               f"{ep}:live": ("not-run", "abandoned"), ep: ("not-run", "abandoned")}
+    assert report["evidence"] == {"valid": False, "reasons": ["abandoned"]} and problems_of(report) == []
+    assert local_results() == other and store.field_test_opt_ins() == {} and report["cleanup"] == []
+    assert report_files() == [] and skellytracker.pending_reports() == []
+
+
+def test_an_abandon_after_the_live_check_stores_no_pass(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    abandon = threading.Event()
+
+    def jpeg(key, device_key, cancel, timeout=None):  # the application ends in the JPEG child, after `<ep>:live` passed
+        abandon.set()
+        return None, "cancelled", None
+
+    monkeypatch.setattr(package_certification, "_jpeg_spawn", jpeg)
+    report = skellytracker.certify("quick", execution_providers=["trt-rtx"], abandon=abandon)
+    assert results(report)["trt-rtx@10de-2484-0"] == ("pass", None) and "abandoned" in report["evidence"]["reasons"]
+    assert local_results() == {} and report_files() == []
+
+
+def test_an_abandon_and_a_cancel_both_set_give_abandoned_and_a_cancel_alone_keeps_its_report(quick_host, monkeypatch):
+    fake_probe(monkeypatch)
+    cancel, abandon = threading.Event(), threading.Event()
+    cancel.set()
+    abandon.set()
+    report = skellytracker.certify("quick", cancel=cancel, execution_providers=["trt-rtx"], abandon=abandon)
+    assert set(results(report).values()) == {("not-run", "abandoned")} and report["evidence"]["reasons"] == ["abandoned"]
+    assert UUID4.match(report["id"]) and report_files() == [] and local_results() == {}
+    report = skellytracker.certify("quick", cancel=cancel, execution_providers=["trt-rtx"], abandon=threading.Event())
+    assert set(results(report).values()) == {("not-run", "cancelled")} and report["evidence"]["reasons"] == ["cancelled"]
+    assert [path.stem for path in report_files()] == [report["id"]]
+
+
+def test_check_label_names_the_check_of_an_ep_on_a_gpu():
+    assert package_certification.check_label("cuda", "gpu:10de:2484:0") == "cuda@10de-2484-0"
+    assert package_certification.check_label("coreml", None) == "coreml"
+    assert package_certification._label is package_certification.check_label
+
+
+def test_record_failed_pair_stores_a_failure_keeps_the_other_pairs_and_refuses_an_unknown_key(quick_host):
+    import inspect
+
+    other = {"cuda|1|Windows|10de:2484": {"result": "passed"}}
+    pair = certification.pair_key(load_catalog(), "trt-rtx", gpu(), "Windows")
+    store.write_json(store.store_root() / "quick-checks.json", {**other, pair: {"result": "passed"}})
+    package_certification.record_failed_pair("trt-rtx", "gpu:10de:2484:0")
+    assert local_results()[pair]["result"] == "failed" and local_results() == {**other, pair: local_results()[pair]}
+    for key, device_key in (("nope", "gpu:10de:2484:0"), ("trt-rtx", "gpu:1234:5678:0"), ("cpu", "gpu:10de:2484:0")):
+        with pytest.raises(ValueError):
+            package_certification.record_failed_pair(key, device_key)
+    assert list(inspect.signature(package_certification.record_failed_pair).parameters) == ["execution_provider", "device_key"]
+
+
 def test_each_new_check_names_its_row_in_a_progress_message_before_its_child_starts(quick_host, monkeypatch):
     fake_probe(monkeypatch)
     messages, seen = [], []
@@ -498,8 +574,8 @@ def test_a_check_that_does_not_fit_in_the_budget_is_not_run_and_stores_nothing(q
     monkeypatch.setattr(package_certification.time, "monotonic", lambda: clock[0])
     monkeypatch.setattr(package_certification, "PROGRESS_INTERVAL", 0.0)
 
-    def slow_cpu(key, settings, modes, *args, **kwargs):  # the CPU reference takes 73 s: 2 s are left, less than a probe
-        clock[0] += 73.0
+    def slow_cpu(key, settings, modes, *args, **kwargs):  # the CPU reference takes 63 s: 2 s are left, less than a probe
+        clock[0] += 63.0
         return session_found(key, modes), None, 0
 
     fake_sessions(monkeypatch, cpu=slow_cpu)
@@ -520,7 +596,7 @@ def test_a_check_that_does_not_fit_in_the_budget_is_not_run_and_stores_nothing(q
     report = skellytracker.certify("quick", execution_providers=["trt-rtx"])  # one EP: the whole budget, no skip on an estimate
     found = results(report)
     assert found[f"{ep}:probe"] == ("pass", None) and found[f"{ep}:video"] == found[ep] == ("not-run", "over-budget")
-    assert timeouts == [2.0] and store.read_json(store.store_root() / "quick-checks.json") is None  # 75 s - 73 s
+    assert timeouts == [2.0] and store.read_json(store.store_root() / "quick-checks.json") is None  # 65 s - 63 s
     fake_sessions(monkeypatch, video=lambda *a, **k: (None, "timed-out", None))
     clock[0] = 1000.0
     found = results(skellytracker.certify("quick", execution_providers=["trt-rtx"]))

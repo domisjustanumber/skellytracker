@@ -1492,6 +1492,10 @@ This stage implements the node types of the pipeline spec. Use the skill
 Agents build the exporters again against the exporter kit, and add their models and pipelines
 through the model addition workflow. The stages below are the work of skellytracker in this phase.
 
+The passive record of `certify()`, its shadow comparison and the calibration of its limit are also
+work of this phase, not of 1.11 ([ADR-Q9R6](../decisions/entries/Q9R6-certify-rulings-of-2026-11-21.md) item 3;
+[certification build list](../decisions/open-work.md#certification-build-list)).
+
 ### 2.1 Delete the old YOLOX and RTMW (was Da)
 
 **Status: NOT STARTED.**

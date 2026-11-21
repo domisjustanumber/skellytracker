@@ -184,7 +184,7 @@ explain how to use them.
 
 | Signature | Result |
 |-----------|--------|
-| `certify(level, progress=None, cancel=None, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None)` | The module report, a `dict`. `level` is `quick` or `full`. |
+| `certify(level, progress=None, cancel=None, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None, abandon=None)` | The module report, a `dict`. `level` is `quick` or `full`. A set `abandon` stops the run as `cancel` does, and the run writes no report file and stores no local result. |
 | `certify_plan(level, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None)` | The plan of a `certify()` call with the same arguments, a `dict`. It loads no GPU library and downloads nothing. |
 | `pending_reports(include_handed_in=False)` | The reports of `certify()` on this host that the user did not hand in, the oldest first. |
 | `read_report(report_id)` | The module report of a row of `pending_reports()`. |
@@ -192,3 +192,17 @@ explain how to use them.
 | `note_exit_requested()` | The exit notice of an application. Call it before the process that runs the pipelines ends. |
 
 [Certifying a System](../guides/certifying-a-system) explains the levels and the report.
+
+## `skellytracker.certification`
+
+The package `skellytracker` does not export these functions. Import them from the module:
+
+```python
+from skellytracker.certification import certify_frames, check_label, record_failed_pair
+```
+
+| Signature | Result |
+|-----------|--------|
+| `certify_frames(test_media_dir=None)` | The 30 test frames of `certify()` as a `list` of JPEG `bytes`, in order. It decodes nothing and downloads nothing. A frames file that is absent or not valid raises `FramesUnavailableError`. |
+| `check_label(execution_provider, device_key)` | The name of the check of an EP on a GPU, a `str`, for example `cuda@10de-2484-0` for the device key `gpu:10de:2484:0`. With `device_key=None`, it is the EP key. |
+| `record_failed_pair(execution_provider, device_key)` | `None`. It stores the result `failed` of the quick check of the EP on that GPU on this system. It never stores a pass. An unknown EP key or device key raises `EpRequestError`, a `ValueError`. |

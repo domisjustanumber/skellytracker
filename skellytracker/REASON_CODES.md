@@ -18,7 +18,7 @@ The format owns these codes (section 5.3 of the contract).
 | `crashed` | check | The child process ended with no result. `numbers.exit_code` holds its exit code. |
 | `hung-at-exit` | check `<name>:exit` | The child process gave its result and did not end. The package stopped it. |
 | `cancelled` | check, `evidence.reasons` | The caller set `cancel`. |
-| `over-budget` | check | Level `quick`: the check did not start, because its time estimate is more than the time that is left of `QUICK_BUDGET_SECONDS`, or the end of the budget stopped its child process. Its result is `not-run`. An EP check that is `not-run` stores no result. |
+| `over-budget` | check | Level `quick`: the check did not start, because its time estimate is more than the time that is left of `QUICK_BUDGET_SECONDS` (65 s), or the end of the budget stopped its child process. Its result is `not-run`. An EP check that is `not-run` stores no result. |
 | `no-version` | `evidence.reasons` | `package.version` is not a SemVer version. |
 | `no-commit` | `evidence.reasons` | The package does not know its commit. |
 | `modified-tree` | `evidence.reasons` | The source tree had a change that the commit does not hold, or the package does not know. |
@@ -31,6 +31,7 @@ The certify suite writes `bad-output`, `not-selected` and `partial-run`.
 
 | Code | Where | Meaning |
 |---|---|---|
+| `abandoned` | check, `evidence.reasons` | The caller set `abandon`: the caller of the run is gone. Each check that a stop ended, or that did not end, is `not-run`. The run writes no report file and stores no local result. It replaces `cancelled` when both are set. |
 | `no-check` | `evidence.reasons`, check `<ep>:jpeg` | The run had no EP to check and no `mediapipe:smoke`. For example, each GPU EP of this host has a reviewed pass: that is a correct quick run. On `<ep>:jpeg`: no check of the JPEG certification passed or failed. |
 | `test-media-missing` | check `cpu:video`, `cpu:live`, `<ep>:video`, `<ep>:live`, `<ep>`, `cpu:pipeline-<n>`, `mediapipe:smoke` | The test frames file of the package (the record `core/model_zoo/test_media/quick_frames.yaml`) is absent, or its sha256 is wrong. No level downloads it. |
 | `not-gpu-ep` | check | The EP runs no model on a GPU, for example `cpu`. The quick check compares a GPU EP with the CPU EP. |
