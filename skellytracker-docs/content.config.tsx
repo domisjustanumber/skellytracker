@@ -9,9 +9,9 @@ const config: SkellyDocsConfig = {
   hero: {
     title: 'skellytracker',
     accentedSuffix: 'tracker',
-    subtitle: 'The pose-estimation backend for FreeMoCap',
+    subtitle: 'The tracking backend for FreeMoCap',
     tagline:
-      'Pose estimation tools behind one consistent Tracker → Session → Detector API',
+      'Pipelines, detectors and execution providers for keypoint tracking',
     logoSrc: '/skellytracker/img/logo.svg',
     parentProject: {
       name: 'FreeMoCap',

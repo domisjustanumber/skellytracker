@@ -1693,11 +1693,11 @@ these parts:
 
 ### Later
 
-- The docs site. `skellytracker-docs/` is a byte copy of that folder of the branch `sfn26` (commit
-  `2d356a6c`). Its pages describe the API of `sfn26`, not the API of this branch. Rewrite each page
-  for `detectors`, `pipelines` and `eps` before the site goes online. The workflow
-  `deploy-docs.yml` of `sfn26` is not here: the user decides when it lands and when GitHub Pages
-  goes on.
+- The docs site. `skellytracker-docs/` came from the branch `sfn26` (commit `2d356a6c`). Its pages
+  are rewritten for `detectors`, `pipelines`, `eps` and `certify()`. `npm ci` and `npm run build`
+  in that folder build the site, and a broken link fails the build. No person reviewed the pages.
+  The workflow `deploy-docs.yml` of `sfn26` is not here: the user decides when it lands and when
+  GitHub Pages goes on. A change of the public API must change its page in the same commit.
 - Move the ONNX files of `core/model_zoo/` to a Hugging Face repo
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5).
 - Multi-person tracking with the new pipelines: an `associate` node gives the rows an identity

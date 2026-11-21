@@ -9,77 +9,186 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # API Reference
 
-The public surface is exported from `skellytracker.core`. These are the names in
-`skellytracker.core.__all__`:
+The public API has three entry points and two top-level functions:
 
-## Pipeline
+| Module | Use it to |
+|--------|-----------|
+| `skellytracker.core.pipelines` | Load a pipeline file and run it on the frames of one or more cameras. |
+| `skellytracker.core.detectors` | Read the model catalog and make a single detector. |
+| `skellytracker.core.eps` | Select, install and check the ONNX Runtime execution providers (EPs). |
+| `skellytracker` | Run the certification checks of the package. |
 
-| Name | Role |
-|------|------|
-| `Tracker` | Top-level pipeline orchestrator |
-| `TrackerState` | Per-frame temporal state (passed in/out) |
-| `StageState` | Per-stage temporal state |
-| `DetectionStage` | Compositional pipeline step |
+This page lists only the names that the `__init__.py` file of each module exports. Each signature
+comes from the code. A plain `import skellytracker.core.pipelines`, `import skellytracker.core.detectors` or
+`import skellytracker.core.eps` loads no `onnxruntime` and no `mediapipe`.
 
-## Configuration
+## Example
 
-| Name | Role |
-|------|------|
-| `TrackerConfig` | Configures a `Tracker` (list of stages) |
-| `DetectionStageConfig` | Configures one stage |
-| `ObjectDetectorConfig` | Base object-detector config |
-| `KeypointDetectorConfig` | Base keypoint-detector config |
-| `SessionConfig` | Base session config |
+```python
+import cv2
 
-## Data primitives
+from skellytracker.core.pipelines import Frame, check_pipeline, list_pipelines, load_pipeline, start_pipeline
 
-| Name | Role |
-|------|------|
-| `Observation` | Per-frame result |
-| `StageObservation` | Per-stage slice of an `Observation` |
-| `Keypoints` | Named keypoints (`.xyz`, `.names`, `.visibility`) |
-| `BoundingBox` | Bounding-box primitive |
-| `DataStore` | Collects/serializes observations across frames |
+for entry in list_pipelines():
+    print(entry.key, entry.version, entry.available, entry.needs_execution_provider)
 
-## Detectors
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+check = check_pipeline(config)
+print([warning.code for warning in check.warnings], check.needs_execution_provider)
 
-| Name | Role |
-|------|------|
-| `ObjectDetector` / `KeypointDetector` | Detector base classes |
-| `PrecomputedObjectDetector` (+ `Config`) | Supply externally computed boxes |
-| `build_object_detector` / `build_keypoint_detector` | Build a detector from config |
-| `OBJECT_DETECTOR_REGISTRY` / `KEYPOINT_DETECTOR_REGISTRY` | Name → class registries |
+image = cv2.imread("frame.jpg")
+with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider="cpu") as run:
+    result = run.process(Frame(image, frame_index=0, timestamp_ms=0.0))
+    print(run.models["wholebody"]["execution_provider"], run.models["wholebody"]["cpu_threads"])
+    print(sorted(result))
+```
 
-## Sessions
+The pipeline `yolox-rtmw-wholebody` needs its ONNX files beside its sidecars. If a file is
+absent, `check_pipeline` gives the warning `missing_dependency` and `start_pipeline` raises
+`MissingDependencyError`.
 
-| Name | Role |
-|------|------|
-| `Session` | Backend resource manager |
-| `SessionCreationError`, `InferenceError`, `InferencePipelineError`, `VRAMExhaustionError`, `SkellytrackerSessionError` | Session error types |
+## `skellytracker.core.pipelines`
 
-## Temporal smoothing state
+### Functions
 
-| Name | Role |
-|------|------|
-| `BBoxSmoothingState` | Bounding-box smoothing state |
-| `KeypointSmoothingState` | Keypoint smoothing state |
+| Signature | Result |
+|-----------|--------|
+| `list_pipelines(user_root=None)` | `list[PipelineEntry]`: each pipeline file of the package root and of `<user root>/pipelines/`, sorted by key. An older version of a key has `superseded=True`. |
+| `get_pipeline(key, user_root=None)` | `PipelineEntry` of `<key>` (the newest version) or of the pin `<key>==<version>`. |
+| `load_pipeline(source, *, user_root=None)` | `PipelineConfig`. `source` is a key, a `Path`, a string that ends in `.yaml`, `.yml` or `.json`, or a mapping. It runs each load check, also the checks that need the sidecars. |
+| `check_pipeline(config, *, user_root=None)` | `PipelineCheck`: the warnings that are known before a start, the flag `needs_execution_provider` and the output schema. |
+| `export_pipeline(config, resolved=False, *, user_root=None)` | `dict` with JSON types only. With `resolved=True`, each param has its default. Each `onnx_model` node gets its `sidecar_sha256`. |
+| `start_pipeline(config, *, camera_ids, running_mode, execution_provider=None, ep_options=None, device=None, vram_reserve_bytes=2**30, fps=30.0, cpu_threads=None, preprocess="auto", timing_sink=None, timing="on", tap_dir=None, on_warning=None, user_root=None)` | `PipelineRun`. Each start check runs before frame 0. |
+| `to_canonical(keypoints_value, groups, *, user_root=None)` | `CanonicalKeypoints` of one `InstanceKeypoints` value, with the `groups` of its port. Use it, for example, on a value that a tap recorded. |
+| `annotate(image, result, output_schema, *, min_score=0.0)` | A copy of the BGR `image` with each output of one camera result drawn. |
+| `list_node_types()` | One `NodeTypeInfo` for each node type, in the order of the pipeline spec. |
+| `describe_port(config, port, *, user_root=None)` | Temporary. Only the legacy path of the freemocap metrics stage uses it. A planned stage deletes it. Do not use it. |
 
-## IO & annotation
+The parameters of `start_pipeline`:
 
-| Name | Role |
-|------|------|
-| `process_video` | Run a tracker over one video |
-| `process_video_list` / `process_folder` | Run batched over multiple videos |
-| `ProcessingTimer` | Profiling helper |
-| `TrackerMapping` | Named tracker presets |
-| `Annotator` | Draws landmarks/connections onto images |
+| Parameter | Description |
+|-----------|-------------|
+| `camera_ids` | The unique ids of the cameras. The running mode `image` has one camera. |
+| `running_mode` | `image`, `video` or `live`. See [Running modes](../core-concepts/running-modes). |
+| `execution_provider`, `ep_options` | The EP key and its options for each `onnx_model` node with no `execution_provider` of its own. A pipeline with no `onnx_model` node takes no EP. |
+| `device` | One GPU key or a list of GPU keys. With `None`, the run uses each GPU that the EP can use. |
+| `vram_reserve_bytes` | The VRAM that the run leaves free on each GPU. Default: 1 GiB. |
+| `fps` | Only in `video`, for a camera that gives no `timestamp_ms`. |
+| `cpu_threads` | The intra-op thread count of each session on the CPU EP `cpu`. With `None`, half of the physical cores, at least 1. |
+| `preprocess` | `auto`, `cpu` or `gpu`. See [ONNX Runtime and EPs](./onnx-runtime-and-eps#preprocess-place). |
+| `timing_sink`, `timing` | A path, an open text file or a callable for the timing lines, and `on` or `off`. See [Timing and Taps](./timing-and-taps). |
+| `tap_dir` | The folder of the taps. |
+| `on_warning` | A callable that gets each `PipelineWarning` one time. |
+| `user_root` | The user root of the model files. |
 
-:::note
-Backend session classes (`OnnxSession`, `MediaPipeSession`) and concrete detector
-configs (e.g. `RTMPoseDetectorConfig`, `YoloxPersonDetectorConfig`) are imported
-from their submodules under `skellytracker.core.detectors` / `.sessions` — see the
-[Quick Start](../getting-started/quick-start.mdx) for import paths.
-:::
+### `PipelineRun`
 
-{/* TODO(prose): expand into per-symbol signatures/fields, or wire up an
-    autodoc generator. Keep synced with core/__init__.py __all__. */}
+| Member | Description |
+|--------|-------------|
+| `process(frame)` | Run one call of a run with one camera. Returns the result of that camera. A run with more cameras raises `ValueError`. |
+| `process_batch(frames)` | Run one call. `frames` maps a camera id to a `Frame`. Returns a mapping of camera id to the result of that camera. |
+| `set_params(node_id, params)` | Set params of one node. Only a param with the mark `set_during_run` can change. |
+| `close()` | Wait for the call that runs, then free the sessions. A second call does nothing. A `with` statement calls it. |
+| `output_schema` | The schema of each output, known before frame 0. |
+| `models` | One item for each `onnx_model` node: `key`, `version`, `sidecar_sha256`, `size`, `precision`, `execution_provider`, `device` and `cpu_threads`. |
+| `warnings` | Each warning of the run: the load warnings, the start warnings and the later warnings. |
+| `camera_ids`, `running_mode` | The values of the start. |
+
+[Output Values](./output-values) gives the fields of a result.
+
+### Records
+
+| Name | Fields |
+|------|--------|
+| `Frame(image, frame_index, timestamp_ms=None, rotation_deg=None)` | `image` is a BGR `uint8` array `(H, W, 3)` or the bytes of one JPEG image. `rotation_deg` is 0, 90, 180 or 270, clockwise. |
+| `PipelineEntry` | `key`, `version`, `path`, `description`, `available`, `unavailable_reason`, `superseded`, `warnings`, `needs_execution_provider`. |
+| `PipelineCheck` | `warnings`, `needs_execution_provider`, `output_schema`. |
+| `PipelineConfig` | The Pydantic model of one pipeline file. |
+| `PipelineWarning` | `code`, `message`, `node_ids`, `details`. |
+| `CanonicalKeypoints` | The delivered value of `wholebody` and `holistic`. |
+| `OutputBoxes` | The delivered value of `boxes`. |
+| `InstanceKeypoints`, `InstanceBoxes` | The value of a `keypoints` port and of a `boxes` port. The taps hold these values. |
+
+### Errors
+
+| Name | Base | Raised when |
+|------|------|-------------|
+| `PipelineNotFoundError` | `KeyError` | The catalog has no pipeline with the key, or no pipeline with the pinned version. |
+| `PipelineUnavailableError` | `RuntimeError` | The file of the key does not load, or two files have the same key and version. |
+| `MissingDependencyError` | `RuntimeError` | A node that runs needs an extra that is not installed, or an ONNX file that is absent. |
+| `CallRefusedError` | `ValueError` | The run refuses a `process` or `process_batch` call. The call changes no state. `rule` gives the rule ID. |
+| `SetParamsRefusedError` | `ValueError` | A `set_params` call breaks `V-pipeline.running-10`. The call changes no param. |
+| `RunClosedError` | `RuntimeError` | A call comes after `close()`. |
+
+A config or a parameter that fails a rule raises `ValueError`. The message holds the rule ID. The
+errors of `eps` pass through `start_pipeline`: `EpRequestError`, `EpUnavailableError`,
+`SessionCreationError` and `VRAMExhaustionError`. These four errors are in `skellytracker.core.errors`.
+
+## `skellytracker.core.detectors`
+
+| Signature | Result |
+|-----------|--------|
+| `list_detectors(user_root=None, *, full_hash=False)` | `list[DetectorEntry]`: the sidecars of the roots, then the entries with no sidecar. |
+| `get_detector(key, user_root=None, *, full_hash=False)` | `DetectorEntry` of `<key>` or of the pin `<key>==<version>`. |
+| `describe_detector(key, user_root=None, *, full_hash=False)` | `DetectorDescription`: the sizes, the precisions, the ports, the params and the point names of one entry. |
+| `load_detector_sidecar(key, user_root=None)` | The spec model of the sidecar of an `onnx` entry. It reads no ONNX file. |
+| `create_detector(key, **options)` | The detector of a catalog entry. See [Detectors](../core-concepts/detectors). |
+
+| Record | Fields |
+|--------|--------|
+| `DetectorEntry` | `key`, `category` (`onnx`, `mediapipe` or `calibration`), `display_name`, `available`, `unavailable_reason`, `version`, `superseded`, `role`, `sections`, `sidecar_path`, `sidecar_root`, `sidecar_sha256`, `artifacts`. |
+| `ArtifactEntry` | One ONNX file of a model: one size and one precision. |
+| `DetectorDescription` | `entry`, `sizes`, `ports`, `params`, `point_names`. |
+
+| Error | Base | Raised when |
+|-------|------|-------------|
+| `DetectorNotFoundError` | `KeyError` | The catalog has no entry with the key, or no entry with the pinned version. |
+| `DetectorUnavailableError` | `RuntimeError` | The entry cannot load. The message names the cause. |
+
+The module also exports the old detector contract: `KeypointDetector`, `ObjectDetector`,
+`KEYPOINT_DETECTOR_REGISTRY`, `OBJECT_DETECTOR_REGISTRY`, `build_keypoint_detector`,
+`build_object_detector`, `PrecomputedObjectDetector`, `PrecomputedObjectDetectorConfig`,
+`KeypointBoundingBoxDetector` and `KeypointBoundingBoxDetectorConfig`. Only the old run code uses
+these names. A planned stage deletes them. Do not use them in new code.
+
+## `skellytracker.core.eps`
+
+| Signature | Result |
+|-----------|--------|
+| `status()` | `EpStatus`: the state of each EP key of this platform, the recommendations and the EP store. It loads no library. |
+| `recommend(form, host=None)` | `EpRecommendation` for the form `performance` or `accuracy`. |
+| `suggest_execution_provider(saved_execution_provider)` | The EP key to use on this host for an EP key that a setting of an older release holds, or `None`. |
+| `check_start(execution_provider, ep_options=None, device=None)` | `tuple[RunDevice, ...]`: the GPUs of a run. It raises when the EP cannot start. |
+| `run_devices(execution_provider, device=None)` | `tuple[RunDevice, ...]`: the GPUs that a run on a GPU EP uses. |
+| `select_precision(execution_provider, artifact_keys)` | `fp16` on a GPU EP when the model has an `fp16` artifact, else `fp32`. |
+| `build_session(model, *, execution_provider, ep_options=None, device_key=None, model_ref=None, cpu_threads=None)` | `(onnxruntime.InferenceSession, SessionReport)`. |
+| `plan_install(selection, index_url=None, *, field_test=False)` | `InstallPlan`. |
+| `install(plan, *, progress=None, cancel=None, from_dir=None, verify=True)` | `InstallResult`. |
+| `download(keys, platform, dest)` | `Path`: the wheels of packs, for an install from a folder. |
+| `remove(pack_id=None, *, consumer=None, execution_provider=None)` | `RemoveResult`. |
+| `gc(*, force=False, cache=False, now=None)` | `GcResult`. |
+| `verify(keys=None, *, level="L3", device_key=None, force=False, cancel=None, timeout=180.0)` | `tuple[Verdict, ...]`: the verdict of each EP, from a check in a child process. |
+| `selftest(index_url=None)` | `SelftestResult`: the EP pack test of CI. |
+| `ensure_registered(ep_key)` | `RegisteredEp`. |
+| `load_catalog()` | `EpCatalog`. |
+| `store_root()` | `Path` of the EP store. |
+
+The records are frozen dataclasses: `DeviceCheck`, `EpCandidate`, `EpCatalog`,
+`EpRecommendation`, `EpStatus`, `GcResult`, `InstallOffer`, `InstallPlan`, `InstallProgress`,
+`InstallResult`, `ModelRef`, `PackStatus`, `PlannedPack`, `RecommendationSource`, `RegisteredEp`,
+`RemoveResult`, `RunDevice`, `SelftestResult`, `SessionReport`, `Verdict` and `WheelRef`.
+[ONNX Runtime and EPs](./onnx-runtime-and-eps) and [Execution Providers](../core-concepts/execution-providers)
+explain how to use them.
+
+## `skellytracker`
+
+| Signature | Result |
+|-----------|--------|
+| `certify(level, progress=None, cancel=None, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None)` | The module report, a `dict`. `level` is `quick` or `full`. |
+| `certify_plan(level, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None)` | The plan of a `certify()` call with the same arguments, a `dict`. It loads no GPU library and downloads nothing. |
+| `pending_reports(include_handed_in=False)` | The reports of `certify()` on this host that the user did not hand in, the oldest first. |
+| `read_report(report_id)` | The module report of a row of `pending_reports()`. |
+| `mark_reports(report_ids, state, *, reference=None)` | Sets the hand-in state: `pending`, `opened` or `covered`. |
+| `note_exit_requested()` | The exit notice of an application. Call it before the process that runs the pipelines ends. |
+
+[Certifying a System](../guides/certifying-a-system) explains the levels and the report.

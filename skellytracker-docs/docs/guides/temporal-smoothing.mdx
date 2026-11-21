@@ -9,52 +9,111 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Temporal Smoothing
 
-Tracking across frames uses temporal state (held in
-[`TrackerState`](../core-concepts/tracker-state.mdx)) to stabilize both the
-bounding boxes that crop each subject and the keypoints estimated inside them.
+Three glue nodes use the time between frames: `smooth_boxes`, `smooth_keypoints` and
+`redetect_trigger`. They take the time step from `timestamp_ms`. Each node keeps a separate state
+for each camera. In the running mode `image`, each `@prev` value is empty and the run uses no
+`timestamp_ms`.
 
-## Bounding-box policy
+## `smooth_boxes`
 
-The bounding-box policy controls how the crop for the next frame is derived from
-the current detection and keypoints, with smoothing to keep it from jittering or
-collapsing.
+`smooth_boxes` smooths the box of each row over time. A stable crop gives more stable keypoints.
 
-The body and shared hand presets filter crop corners with `BBoxSmoothingConfig`:
+| Param | Default | Set during run | Description |
+|---|---|---|---|
+| `filter` | `ema` | no | `ema` or `one_euro`. |
+| `previous_weight` | `0.5` | yes | `ema`: the weight of the previous box. `0` passes the input through. |
+| `min_cutoff` | `3.0` | yes | `one_euro`: the minimum cutoff frequency, in Hz. |
+| `beta` | `0.02` | yes | `one_euro`: the speed coefficient, in Hz per px/s. |
+| `d_cutoff` | `1.0` | yes | `one_euro`: the cutoff frequency of the derivative, in Hz. |
+| `reset_after_ms` | `500.0` | no | `one_euro`: start the filter again after this time with no box. |
+
+The built-in pipeline `yolox-rtmw-wholebody` has the node `crop` with
+`{filter: one_euro, min_cutoff: 3.0, beta: 0.02, d_cutoff: 1.0, reset_after_ms: 500}`.
+
+## `smooth_keypoints`
+
+`smooth_keypoints` filters the points of each row over time, with a One Euro filter or a
+constant-velocity Kalman filter.
+
+| Param | Default | Set during run | Description |
+|---|---|---|---|
+| `filter` | `one_euro` | no | `one_euro` or `kalman`. |
+| `min_cutoff` | `1.0` | yes | `one_euro`: the minimum cutoff frequency, in Hz. |
+| `beta` | `0.0` | yes | `one_euro`: the speed coefficient, in Hz per px/s. |
+| `d_cutoff` | `1.0` | yes | `one_euro`: the cutoff frequency of the derivative, in Hz. |
+| `process_noise_pos` | `30.0` | yes | `kalman`: the process noise of the position, in px² per second. |
+| `process_noise_vel` | `2700.0` | yes | `kalman`: the process noise of the velocity, in (px/s)² per second. |
+| `measurement_noise` | `10.0` | yes | `kalman`: the measurement noise, in px². |
+| `max_gap_ms` | none | no | Hold the last value of a missing point for this time. |
+| `max_velocity` | none | yes | Refuse a point that moves faster than this, in pixels per second. |
+| `reset_after_ms` | none | no | Clear the filter state of a row after this time with no valid point. |
+
+- The node changes only x and y. The scores pass through.
+- A file must not write a param of the other filter.
+- No built-in pipeline has this node.
+- A `smooth_keypoints` node after the last `onnx_model` node does not make the pipeline stateful.
+
+## `redetect_trigger`
+
+`redetect_trigger` decides on each frame if a detector must run again. An `onnx_model` node with
+`run_if: <trigger>.redetect` runs only when the flag is true.
+
+- `redetect_interval` (default `1`, set during run): ask for a new detection at least each this
+  many frames.
+- `fitness_checks`: checks on the previous frame that ask for a new detection. The checks are
+  `min_keypoint_score`, `keypoints_within_bbox_ratio`, `max_frames_without_redetect`,
+  `bbox_area_collapse` and `box_missing`.
+
+The built-in pipeline `yolox-rtmw-wholebody` uses `redetect_interval: 150`, `box_missing` and
+`bbox_area_collapse`.
+
+## Change the smoothing
+
+A run takes no overrides of the config. Load the config, change it, and give the changed config to
+the run. During a `live` run, `set_params` changes a param that is marked "set during run".
 
 ```python
-BBoxSmoothingConfig(min_cutoff=3.0, beta=0.02, d_cutoff=1.0, reset_after_seconds=0.5)
+from pathlib import Path
+
+from skellytracker.core.pipelines import Frame, export_pipeline, load_pipeline, start_pipeline
+
+data = export_pipeline(load_pipeline("yolox-rtmw-wholebody@skellytracker"))
+
+# A slower box filter: less jitter, more lag.
+crop = next(node for node in data["nodes"] if node["id"] == "crop")
+crop["params"]["min_cutoff"] = 1.5
+
+# Smooth the points after the last model. This node does not make the pipeline stateful.
+data["nodes"].append({
+    "id": "smooth",
+    "type": "smooth_keypoints",
+    "inputs": {"keypoints": "wholebody.keypoints"},
+    "params": {"filter": "one_euro", "min_cutoff": 1.0, "beta": 0.0, "max_gap_ms": 200.0},
+})
+data["outputs"]["wholebody"] = "smooth.keypoints"
+config = load_pipeline(data)
+
+jpegs = [path.read_bytes() for path in sorted(Path("frames").glob("*.jpg"))]
+with start_pipeline(config, camera_ids=[0], running_mode="live", execution_provider="cpu") as run:
+    for index, jpeg in enumerate(jpegs):
+        result = run.process(Frame(jpeg, frame_index=index, timestamp_ms=index * 33.3))
+        if index == 10:
+            run.set_params("crop", {"beta": 0.05})       # live only: a param marked "set during run"
+print(result["wholebody"].xy[0, 0])
 ```
 
-Cutoffs are in Hz. Lower minimum cutoff reduces jitter with more lag; beta raises
-the cutoff during motion. These are starting defaults, not a quality optimum.
-The hand crop uses three times the larger wrist-to-index/pinky-tip distance.
-It adds no further percentage margin.
+## Frame time
 
-Provide source `timestamp_ms`, not inference-completion time. Each camera/stage
-has separate filter history and reusable NumPy corner buffers. Missing crops
-and gaps longer than `reset_after_seconds` reset that history. Missing, repeated,
-or backwards timestamps bypass/reset smoothing; they do not invent an interval.
-Reported boxes describe the exact clipped pixel rectangle passed to detection.
-
-
-## Keypoint filtering
-
-Keypoints can be smoothed with filters (e.g. one-euro / Kalman) to reduce
-frame-to-frame noise.
-
-{/* TODO(prose): document keypoint filtering config and options.
-    SOURCE: core/temporal_processing/keypoint_filtering.py; arch 09 (keypoint-smoothing sections). */}
-
-## Keypoint reset policy
-
-A reset policy determines when a keypoint detector's temporal state is cleared
-(for example when a subject is lost) so tracking recovers cleanly.
-
-{/* TODO(prose): document the reset policy and how to enable it.
-    SOURCE: core/temporal_processing/keypoint_reset_policy.py;
-    rearchitecture-docs/skellytracker-architecture/KEYPOINT_RESET_POLICY_GUIDE.md. */}
+- In `live`, each frame must have a `timestamp_ms`. A good source is the capture clock of the
+  camera.
+- The `timestamp_ms` of a camera must increase from frame to frame. Else the call raises
+  `CallRefusedError`.
+- In `video`, a camera with no `timestamp_ms` gets `frame_index × 1000 / fps`.
 
 ## See also
 
-- [BBox Policy Reference](../technical/bbox-policy-reference.mdx)
-- [Tracker State](../core-concepts/tracker-state.mdx)
+- [Running Modes](../core-concepts/running-modes)
+- [Pipeline Overview](../core-concepts/pipeline-overview)
+- The node sections [smooth_boxes](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/nodes/smooth_boxes.md),
+  [smooth_keypoints](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/nodes/smooth_keypoints.md) and
+  [redetect_trigger](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/nodes/redetect_trigger.md).

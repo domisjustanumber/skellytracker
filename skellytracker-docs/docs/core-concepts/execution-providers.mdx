@@ -1,0 +1,156 @@
+---
+title: Execution Providers
+sidebar_position: 5
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Execution Providers
+
+An `onnx_model` node runs on ONNX Runtime. An execution provider (EP) is the ONNX Runtime backend
+that runs the model, for example on the CPU or on a GPU. The entry point is
+`skellytracker.core.eps`.
+
+## EP keys
+
+The caller gives a concrete EP key as `execution_provider`. No environment variable selects the EP
+or the device.
+
+| Key | Runs on | Comes from |
+|---|---|---|
+| `trt-rtx` | NVIDIA GPUs from the RTX 30 series | A plugin EP pack |
+| `cuda` | NVIDIA GPUs from the GTX 16 and RTX 20 series | A plugin EP pack |
+| `coreml` | Apple silicon | A part of ONNX Runtime on macOS |
+| `amdgpu` | AMD GPUs on Windows. Field test. | The Windows ML catalog |
+| `migraphx` | AMD GPUs. Field test. | Linux: a plugin EP pack. Windows: the Windows ML catalog. |
+| `directml` | DirectX 12 GPUs on Windows. Field test. | A part of the Windows ML build of ONNX Runtime |
+| `cpu` | The processor of each system | A part of ONNX Runtime |
+
+`trt`, `openvino`, `qnn` and `vitisai` are reserved keys. A request for a reserved key fails with
+the reason.
+
+## Run a pipeline on an EP
+
+- `start_pipeline(config, ..., execution_provider="cpu")` gives the EP of each `onnx_model` node
+  that has no `execution_provider` of its own.
+- A pipeline with an `onnx_model` node needs an EP. `PipelineEntry.needs_execution_provider` tells
+  you this before a start.
+- A pipeline with no `onnx_model` node must not get an EP. A `mediapipe_tasks` node never uses an
+  EP.
+- `ep_options` is a mapping of option names to string values. The EP catalog lists the allowed
+  options of each EP. Each other option is refused.
+- `device` is one GPU key or a list of GPU keys. With no `device`, the run uses each GPU that the
+  EP can use.
+- A run never uses another EP than the requested EP. An EP that is not available, or that does
+  not start, stops the start before frame 0.
+- `run.models` gives, for each `onnx_model` node, the EP key, the device and the CPU thread count
+  that its session uses.
+
+## The recommended EP
+
+`recommend(form)` gives a concrete EP key with its options. The caller gives them to a run.
+
+```python
+from skellytracker.core import eps
+
+for pack in eps.status().eps:
+    print(pack.key, pack.state, pack.usable, pack.uses_gpu, pack.install_hint)
+
+choice = eps.recommend("performance")
+print(choice.chosen.ep_key, choice.chosen.device_key, choice.precision, dict(choice.options))
+for skipped in choice.skipped:
+    print("skipped", skipped.ep_key, skipped.status, skipped.reason)
+
+print(eps.recommend("accuracy").chosen.ep_key)    # always cpu
+print([device.device_key for device in eps.run_devices("cpu")])   # [] : cpu uses no GPU
+```
+
+- `performance` gives the first EP of the hardware class of the system that can start now.
+  `skipped` names each candidate before it, with the reason.
+- `accuracy` gives `cpu` with `fp32` on each system.
+- `recommend()` reads a table of hardware classes in the EP catalog. It runs no benchmark, loads no
+  ONNX Runtime library and uses no network.
+- `recommend()` never gives a field-test EP.
+- `chosen.device_key` is the GPU with the most VRAM that the EP can use. On a tie, it is the GPU
+  with the lowest PCI bus id.
+
+The same information is on the command line:
+
+```sh
+uv run skellytracker-eps status
+uv run skellytracker-eps recommend
+```
+
+To start a run on the recommended EP:
+
+```python
+from skellytracker.core import eps
+from skellytracker.core.pipelines import load_pipeline, start_pipeline
+
+choice = eps.recommend("performance")
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+run = start_pipeline(
+    config, camera_ids=[0], running_mode="live",
+    execution_provider=choice.chosen.ep_key, ep_options=dict(choice.options),
+)
+print(run.models["wholebody"]["execution_provider"], run.models["wholebody"]["device"])
+run.close()
+```
+
+## EP packs and the EP store
+
+The base package includes ONNX Runtime 1.30.0. It gives the CPU EP, the CoreML EP on macOS and the
+DirectML EP on Windows. A GPU EP for an NVIDIA GPU is a plugin EP pack. A pack is not a dependency
+of the package.
+
+- `skellytracker-eps install` puts a pack in the EP store. A download starts only after this
+  command. See [GPU Setup](../guides/gpu-setup).
+- The EP store is the folder `eps` in the user data folder of skellytracker.
+  `SKELLYTRACKER_EP_STORE` sets a different folder. Each application of the user shares one store.
+- `status()` gives one `PackStatus` for each EP of this platform. `PackStatus.usable` is true when a
+  run can use the EP now. `PackStatus.install_hint` gives the command that installs or repairs the
+  pack, or `None`.
+
+## Field-test EPs
+
+`directml`, `amdgpu` and `migraphx` are in a field test. A field-test EP is usable only after an
+opt-in in the EP store. These actions record the opt-in:
+
+- `skellytracker-eps install KEY --field-test`;
+- a passed quick check of `skellytracker.certify()` on that EP.
+
+Without the opt-in, the state of the EP is `field_test`, and a request for it fails.
+
+## The check rule
+
+An EP runs on a GPU only when one of these is true:
+
+- the project has a reviewed certification report for the EP, the GPU model, the OS and the
+  version set of this release;
+- a quick check of `skellytracker.certify()` passed for the EP on this system.
+
+An EP never runs on a GPU after a quick check that failed there. The rule also applies to `coreml`,
+with the chip of the Mac. The rule has no setting. Two unclean process exits in a row, while a GPU
+session was open, also mark the EP as failed on this system. A passed quick check removes the mark.
+An application must call `skellytracker.note_exit_requested()` before it ends its process.
+
+A start that the rule refuses raises `EpUnavailableError` with the quick-check command.
+`PackStatus.checks` gives the state for each GPU, and `recommend()` skips such an EP. See
+[Certifying a System](../guides/certifying-a-system).
+
+## Errors
+
+| Error | When |
+|---|---|
+| `EpRequestError` | A reserved or unknown EP key, or a refused option. |
+| `EpUnavailableError` | The EP is not available on this system, or the check rule refuses it. |
+| `MissingDependencyError` | A node needs an extra or an ONNX file that is absent. |
+| `SessionCreationError` | A session was not created. |
+| `VRAMExhaustionError` | The GPU memory is exhausted. A run is then closed. |
+
+## See also
+
+- [GPU Setup](../guides/gpu-setup)
+- [ONNX Runtime and EPs](../technical/onnx-runtime-and-eps)

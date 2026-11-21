@@ -9,30 +9,112 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # GPU Setup
 
-The ONNX-based trackers (RTMPose, YOLOX) run through ONNX Runtime, and the
-execution provider is selected per session.
+The base package runs each `onnx_model` node on the CPU. On macOS, it can also run on CoreML. A GPU
+EP for an NVIDIA GPU is a plugin EP pack. The command `skellytracker-eps` installs a pack in the EP
+store. [Execution Providers](../core-concepts/execution-providers) explains the EP keys.
 
-## Execution providers
+## What each GPU needs
 
-| Provider | Hardware | Extra |
-|----------|----------|-------|
-| `cuda` | NVIDIA GPU (CUDA 12 + cuDNN 9) | `onnx-cuda` |
-| `trt` | NVIDIA GPU (CUDA 12 + TensorRT) — fastest | `onnx-trt` |
-| `directml` | Any GPU on Windows (AMD/Intel/NVIDIA) | `onnx-directml` |
-| CoreML | Apple Silicon (macOS) | `onnx-cpu` |
-| `cpu` | Any platform (fallback) | `onnx-cpu` |
+| EP key | GPU | Driver |
+|---|---|---|
+| `trt-rtx` | NVIDIA, compute capability 8.0 or higher (RTX 30 series or newer) | R580 or later on Windows, R590 or later on Linux |
+| `cuda` | NVIDIA, compute capability 7.5 or higher (GTX 16 and RTX 20 series or newer) | R580 or later |
+| `coreml` | Apple silicon | No driver. No download. |
+| `directml` | A DirectX 12 GPU on Windows | No download. Field test: it needs an opt-in. |
+| `amdgpu` | AMD on Windows | An AMD driver 24.12.1 or later. Field test. |
+| `migraphx` | AMD | Linux: ROCm 10.0, 10.1 or 10.2. The pack installs no ROCm. Field test. |
 
-On Windows, skellytracker bundles the NVIDIA runtime DLLs as pip packages and
-preloads them, so a separate CUDA Toolkit / cuDNN system install is not required.
-The first TensorRT run compiles engines (1–5 min) and caches them afterward.
+- The NVIDIA packs use CUDA 13. You do not need a CUDA toolkit: the packs hold their libraries.
+- An NVIDIA GPU older than Turing runs on the CPU only.
+- A plain install or `uv sync` gives the CPU core. It does not change the EP store.
 
-{/* TODO(prose):
-    - Port the repo's GPU_SETUP_GUIDE.md (skellytracker/GPU_SETUP_GUIDE.md).
-    - Show how the provider is chosen (OnnxSessionConfig / RTMPoseDetectorConfig.resolved_provider /
-      ExecutionProviderName; SOURCE: core/sessions/execution_provider_name.py).
-    - Confirm the provider/extra mapping against pyproject.toml + code. */}
+## Install an NVIDIA pack
+
+1. Look at the EP state of this system. This command uses no network.
+
+   ```sh
+   uv run skellytracker-eps status
+   ```
+
+2. Look at the install plan and its download size.
+
+   ```sh
+   uv run skellytracker-eps install --dry-run
+   ```
+
+3. Install each pack that a GPU of this system can run, or one pack.
+
+   ```sh
+   uv run skellytracker-eps install
+   uv run skellytracker-eps install cuda
+   ```
+
+- A download starts only after the install command. skellytracker never downloads a pack in the
+  background.
+- `install` shows the download size and a licence link for each pack. Then it asks one question.
+  `--yes` answers it. With no terminal and no `--yes`, the command stops with exit code 2.
+- After the install, a child process registers the pack and runs a trial session on a small model.
+- An install of `cuda` or `trt-rtx` also installs the GPU JPEG decoder component. A failed install
+  of the component is a warning, not a failure. Without the component, the run decodes JPEG frames
+  on the CPU.
+
+## Opt in to a field-test EP
+
+```sh
+uv run skellytracker-eps install directml --field-test
+```
+
+- `directml` needs no download. `--field-test` only records the opt-in in the EP store.
+- For `amdgpu`, and for `migraphx` on Windows, `install` asks one question. Then Windows downloads
+  and installs the package of the Windows ML catalog.
+- Without the opt-in, a request for the EP fails with exit code 3. No other EP runs in its place.
+
+## Run the quick check
+
+A GPU EP runs on a GPU only after a reviewed certification report or a passed quick check on this
+system. When the project has no reviewed result for the EP on your GPU model, `status` tells you.
+`PackStatus.reason_code` is then `quick-check-needed`. Run the quick check of the EP:
+
+```sh
+uv run skellytracker-eps certify cuda
+```
+
+[Certifying a System](../guides/certifying-a-system) explains the check and its report.
+
+## Install with no network
+
+```sh
+uv run skellytracker-eps download cuda --platform win_amd64 --dest wheels   # on a system with a network
+uv run skellytracker-eps install cuda --from-dir wheels                     # on the target system
+```
+
+The platform tags are `win_amd64` and `manylinux_x86_64`. The sha256 of each wheel must agree with
+the EP catalog. `skellytracker-eps doctor` shows the proxy, the trust store and if each index is
+reachable.
+
+## The EP store
+
+- The store is the folder `eps` in the user data folder of skellytracker.
+- `SKELLYTRACKER_EP_STORE` sets a different folder for the whole process.
+- On Windows, a file path of a pack must have fewer than 240 characters. If `install` refuses the
+  store path, set `SKELLYTRACKER_EP_STORE` to a shorter folder.
+- `skellytracker-eps gc` deletes the packs that no consumer needs.
+- `skellytracker-eps remove <pack_id>` deletes one pack.
+
+## Exit codes of `skellytracker-eps`
+
+| Code | Meaning |
+|---|---|
+| 0 | OK |
+| 1 | Failure |
+| 2 | Usage error, no confirmation, a reserved or unknown EP key, or a refused option |
+| 3 | An EP is not available |
+| 4 | A session was not created |
+| 5 | The GPU memory is exhausted |
+| 6 | Cancelled |
 
 ## See also
 
-- [Installation](../getting-started/installation.mdx)
-- [ONNX Batching & CoreML](../technical/onnx-batching-and-coreml.mdx)
+- [Execution Providers](../core-concepts/execution-providers)
+- [ONNX Runtime and EPs](../technical/onnx-runtime-and-eps)
+- [Installation](../getting-started/installation)

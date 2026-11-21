@@ -6,7 +6,7 @@
   "link": {
     "type": "generated-index",
     "title": "Guides",
-    "description": "Task-oriented how-tos for configuring hardware, tuning tracking quality, running multi-camera batches, and extending skellytracker.",
+    "description": "Procedures: choose a pipeline, set up a GPU, smooth the results, run many cameras, certify a system and extend skellytracker.",
     "slug": "guides"
   }
 }

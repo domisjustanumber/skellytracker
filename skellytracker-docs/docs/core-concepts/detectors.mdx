@@ -1,6 +1,6 @@
 ---
 title: Detectors
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 import { AiGeneratedBanner } from '@freemocap/skellydocs';
@@ -9,48 +9,120 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Detectors
 
-skellytracker keeps two primitive detection units separate because they answer
-different questions:
+A detector is one model that you can run by itself, with no pipeline. The detector catalog lists
+each detector of this system. The entry point is `skellytracker.core.detectors`.
 
-- **`ObjectDetector`** — *where is the subject?* Produces bounding boxes used to
-  crop a region of interest.
-- **`KeypointDetector`** — *what is the subject doing?* Estimates named keypoints
-  within an image (or a crop).
+To track a person in a video or on a camera, use a pipeline. See
+[Pipeline Overview](../core-concepts/pipeline-overview).
 
-Splitting them means you can swap a person detector without touching keypoint
-estimation, and vice versa.
+## The catalog
 
-## Available backends
+Each entry has a key and a category:
 
-| Kind | Backend | Location |
-|------|---------|----------|
-| Object detector | YOLOX (person) | `core/detectors/object_detectors/yolox` |
-| Object detector | Precomputed (supply your own boxes) | `core/detectors/object_detectors/precomputed` |
-| Keypoint detector | MediaPipe — pose / hands / face | `core/detectors/keypoint_detectors/mediapipe` |
-| Keypoint detector | RTMPose — body / face / hand / wholebody | `core/detectors/keypoint_detectors/rtmpose` |
-| Keypoint detector | Aruco markers | `core/detectors/keypoint_detectors/aruco` |
-| Keypoint detector | Charuco board | `core/detectors/keypoint_detectors/charuco` |
+| Category | What it is | Keys of this version |
+|---|---|---|
+| `onnx` | An ONNX model with a sidecar | `yolox-person@openmmlab-exporter`, `rtmw-wholebody133@openmmlab-exporter` |
+| `mediapipe` | A MediaPipe model. Only the pipeline node `mediapipe_tasks` runs it. | `mediapipe_pose@skellytracker`, `mediapipe_hand@skellytracker`, `mediapipe_face@skellytracker` |
+| `calibration` | An OpenCV board or marker detector | `charuco@skellytracker`, `aruco@skellytracker` |
 
-{/* TODO(prose): confirm this table against core/detectors/ before finalizing; note
-    which need which install extras; link each backend's config class. */}
+To list the catalog, run:
 
-## Registries
-
-Detectors are registered so they can be built from config by name:
-
-```python
-from skellytracker.core import (
-    KEYPOINT_DETECTOR_REGISTRY, OBJECT_DETECTOR_REGISTRY,
-    build_keypoint_detector, build_object_detector,
-)
+```sh
+uv run skellytracker detectors
+uv run skellytracker describe yolox-person@openmmlab-exporter
 ```
 
-{/* TODO(prose): document the registry key strings and the build_* signatures
-    (SOURCE: core/detectors/__init__.py, detector_base_classes.py). */}
+## Sidecars
+
+A sidecar is one YAML file beside one or more ONNX files. It gives the runtime contract of one
+model family: the input tensor, the normalization, the resize, the batch, the output semantics and
+the decode. One sidecar lists each size of the model, and each precision of each size.
+
+- The key of a sidecar is `<model_id>@<source.name>`. `<key>==<version>` pins a version.
+- The catalog reads the sidecars of the package folder `skellytracker/core/model_zoo/` and of the
+  user root. The user root is the argument `user_root`, else `SKELLYTRACKER_USER_ROOT`, else the
+  folder `models` in the user data folder of skellytracker.
+- An ONNX file is available when it is present with the `sha256` of its sidecar. A file with a
+  different SHA-256 is unavailable.
+- An artifact with a `url` and no file is also available. skellytracker downloads it when a
+  session needs it.
+
+The [sidecar spec](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/README.md)
+gives the full format.
+
+## Make a detector
+
+`create_detector(key, **options)` is the one public factory.
+
+```python
+import cv2
+
+from skellytracker.core.detectors import create_detector, describe_detector, list_detectors
+
+for entry in list_detectors():
+    print(entry.key, entry.version, entry.category, entry.available)
+
+description = describe_detector("yolox-person@openmmlab-exporter")
+print(description.sizes)
+
+image = cv2.imread("image.jpg")
+
+person = create_detector("yolox-person@openmmlab-exporter", execution_provider="cpu", size="m")
+detections = person.detect([image])[0]             # one ObjectDetections for each image
+print(detections.boxes, detections.scores)        # (N, 4) xyxy in source pixels, (N,)
+person.close()
+
+board = create_detector("charuco@skellytracker", board={"squares_x": 7, "squares_y": 5, "square_length_mm": 58.0})
+corners = board.detect(image)                     # a Keypoints value: names, xyz, visibility
+print(len(corners.names), corners.xyz.shape, int(corners.visibility.sum()))
+board.close()
+```
+
+### ONNX detectors
+
+An `onnx` key needs `execution_provider`: a key of the EP catalog, for example `cpu`. See
+[Execution Providers](../core-concepts/execution-providers).
+
+| Option | Default | Description |
+|---|---|---|
+| `execution_provider` | required | The EP key. |
+| `size` | the first size of the sidecar | The model size, for example `m`. |
+| `precision` | `fp32` | `fp32` or `fp16`. |
+| `batch` | the batch of the sidecar | The batch of the session. |
+| `ep_options` | none | The EP options, all strings. |
+| `device_key` | the GPU with the most VRAM | The GPU of the session. |
+| `cpu_threads` | half of the physical cores, at least 1 | The thread count of a session on the EP `cpu`. |
+
+- An object detector returns one `ObjectDetections` for each image: `boxes` `(N, 4)` as
+  `x1, y1, x2, y2` in source pixels, `scores` `(N,)` and `class_indices` `(N,)`.
+- A top-down keypoint detector takes the images and one ROI `(cx, cy, w, h, rotation)` for each
+  image. It returns `KeypointDetections`: `keypoints` `(N, P, 2)` in source pixels, `scores` and `raw_scores`
+  `(N, P)`. A missing point has NaN coordinates and the score 0.
+- A detector keeps no state between calls.
+
+### Calibration detectors
+
+The result has `detect(image)` and `close()`. `detect` takes one BGR or grey `uint8` image and
+returns a `Keypoints` value with `names`, `xyz` and `visibility`. A point that is not found has NaN
+coordinates and the visibility 0.
+
+| Key | Options |
+|---|---|
+| `charuco@skellytracker` | `board`: a `CharucoBoardDefinition` or a mapping with `squares_x`, `squares_y`, `square_length_mm`, and the optional `marker_length_ratio` (default 0.8) and `aruco_dictionary_enum`. With no `board`, the board is the 5x3 board with 54 mm squares. |
+| `aruco@skellytracker` | `aruco_ids` (default `(0, 1, 2, 3)`) and `aruco_dictionary_enum` (default `cv2.aruco.DICT_4X4_50`). |
+
+The charuco point names are `CharucoCorner-<i>` for each board corner, then
+`ArucoMarkerCorner-<id>-<j>`. The board model and the other calibration helpers are in
+`skellytracker.core.detectors.calibration`.
+
+### Errors
+
+- An unknown key raises `DetectorNotFoundError`.
+- An entry that is not available raises `DetectorUnavailableError` with the reason.
+- A `mediapipe` key raises `DetectorUnavailableError`.
+- An option with a different name raises `TypeError`.
 
 ## See also
 
-- [Detection Stages](./detection-stages.mdx) — how detectors are composed into a pipeline
-- [Extending skellytracker](../guides/extending-skellytracker.mdx) — add your own detector
-
-{/* SOURCE: rearchitecture-docs/skellytracker-architecture/02-detectors.md */}
+- [Pipeline Overview](../core-concepts/pipeline-overview): models in a graph.
+- [Extending skellytracker](../guides/extending-skellytracker): add a model.

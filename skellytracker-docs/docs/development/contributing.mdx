@@ -9,18 +9,61 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Contributing
 
-Pull requests are welcome. skellytracker uses
-[GitHub Flow](https://docs.github.com/en/get-started/quickstart/github-flow).
+Pull requests are welcome. The root
+[`AGENTS.md`](https://github.com/freemocap/skellytracker/blob/development/AGENTS.md) gives the full
+rules for human contributors and AI contributors.
 
-1. Fork the repo and create your branch from `main`.
-2. Install with dev dependencies: `uv sync --extra recommended-cpu`.
-3. If you've added a tracker, add tests under `skellytracker/tests/`.
-4. Ensure the suite passes: `pytest skellytracker/tests/` (or `pytest -m 'not video'`
-   to skip slow video tests).
-5. Lint: `ruff check skellytracker/`.
-6. Open a pull request.
+## A code change
+
+1. Fork the repository. Create your branch from `development`.
+2. Install the dev tools: `uv sync --all-extras`. Then run `uv run pre-commit install` one time.
+3. Add tests under `skellytracker/tests/` for each new behaviour.
+4. Run the checks: `uv run python tools/run_checks.py`.
+5. Run the fast tests: `uv run pytest -m "not video"`.
+6. Open the pull request against `development`, not `main`.
+
+The root `AGENTS.md` names the working branch of the maintainers. CI runs the lint and the fast
+tests on each push, and on each PR into `main` or `development`. It runs all tests on each PR into
+`main`.
+
+[Development](./index.mdx) gives the commands to install, test and lint from source.
+
+## Rules for each change
+
+- Report each new test failure or CI failure. Fix the failures of one root cause in one PR. Do not
+  put other changes in that PR.
+- Do not commit a credential, a token, a password or a private key. Do not commit an absolute path in
+  a user folder, a hostname or a private URL.
+- Do not commit a camera recording or a camera frame. A screenshot that shows a camera image is a
+  camera frame.
+- Do not add AI attribution, for example a `Co-Authored-By:` trailer, to a commit or a PR.
+- New documentation must use ASD-STE100 Simplified Technical English. Use short sentences, active
+  voice and one instruction per sentence.
+
+## A new model
+
+To add a model, follow the
+[model addition workflow](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/model-addition-workflow/README.md).
+To request a change to the sidecar spec, follow the same workflow. It is the same for each
+contributor. You do not need an exporter repository to follow it.
+
+The workflow has three phases:
+
+1. Phase 1: find if the current sidecar spec can describe the model.
+2. Phase 2: if it cannot, propose a spec change and its implementation. Then stop.
+3. Phase 3: a skellytracker session lands the model or the proposal. The user accepts or rejects each
+   proposal.
+
+The [sidecar spec](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/README.md)
+gives the contract of the YAML sidecar that an ONNX model needs.
+
+## A new pipeline or node type
+
+A pipeline file or a node change comes through the
+[pipeline contributions](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/contributions.md)
+process. The glue nodes are a closed set: a new node type is a change of the pipeline spec.
 
 ## See also
 
-- [Development](./index.mdx) — running from source
-- [Extending skellytracker](../guides/extending-skellytracker.mdx) — adding a detector
+- [Development](./index.mdx)
+- [Extending skellytracker](../guides/extending-skellytracker)

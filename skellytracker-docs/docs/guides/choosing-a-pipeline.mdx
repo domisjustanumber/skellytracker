@@ -1,0 +1,72 @@
+---
+title: Choosing a Pipeline
+sidebar_position: 1
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Choosing a Pipeline
+
+skellytracker has two built-in pipelines. Each tracks one person.
+
+| Pipeline key | Models | Output | Points | Runs on |
+|---|---|---|---|---|
+| `yolox-rtmw-wholebody@skellytracker` | YOLOX person detector, then RTMW | `wholebody` (`2d`) and `boxes` | 137 canonical points | An EP of ONNX Runtime: `cpu`, or a GPU EP |
+| `mediapipe-holistic-tasks@skellytracker` | MediaPipe Holistic landmarker | `holistic` (`3d`, `depth_unit` `pixel`) | The groups `body`, `right_hand`, `left_hand` and `face` | MediaPipe. It takes no EP. |
+
+## `yolox-rtmw-wholebody`
+
+- Use it for whole-body points: the RTMW model finds 133 points of the body, the feet, the face and
+  the hands in the person box. The output has 137 canonical points.
+- The person detector does not run on each frame. It runs on the first frame, then each 150
+  frames, and after a lost person.
+- The run needs `execution_provider`. See [Execution Providers](../core-concepts/execution-providers).
+- The ONNX files of the two models must be in the sidecar folders. Else the catalog shows the
+  pipeline as unavailable, and a start raises `MissingDependencyError`.
+- The pipeline is stateful. In `video`, it runs at batch = camera count.
+
+## `mediapipe-holistic-tasks`
+
+- Use it when you do not want a GPU EP, or when you want a depth value for each point.
+- It needs the extra `mediapipe`. See [Installation](../getting-started/installation).
+- On the first run, MediaPipe downloads its model file to its cache.
+
+```python
+import cv2
+
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
+
+config = load_pipeline("mediapipe-holistic-tasks@skellytracker")
+# No onnx_model node: the run takes no execution_provider.
+with start_pipeline(config, camera_ids=[0], running_mode="image") as run:
+    result = run.process(Frame(cv2.imread("image.jpg"), frame_index=0))
+
+holistic = result["holistic"]
+print(holistic.geometry, len(holistic.point_names), [group.name for group in holistic.groups])
+```
+
+## Check what this system can run
+
+```sh
+uv run skellytracker validate yolox-rtmw-wholebody@skellytracker
+uv run skellytracker-eps recommend
+```
+
+`list_pipelines()` gives `available` and `unavailable_reason` for each pipeline file.
+
+## Calibration boards
+
+The charuco and aruco detectors are not pipelines. Use `create_detector("charuco@skellytracker")`
+or `create_detector("aruco@skellytracker")`. See [Detectors](../core-concepts/detectors).
+
+## Your own pipeline
+
+To change a built-in pipeline, or to write a new one, see
+[Extending skellytracker](../guides/extending-skellytracker).
+
+## See also
+
+- [Pipeline Overview](../core-concepts/pipeline-overview)
+- [GPU Setup](../guides/gpu-setup)

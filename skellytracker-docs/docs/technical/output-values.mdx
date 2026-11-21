@@ -1,0 +1,156 @@
+---
+title: Output Values
+sidebar_position: 2
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Output Values
+
+This page gives the fields of each value that a pipeline run gives. The values are frozen
+dataclasses with NumPy arrays. [Outputs and Keypoints](../core-concepts/outputs-and-keypoints)
+explains how to use them.
+
+The letters in the shapes:
+
+- `I`: the number of instance rows. This version tracks one person, so read row 0.
+- `P`: the number of points of a port.
+- `C`: the number of canonical points of a delivered value.
+
+All coordinates are in pixels of the source image.
+
+## The result of one camera
+
+`process()` returns the result of one camera. `process_batch()` returns one result for each camera
+of the call.
+
+| Key | Value |
+|-----|-------|
+| `wholebody`, `holistic`, `boxes` | The delivered value of each key of the `outputs` block. The result has only the keys of the block. |
+| `frame_index` | The frame index of the call. |
+| `image_width`, `image_height` | The size of the source image, in pixels, as `int`. |
+| `timestamp_ms` | The time of the frame, in milliseconds, as a float. |
+| `node_ran` | A mapping of node id to `bool`, with one key for each inference node. The value is true when the node ran for this camera on this frame. |
+
+## `CanonicalKeypoints`
+
+The delivered value of `wholebody` and `holistic`.
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `point_names` | `(C,)` | The canonical point names, `<group>/<point>`, for example `body/nose`. |
+| `xy` | `(I, C, 2)` | x and y of each point, float64. A missing point is NaN. |
+| `z` | `(I, C)` | Only for a `3d` output: the depth of each point. A missing point is NaN. `None` for a `2d` output. |
+| `geometry` | none | `2d` or `3d`. |
+| `score` | `(I, C)` | The score of each point. A missing point has 0. |
+| `groups` | list | The groups that pass through with their own names, with `start` and `count` in the canonical columns. |
+| `present` | `(I,)` | True for a present row, false for a padding row. |
+| `instance_score` | `(I,)` | The instance score of each row. |
+
+Take a point by its name, not by a column index. The canonical names do not depend on the model.
+For example, the port `wholebody.keypoints` of `yolox-rtmw-wholebody` has 133 points, and the
+output `wholebody` has 137 canonical points.
+
+## `OutputBoxes`
+
+The delivered value of `boxes`.
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `xyxy` | `(I, 4)` | The corners `(x1, y1, x2, y2)` of each box, float64. The pipeline does not clip a box to the image. A padding row is NaN. |
+| `score` | `(I,)` | The instance score of each row. |
+| `class_index` | `(I,)` | The class index of each row. -1 when no detector made the row. |
+| `present` | `(I,)` | True for a present row. |
+| `detector_ran` | `(I,)` | True when the instance source node of the boxes ran for this camera on this frame. Each row has the same value. |
+
+`detector_ran` is false on a frame on which the box comes from another node, for example from the
+points of the previous frame.
+
+## The values of the ports
+
+The ports and the taps hold these values. A result does not hold them.
+
+`InstanceKeypoints`, the value of a `keypoints` port:
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `point_names` | `(P,)` | The point names `<group>/<point>`. |
+| `xy` | `(I, P, 2)` | x and y of each point. A missing point is NaN. |
+| `z` | `(I, P)` | Only for a `3d` output. `None` for a `2d` output. |
+| `score` | `(I, P)` | The score of each point, after the score map of the sidecar when it has one. A missing point has 0. |
+| `raw_score` | `(I, P)` | The decode score of each point, before the score map. A point with `raw_score` greater than 0 is present. |
+| `instance_score` | `(I,)` | The instance score of each row. |
+| `present` | `(I,)` | True for a present row. |
+| `track_ids` | `(I,)` | -1: this version has no `associate` node. |
+
+`InstanceBoxes`, the value of a `boxes` port:
+
+| Field | Shape | Description |
+|-------|-------|-------------|
+| `boxes` | `(I, 5)` | `(cx, cy, w, h, rotation)` of each row. `rotation` is in radians, clockwise. |
+| `instance_score` | `(I,)` | The instance score of each row. For an object detector, it is the detection score. |
+| `class_index` | `(I,)` | The class index of each row. -1 for a padding row and for a box that no detector made. |
+| `present` | `(I,)` | True for a present row. |
+| `track_ids` | `(I,)` | -1: this version has no `associate` node. |
+
+`to_canonical(value, groups)` converts an `InstanceKeypoints` value to `CanonicalKeypoints`, with
+the `groups` of its port.
+
+## Padding rows
+
+| Field | Padding value |
+|-------|---------------|
+| `xy`, `z`, `boxes`, `xyxy` | NaN |
+| `score`, `raw_score`, `instance_score` | 0 |
+| `present` | false |
+| `track_ids`, `class_index` | -1 |
+
+Check `present[0]` before you read row 0.
+
+## The output schema
+
+`PipelineRun.output_schema` and `PipelineCheck.output_schema` give one mapping for each output key,
+before frame 0:
+
+| Field | Description |
+|-------|-------------|
+| `port_type` | `keypoints` or `boxes`. |
+| `point_names` | The canonical point names. Only for `keypoints`. |
+| `groups` | The groups that pass through, in column order: `name`, `start`, `count`, `landmark_schema`. Only for `keypoints`. |
+| `geometry` | `2d` or `3d`. Only for `keypoints`. |
+| `depth_unit` | `m`, `mm` or `pixel`. Only for a `3d` output. |
+| `class_names` | The class names of the object detector, in class index order, or null. Only for `boxes`. |
+| `max_instances` | `I`. |
+| `tracked` | True when the track ids come from an `associate` node. |
+| `instance_source` | The node id of the instance source of the port. |
+| `edges` | The pairs of canonical point names to draw. Only for `keypoints`. |
+
+## Example
+
+```python
+import cv2
+
+from skellytracker.core.pipelines import Frame, annotate, load_pipeline, start_pipeline
+
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+image = cv2.imread("frame.jpg")
+with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider="cpu") as run:
+    schema = run.output_schema["wholebody"]
+    print(schema["port_type"], schema["geometry"], len(schema["point_names"]), schema["max_instances"])
+    result = run.process(Frame(image, frame_index=0, timestamp_ms=0.0))
+
+body, boxes = result["wholebody"], result["boxes"]
+print(body.xy.shape, body.score.shape, body.geometry, body.z is None)
+if body.present[0]:
+    nose_x, nose_y = body.xy[0, body.point_names.index("body/nose")]
+    print("nose", round(float(nose_x)), round(float(nose_y)))
+if boxes.present[0]:
+    x1, y1, x2, y2 = boxes.xyxy[0]
+print("detector ran:", bool(boxes.detector_ran[0]), result["node_ran"])
+cv2.imwrite("annotated.jpg", annotate(image, result, run.output_schema, min_score=0.3))
+```
+
+The [outputs section](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/outputs.md)
+of the pipeline spec gives the full rules.

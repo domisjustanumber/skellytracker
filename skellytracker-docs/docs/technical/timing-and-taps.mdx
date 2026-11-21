@@ -1,0 +1,172 @@
+---
+title: Timing and Taps
+sidebar_position: 4
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Timing and Taps
+
+A pipeline file can turn on two instruments in its `instrumentation` block:
+
+- **Timing spans** measure the time of fixed parts of each node. The run writes one event for each
+  measured span, as JSONL.
+- **Taps** write the value of a port to files (`record`), or read the value of a port from files
+  (`replay`).
+
+The run parameters give the destinations: `timing_sink` and `timing` for the events, `tap_dir` for
+the taps.
+
+## Timing spans
+
+`instrumentation.timing_spans` lists the spans that are on. The default is empty: no span is on.
+The built-in pipeline files turn on no span.
+
+| Source | Spans |
+|--------|-------|
+| an `onnx_model` node | `preprocess`, `inference`, `postprocess` |
+| each other node type | `run` |
+| the reserved id `pipeline` | `run`: one span for each call |
+| the reserved source `frame` | `decode`: the decode of the JPEG buffers of a call. `upload`: the copy of frames from CPU memory to GPU memory in a call. |
+
+Each span has the form `<node>.<span>`, for example `wholebody.inference`. The spans of the
+reserved names are `pipeline.run`, `frame.decode` and `frame.upload`.
+
+```yaml
+instrumentation:
+  timing_spans: [pipeline.run, wholebody.preprocess, wholebody.inference, wholebody.postprocess]
+```
+
+A node that does not run gives no event. A warm-up run gives no event.
+
+### The timing file
+
+The first line is a header. Each other line is an event or a new header. The run writes a new header
+when a session changes during the run.
+
+The fields of an event:
+
+| Field | Description |
+|-------|-------------|
+| `images` | One item `{frame_index, camera_id}` for each image of the call. |
+| `node_id` | The node id, `pipeline` or `frame`. |
+| `span` | The span name. |
+| `batch_size` | The length of `images`. |
+| `start_ns`, `end_ns` | The start and the end, in nanoseconds of `perf_counter_ns`. |
+
+The duration in milliseconds is (`end_ns` - `start_ns`) / 1e6.
+
+The header has the `schema` `skellytracker.timing/1`. It also gives `run_id`,
+`skellytracker_version`, `clock`, `anchor`, `running_mode`, `warmup_passes`, `image_list_sha256`,
+`camera_ids`, `pipeline_sha256`, `spans_on` and one item in `nodes` for each node. The item of a
+node with a session gives in `execution` the requested EP, the used EP, the device, the EP options,
+the nodes on the CPU EP and the CPU threads.
+
+## Taps
+
+Each tap has three fields:
+
+| Field | Description |
+|-------|-------------|
+| `action` | `record` writes the port. `replay` reads the port from files. |
+| `port` | The port reference `<node>.<port>`, with no `@prev`. `frame.image` is not a tap port. |
+| `name` | The name of the tap and of its sub-folder. |
+
+```yaml
+instrumentation:
+  taps:
+    - {action: replay, port: person.boxes, name: person-boxes}
+    - {action: record, port: wholebody.keypoints, name: wholebody-keypoints}
+```
+
+A run of a file with a tap must have a tap folder. Each tap writes or reads one sub-folder:
+
+```text
+<tap folder>/<name>/
+  tap.json                 # the manifest, written last
+  <port_type>.jsonl        # boxes.jsonl, keypoints.jsonl or flag.jsonl
+```
+
+- `keypoints.jsonl` holds COCO keypoint records, one line for each present row.
+- `boxes.jsonl` holds COCO result records, one line for each present row, with
+  `box: [cx, cy, w, h, rotation]` and the class name in `class`.
+- `flag.jsonl` holds one line for each frame and each camera.
+
+A `record` tap refuses a sub-folder that exists and is not empty. After the first frame, a run with
+a `record` tap refuses `set_params`.
+
+A `replay` tap reads the value of its port from its files. The node of that port and its upstream
+nodes do not run when nothing else uses them. The replay compares `tap.json` with the run: the
+upstream node configs, the image list, the camera ids, the running mode, and the sidecar, the
+artifact and the used EP of each node must agree. A replay needs the COCO input form of the command
+`run`: this version cannot replay a tap of a video.
+
+Use a replay to measure one inference node: replay its upstream outputs.
+
+Do not commit the tap files of dataset images to a repository.
+
+## Example in Python
+
+This example adds a timing span list and a `record` tap to the built-in file, then runs three
+frames.
+
+```python
+import json
+
+import cv2
+
+from skellytracker.core.pipelines import Frame, export_pipeline, load_pipeline, start_pipeline
+
+data = export_pipeline(load_pipeline("yolox-rtmw-wholebody@skellytracker"))
+data["instrumentation"] = {
+    "timing_spans": ["pipeline.run", "wholebody.preprocess", "wholebody.inference", "wholebody.postprocess"],
+    "taps": [{"action": "record", "port": "person.boxes", "name": "person-boxes"}],
+}
+config = load_pipeline(data)
+
+image = cv2.imread("frame.jpg")
+with start_pipeline(
+    config, camera_ids=[0], running_mode="video", execution_provider="cpu",
+    timing_sink="timing.jsonl", tap_dir="taps",
+) as run:
+    for index in range(3):
+        run.process(Frame(image, frame_index=index, timestamp_ms=index * 33.3))
+
+with open("timing.jsonl", encoding="utf-8") as lines:
+    header, *events = (json.loads(line) for line in lines)
+print(header["schema"], header["spans_on"])
+for event in events:
+    print(event["node_id"], event["span"], (event["end_ns"] - event["start_ns"]) / 1e6)
+```
+
+Run it in an empty folder: the tap refuses a sub-folder `taps/person-boxes` that is not empty.
+
+## The command `run`
+
+The command `run` runs a pipeline on the images of a COCO annotations file. It uses one camera with
+the id 0 and the running mode `image`. It takes the images in ascending `image_id` order.
+
+In this example, `wholebody-record.pipeline.yaml` is a copy of the built-in file with
+`pipeline_id: wholebody-record`, a timing span list and a `record` tap. The name of a pipeline file
+must be `<pipeline_id>.pipeline.yaml`.
+
+```bash
+uv run skellytracker run --pipeline wholebody-record.pipeline.yaml --coco annotations.json --images images/ --out out/ --ep cpu --taps taps/
+```
+
+- `--out` takes a `.jsonl` file or a folder. A folder gets the file `timing.jsonl`.
+- `--timing on` is the default. `--timing off` writes no timing file.
+- `--taps` gives the tap folder.
+- `--ep`, `--ep-option`, `--device`, `--cpu-threads` and `--preprocess` are the EP flags. With no
+  `--ep`, a pipeline that needs an EP gets the recommended EP, and the command prints it.
+
+The timing file holds only the header when the pipeline file turns on no span.
+
+The exit code is 0 for a good run. `skellytracker run --help` lists the flags.
+[ONNX Runtime and EPs](./onnx-runtime-and-eps#exit-codes) gives the other exit codes.
+
+The [timing section](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/timing.md)
+and the [taps section](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/taps.md)
+of the pipeline spec give the full rules.

@@ -1,6 +1,6 @@
 ---
 title: Extending skellytracker
-sidebar_position: 5
+sidebar_position: 6
 ---
 
 import { AiGeneratedBanner } from '@freemocap/skellydocs';
@@ -9,28 +9,110 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Extending skellytracker
 
-You can add a new keypoint detector by subclassing `KeypointDetector` and
-registering it:
+You extend skellytracker with data files, not with Python code:
 
-```python
-from skellytracker.core.detectors import KeypointDetector, KEYPOINT_DETECTOR_REGISTRY
+| You want to | Do this |
+|---|---|
+| Connect the current models and node types in a new way | Write a pipeline file in your user root. |
+| Add an ONNX model | Write a sidecar for it and put it in your user root with the ONNX files. |
+| Add a node type, or change a node type | Send a node proposal. A new node type is a spec change. |
+| Change how a model is preprocessed, run or decoded | Send a sidecar proposal. |
 
-class MyDetector(KeypointDetector):
-    ...
+A pipeline file runs no user code, and the node types are a closed set.
 
-KEYPOINT_DETECTOR_REGISTRY["my_detector"] = MyDetector
+## The user root
+
+The catalogs of detectors and of pipelines read the user root. The user root is:
+
+1. the argument `user_root` of a function, or `--user-root` of a CLI command;
+2. else the environment variable `SKELLYTRACKER_USER_ROOT`;
+3. else the folder `models` in the user data folder of skellytracker.
+
+Pipeline files go in `<user root>/pipelines/`. Sidecars go in `<user root>/detectors/`, in the
+storage layout of the sidecar spec.
+
+## Write a pipeline file
+
+This file runs the YOLOX person detector on each frame and smooths its box. Save it as
+`<user root>/pipelines/person-boxes.pipeline.yaml`:
+
+```yaml
+schema_version: "2.0.0"
+pipeline_id: person-boxes
+source: {name: my-lab, version: "1.0.0"}
+description: The YOLOX person detector on each frame, with smoothed boxes.
+nodes:
+  - id: person
+    type: onnx_model
+    inputs: {image: frame.image}
+    params:
+      key: yolox-person@openmmlab-exporter
+      size: s
+      object_decode:
+        nms: {post_nms_top_k: 1}
+  - id: smooth
+    type: smooth_boxes
+    inputs: {boxes: person.boxes}
+    params: {filter: ema, previous_weight: 0.6}
+outputs:
+  boxes: smooth.boxes
 ```
 
-Object detectors work the same way via `OBJECT_DETECTOR_REGISTRY`.
+- The file name must be `<pipeline_id>.pipeline.yaml`.
+- Do not use the source name `skellytracker`. It is reserved for the package folder.
+- Write only the params that you change. The defaults of an `onnx_model` node come from its sidecar.
+- Write the text for people in `description`, not in a YAML comment.
+- `uv run skellytracker nodes` lists the node types with their ports and params.
 
-{/* TODO(prose):
-    - Full KeypointDetector / ObjectDetector base-class contract: which methods to implement
-      (detect / preprocess / postprocess), the config class pattern, and how a Session is wired in.
-      SOURCE: core/detectors/detector_base_classes.py, arch 02-detectors.md.
-    - How build_keypoint_detector / build_object_detector resolve configs to instances.
-    - Reference an existing detector as a worked example (e.g. aruco — no session, or rtmpose — onnx). */}
+In the next examples, the user root is the folder `userroot` in the current folder. Check the file,
+by path or by key:
+
+```sh
+uv run skellytracker validate --user-root userroot userroot/pipelines/person-boxes.pipeline.yaml
+uv run skellytracker validate --user-root userroot person-boxes@my-lab
+```
+
+Run it:
+
+```python
+import cv2
+
+from skellytracker.core.pipelines import Frame, get_pipeline, load_pipeline, start_pipeline
+
+entry = get_pipeline("person-boxes@my-lab", user_root="userroot")
+print(entry.key, entry.version, entry.path.name, entry.available)
+
+config = load_pipeline("person-boxes@my-lab", user_root="userroot")
+with start_pipeline(config, camera_ids=[0], running_mode="image", execution_provider="cpu") as run:
+    result = run.process(Frame(cv2.imread("image.jpg"), frame_index=0))
+print(result["boxes"].xyxy[0], result["boxes"].score[0])
+```
+
+`export_pipeline(config, resolved=True)` gives each param of each node, with its default. Each
+`onnx_model` node of an exported file gets its `sidecar_sha256`. A shipped file must give it.
+
+## Add an ONNX model
+
+An ONNX model needs a sidecar: one YAML file that gives the input tensor, the normalization, the
+resize, the batch, the output semantics and the decode. A model whose sidecar the package can run
+needs no new Python code.
+
+1. Follow the
+   [model addition workflow](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/model-addition-workflow/README.md).
+   It tells you if the current spec can describe the model.
+2. Put the sidecar and its ONNX files in the user root, in the storage layout of the
+   [sidecar spec](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/README.md).
+3. Run `uv run skellytracker detectors` and `uv run skellytracker describe <key>`. The catalog
+   gives the reason when the entry is not available.
+
+## Add or change a node type
+
+The node types are a closed set. A new node type or a change to a node type is a change of the
+pipeline spec. Follow
+[Pipeline contributions](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/contributions.md).
 
 ## See also
 
-- [Detectors](../core-concepts/detectors.mdx)
-- [Contributing](../development/contributing.mdx) — add tests and open a PR
+- [Pipeline Overview](../core-concepts/pipeline-overview)
+- [Detectors](../core-concepts/detectors)
+- [Contributing](../development/contributing)

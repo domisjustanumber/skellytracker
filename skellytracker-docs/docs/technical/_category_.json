@@ -6,7 +6,7 @@
   "link": {
     "type": "generated-index",
     "title": "Technical Reference",
-    "description": "Architecture, data-model reference, and the public API surface for developers.",
+    "description": "The architecture, the output values, ONNX Runtime and the EPs, timing and taps, and the public API.",
     "slug": "technical"
   }
 }

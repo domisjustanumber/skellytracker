@@ -9,44 +9,68 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Development
 
-Running skellytracker from source.
+This page tells how to run skellytracker from source.
 
-## Install with dev dependencies
+## Requirements
 
-```bash
-# CPU backends (includes CoreML on Apple Silicon)
-uv sync --extra recommended-cpu
+- Python 3.13.18. `pyproject.toml` pins this version.
+- Windows on x86_64, Linux on x86_64 or macOS on Apple Silicon (arm64). macOS on Intel is not
+  supported.
+- [uv](https://docs.astral.sh/uv/). Use `uv run` for each project command. Do not depend on an
+  activated virtual environment.
 
-# Or, for NVIDIA GPU with TensorRT:
-uv sync --extra recommended-cuda
-```
-
-## Tests
+## Install
 
 ```bash
-# Run the suite
-pytest skellytracker/tests/
-
-# Skip the slow video tests
-pytest -m 'not video'
-
-# A single test file
-pytest skellytracker/tests/test_mediapipe_detectors.py
+git clone https://github.com/freemocap/skellytracker.git
+cd skellytracker
+uv sync --all-extras
+uv run pre-commit install
 ```
 
-## Lint & format
+`uv sync --all-extras` installs the dev tools, the `mediapipe` extra and the `pyinstaller` extra.
+ONNX Runtime and `onnx` are base dependencies. Run `uv run pre-commit install` one time for each
+clone, and again after `.pre-commit-config.yaml` changes. The pre-commit hook runs `gitleaks`,
+`tools/check_private_data.py` and `tools/check_camera_media.py`.
+
+## Checks and tests
 
 ```bash
-ruff check skellytracker/
-black skellytracker/
-isort skellytracker/
+uv run python tools/run_checks.py           # the checks before each commit; stops at the first failure
+uv run pytest -m "not video"                # package tests and doc tests; must pass
+uv run pytest tools/tests                   # doc tests only
+uv run pytest -o faulthandler_timeout=300   # all tests, with the video tests
 ```
 
-{/* TODO(prose): confirm test markers ('not video') and any CI workflow; describe
-    the tests/conftest.py fixture behavior (downloads test images) if relevant.
-    SOURCE: skellytracker/tests/, pyproject.toml [dependency-groups] dev, CLAUDE.md. */}
+- The first test run needs network access. `tests/conftest.py` downloads the test images and the
+  test recording from the `freemocap/skellysamples` releases on GitHub.
+- The marker `video` selects the slow tests that run inference over real video frames.
+- The markers `gpu`, `ep_pack` and `pyinstaller` are opt-in. A test with one of them runs only when
+  the `-m` expression names the marker. `-m gpu` needs an NVIDIA GPU and the installed EP packs.
+- `-o faulthandler_timeout=300` prints a stack trace when a test runs for more than 300 s.
+
+## Lint
+
+```bash
+uv run ruff check skellytracker/ tools/ decisions/scripts/ specs/model-sidecar/decisions/scripts/ specs/model-sidecar/reference/ specs/pipeline/reference/
+```
+
+Do not run `black` or `isort` on the package. They would change most files.
+
+## The command line from source
+
+```bash
+uv run skellytracker nodes                  # the node types of a pipeline file
+uv run skellytracker validate yolox-rtmw-wholebody@skellytracker   # the load checks of a pipeline
+uv run skellytracker detectors              # the model catalog
+uv run skellytracker-eps status             # the EP state of this system
+```
+
+`uv run skellytracker` with no command starts a live webcam demo. Do not run it without a camera
+and a display.
 
 ## See also
 
-- [Contributing](./contributing.mdx)
-- [Extending skellytracker](../guides/extending-skellytracker.mdx)
+- [Contributing](./contributing)
+- [Architecture](../technical/architecture)
+- [Extending skellytracker](../guides/extending-skellytracker)

@@ -9,86 +9,90 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Quick Start
 
-Every tracker follows the same shape: build a `Session` for the backend, build a
-`Tracker` from a `TrackerConfig`, then call `process_image(image, frame_number, state)`
-per frame. Each call returns an `Observation` and an updated `TrackerState`.
+Each run has three steps:
 
-## MediaPipe (pose, hands, face)
+1. Load a pipeline with `load_pipeline`.
+2. Start a run with `start_pipeline`. A run holds the sessions of its models.
+3. Give each frame to `run.process`. Each call returns the result of the camera.
 
-```python
-import cv2
-from skellytracker.core import Tracker, TrackerConfig, DetectionStageConfig, TrackerState
-from skellytracker.core.detectors.keypoint_detectors.mediapipe import (
-    MediaPipeSession, MediaPipeSessionConfig,
-    MediapipePoseDetectorConfig,
-    MediapipeHandDetectorConfig,
-    MediapipeFaceDetectorConfig,
-)
+Use the run in a `with` statement, or call `run.close()` at the end.
 
-session = MediaPipeSession.create(MediaPipeSessionConfig())
-config = TrackerConfig(stages=[
-    DetectionStageConfig(name="body",  keypoint_detectors=[MediapipePoseDetectorConfig()]),
-    DetectionStageConfig(name="hands", keypoint_detectors=[MediapipeHandDetectorConfig()]),
-    DetectionStageConfig(name="face",  keypoint_detectors=[MediapipeFaceDetectorConfig()]),
-])
-tracker = Tracker.create(config, sessions={"mediapipe": session})
-state = TrackerState()
+## MediaPipe Holistic
 
-image = cv2.imread("image.jpg")
-observation, state = tracker.process_image(image, frame_number=0, state=state)
-
-body_keypoints = observation.stages["body"].keypoints   # Keypoints with .xyz (N,3), .names, .visibility
-tracker.close()
-```
-
-## RTMPose + YOLOX (ONNX-based)
+This example needs the extra `mediapipe` ([Installation](./installation)).
 
 ```python
 import cv2
-from skellytracker.core import Tracker, TrackerConfig, DetectionStageConfig, TrackerState
-from skellytracker.core.detectors.object_detectors.yolox import YoloxPersonDetectorConfig
-from skellytracker.core.detectors.keypoint_detectors.rtmpose import RTMPoseDetectorConfig
-from skellytracker.core.sessions.onnx_session import OnnxSession, OnnxSessionConfig
-from skellytracker.core.detectors.object_detectors.yolox import YoloxPersonDetector
-from skellytracker.core.detectors.keypoint_detectors.rtmpose import RTMPoseKeypointDetector
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
 
-session = OnnxSession.create(OnnxSessionConfig(
-    batch_size=1,
-    models=[
-        YoloxPersonDetector.model_spec("yolox-m"),
-        RTMPoseKeypointDetector.model_spec("rtmw-x-l_256x192"),
-    ],
-))
-config = TrackerConfig(stages=[
-    DetectionStageConfig(
-        name="body",
-        object_detector=YoloxPersonDetectorConfig(),
-        keypoint_detectors=[RTMPoseDetectorConfig()],
-    )
-])
-tracker = Tracker.create(config, sessions={"onnx": session})
-state = TrackerState()
+config = load_pipeline("mediapipe-holistic-tasks@skellytracker")
+image = cv2.imread("image.jpg")  # BGR, uint8, (H, W, 3)
 
-image = cv2.imread("image.jpg")
-observation, state = tracker.process_image(image, frame_number=0, state=state)
+with start_pipeline(config, camera_ids=[0], running_mode="image") as run:
+    result = run.process(Frame(image, frame_index=0))
 
-keypoints = observation.stages["body"].keypoints  # 133 whole-body keypoints
-tracker.close()
+body = result["holistic"]  # a CanonicalKeypoints value
+if body.present[0]:
+    nose_x, nose_y = body.xy[0, body.point_names.index("body/nose")]
+    print(f"nose at ({nose_x:.0f}, {nose_y:.0f}) px")
+print(body.geometry, len(body.point_names), "points")
 ```
+
+This pipeline has no ONNX model node, so it needs no execution provider.
+
+## YOLOX and RTMW (ONNX)
+
+This example needs the ONNX model files ([Installation](./installation#onnx-model-files)).
+An `onnx_model` node needs an execution provider (EP). This example uses the CPU EP:
+
+```python
+import cv2
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
+
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+image = cv2.imread("image.jpg")
+
+with start_pipeline(config, camera_ids=[0], running_mode="image", execution_provider="cpu") as run:
+    print(run.models["wholebody"]["execution_provider"])
+    result = run.process(Frame(image, frame_index=0))
+
+body, boxes = result["wholebody"], result["boxes"]
+print(len(body.point_names), "points, person found:", bool(body.present[0]))
+print("box x1, y1, x2, y2:", boxes.xyxy[0])
+```
+
+`run.models` tells you what each model runs on: the EP key, the device and the CPU thread count.
+
+## Use the recommended EP
+
+`eps.recommend()` gives the EP for this system. It runs no model and uses no network:
+
+```python
+from skellytracker.core import eps
+
+choice = eps.recommend("performance")
+print(choice.chosen.ep_key, dict(choice.options))
+```
+
+To use it, give `execution_provider=choice.chosen.ep_key` and `ep_options=dict(choice.options)` to
+`start_pipeline`. A GPU EP can need an EP pack and a passed quick check on your system.
+[Execution Providers](../core-concepts/execution-providers) gives the rules.
 
 ## What you get back
 
-`process_image` returns an `(Observation, TrackerState)` tuple:
+The result of a camera has one key for each output of the pipeline file:
 
-- **`Observation`** — the per-frame result. `observation.stages["name"].keypoints`
-  is a `Keypoints` object with `.xyz` `(N, 3)`, `.names`, and `.visibility` arrays.
-- **`TrackerState`** — temporal state (bounding-box history, smoothing buffers).
-  Pass the returned state into the next `process_image` call.
+- `holistic` and `wholebody` hold a `CanonicalKeypoints` value. `xy` has the shape `(I, C, 2)`, in
+  source-image pixels. `score` has the shape `(I, C)`. `point_names` names each column. A missing
+  point has NaN in `xy`.
+- `boxes` holds an `OutputBoxes` value. `xyxy[0]` is NaN when `present[0]` is false.
 
-Always call `tracker.close()` when you're done to release model and session resources.
+The built-in pipelines track one person, so read row 0. The result also has `frame_index`,
+`image_width`, `image_height`, `timestamp_ms` and `node_ran`.
+[Outputs and Keypoints](../core-concepts/outputs-and-keypoints) gives the full data model.
 
 ## Next steps
 
-- [Running Demos](./running-demos.mdx) — see it live on a webcam
-- [Processing Videos](./processing-videos.mdx) — run over image folders and video files
-- [Pipeline Overview](../core-concepts/pipeline-overview.mdx) — understand the Tracker → Stage → Detector model
+- [Processing Videos](./processing-videos): run a pipeline on video files.
+- [Running Demos](./running-demos): run a pipeline on a live camera.
+- [Running Modes](../core-concepts/running-modes): `image`, `video` and `live`.

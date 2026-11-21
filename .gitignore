@@ -189,3 +189,7 @@ graphify-out/
 # Work folder and default report files of tools/certify_platform.py (decision Y14H). Never commit them.
 .certify-work/
 /certify-report-*.md
+
+# Docs site (Docusaurus)
+node_modules/
+.docusaurus/

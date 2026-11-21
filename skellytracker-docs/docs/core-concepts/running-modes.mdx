@@ -1,0 +1,105 @@
+---
+title: Running Modes
+sidebar_position: 4
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Running Modes
+
+`start_pipeline` starts a run of a pipeline config. The run sets the running mode. The pipeline file
+is the same in each mode.
+
+| Mode | Use it for | Rules |
+|---|---|---|
+| `image` | Single images | One camera. Each `@prev` value is empty. The frame size can change from call to call. The run uses no `timestamp_ms`. |
+| `video` | A recording, processed after the capture | Each call gives one frame for each camera, in order. A camera gives `timestamp_ms` on all its frames or on none. |
+| `live` | A camera, in real time | Each frame must have a `timestamp_ms`. `frame_index` can skip: the caller drops frames, the run drops no frame. A call can hold only some of the cameras. |
+
+## Frames
+
+A `Frame` holds one frame of one camera:
+
+- `image`: a BGR `uint8` array of shape `(H, W, 3)`, or the bytes of one JPEG image. The run
+  decodes a JPEG buffer before the first node. It does not apply the EXIF orientation.
+- `frame_index`: the index of the frame.
+- `timestamp_ms`: the time of the frame, in milliseconds. It must increase from frame to frame.
+- `rotation_deg`: `0`, `90`, `180` or `270`. The run turns the frame clockwise by this value.
+
+In `video`, for a camera that gives no `timestamp_ms`, the run uses
+`frame_index × 1000 / fps`. The default `fps` is 30.0.
+
+## Example
+
+```python
+import time
+from pathlib import Path
+
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
+
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+jpegs = [path.read_bytes() for path in sorted(Path("frames").glob("*.jpg"))]
+
+# video: each frame in order; with no timestamp_ms, the run uses frame_index * 1000 / fps
+with start_pipeline(config, camera_ids=[0], running_mode="video", execution_provider="cpu", fps=30.0) as run:
+    print([warning.code for warning in run.warnings])        # ['batch_limited_by_state']
+    for index, data in enumerate(jpegs):
+        result = run.process(Frame(data, frame_index=index))
+        print(index, result["node_ran"]["person"])
+
+# live: each frame needs a timestamp_ms that increases
+with start_pipeline(config, camera_ids=[0], running_mode="live", execution_provider="cpu") as run:
+    run.set_params("trigger", {"redetect_interval": 10})   # before the first call
+    start = time.monotonic()
+    for index, data in enumerate(jpegs):
+        stamp = (time.monotonic() - start) * 1000.0
+        result = run.process(Frame(data, frame_index=index, timestamp_ms=stamp))
+    print(result["timestamp_ms"])
+```
+
+- `run.process(frame)` is for a run with one camera. `run.process_batch(frames)` takes a mapping of
+  camera id to `Frame`. See [Multi-Camera Batching](../guides/multi-camera-batching).
+- Call `close()`, or use the run in a `with` statement. `close()` frees the sessions of the run.
+
+## State between frames
+
+The run keeps the state between frames. You do not pass state in or out.
+
+- A pipeline is stateful when it has an `@prev` input, or a temporal node upstream of an
+  `onnx_model` node. The temporal nodes are `smooth_boxes`, `smooth_keypoints`, `redetect_trigger`,
+  and `mediapipe_tasks` in the landmarker mode `VIDEO`.
+- Each temporal node keeps a separate state for each camera. In `live`, a camera that a call does
+  not hold keeps its state.
+- In `video`, a stateful pipeline runs at batch = camera count. The run gives the warning
+  `batch_limited_by_state`.
+- In `image`, each `@prev` value is empty.
+
+## Refused calls
+
+A call that breaks a rule of the call raises `CallRefusedError`. Examples: a `live` frame with no
+`timestamp_ms`, a `timestamp_ms` that does not increase, a `rotation_deg` that is not valid, or a
+JPEG buffer that no decoder can read. A refused call changes no state of its cameras. The run
+accepts the next call.
+
+## Params during a run
+
+`run.set_params(node_id, params)` changes params of one node. Only a param that the node marks
+"set during run" can change. `uv run skellytracker nodes` shows this mark.
+
+- Before the first `process` or `process_batch` call, the run accepts the change in each mode.
+- After that call, the run accepts the change only in `live`, and only with no `record` tap.
+- A change applies from the next call, to each camera. It does not reset the state of a node.
+- A refused change raises `SetParamsRefusedError` and changes no param.
+
+## Threads
+
+The calls on one run are serial: a second call waits for the first call. `close()` waits for the
+call that runs. A call after `close()` raises `RunClosedError`. Two runs share no state.
+
+## See also
+
+- [Outputs and Keypoints](../core-concepts/outputs-and-keypoints)
+- [Temporal Smoothing](../guides/temporal-smoothing)
+- The [running section](https://github.com/freemocap/skellytracker/blob/development/specs/pipeline/running.md) of the pipeline spec.

@@ -9,79 +9,102 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Processing Videos
 
-For offline work, `skellytracker.core` provides helpers that run a `Tracker`
-over video files and write the results to disk. They live in
-`skellytracker.core.io` and are re-exported from `skellytracker.core`.
+The pipeline API reads no video file. Read the frames with OpenCV. Give each frame to a run in the
+running mode `video`. In `video`, the run gets each frame in order. It keeps state from
+frame to frame, for example the person box of the previous frame.
 
-## A single video
-
-`process_video` runs the tracker on every frame of one file and returns a
-`DataStore` of the collected observations:
+## One video
 
 ```python
-from pathlib import Path
-from skellytracker.core import process_video
+import cv2
+import numpy as np
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
 
-datastore = process_video(
-    tracker,                 # a configured Tracker
-    annotator,               # an Annotator, or None
-    input_path=Path("recording.mp4"),
-    output_dir=Path("output/"),
-    annotated_video_path=Path("output/recording_annotated.mp4"),  # optional
-    fmt="npy",               # "npy" or "json"
-)
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+capture = cv2.VideoCapture("cam0.mp4")
+fps = capture.get(cv2.CAP_PROP_FPS) or 30.0
+rows = []
+
+with start_pipeline(config, camera_ids=["cam0"], running_mode="video", execution_provider="cpu", fps=fps) as run:
+    frame_index = 0
+    while True:
+        ok, image = capture.read()
+        if not ok:
+            break
+        result = run.process(Frame(image, frame_index))
+        rows.append(result["wholebody"].xy[0])  # (C, 2) for the one person; NaN for a missing point
+        frame_index += 1
+capture.release()
+
+xy = np.stack(rows)  # (frames, C, 2)
+np.save("cam0_wholebody_xy.npy", xy)
+print(xy.shape)
 ```
 
-Results are written to `output_dir/<input_stem>.<fmt>`. If `annotated_video_path`
-is set, an annotated video is written too (an `annotator` is required in that case).
+A camera gives `timestamp_ms` on each of its frames or on none. This example gives none. The run then
+uses `timestamp_ms = frame_index × 1000 / fps`. The default of `fps` is 30.0.
 
-## Multiple synchronized videos (batched)
+## Synchronized videos from more than one camera
 
-`process_video_list` and `process_folder` are built for **synchronized
-multi-camera recordings** — for example FreeMoCap captures where every video
-covers the same time range. They open all N videos at once and call
-`tracker.process_batch()` once per frame, so ONNX-backed detectors make a single
-GPU call per model per frame instead of N sequential calls.
+Give one camera id for each video. Then call `run.process_batch` with one frame for each camera.
+In `video`, each call must hold a frame for each camera of the run.
 
 ```python
-from pathlib import Path
-from skellytracker.core import process_folder, process_video_list
+import cv2
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
 
-# Explicit list of camera videos
-results = process_video_list(
-    tracker,
-    annotator,
-    video_paths=[Path("cam0.mp4"), Path("cam1.mp4"), Path("cam2.mp4")],
-    output_dir=Path("output/"),
-)
+videos = {"cam0": "cam0.mp4", "cam1": "cam1.mp4"}
+captures = {camera: cv2.VideoCapture(path) for camera, path in videos.items()}
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
 
-# Or every video in a directory
-results = process_folder(
-    tracker,
-    annotator,
-    video_dir=Path("recordings/"),
-    output_dir=Path("output/"),
-)
+with start_pipeline(config, camera_ids=list(videos), running_mode="video", execution_provider="cpu") as run:
+    frame_index = 0
+    while True:
+        images = {camera: capture.read() for camera, capture in captures.items()}
+        if not all(ok for ok, _ in images.values()):
+            break  # stop at the end of the shortest video
+        frames = {camera: Frame(image, frame_index) for camera, (_, image) in images.items()}
+        results = run.process_batch(frames)  # camera id -> the result of that camera
+        frame_index += 1
+for capture in captures.values():
+    capture.release()
 
-# results maps each video name -> its DataStore
+print(frame_index, "frames;", {camera: bool(r["wholebody"].present[0]) for camera, r in results.items()})
 ```
 
-:::tip GPU utilization
-For best throughput, create the `OnnxSession` with `batch_size` equal to the
-number of camera videos, so all cameras are inferred in one batched call.
-:::
+The pipeline `yolox-rtmw-wholebody` is stateful: it uses the points of the previous frame. In `video`,
+the batch of a stateful pipeline is the camera count. The run gives the warning
+`batch_limited_by_state` at the start. [Multi-Camera Batching](../guides/multi-camera-batching)
+explains the batch.
 
-## Runnable examples
+## A folder of images
 
-The repository ships end-to-end scripts under `skellytracker/examples/`:
+The command `run` runs a pipeline on the images of a COCO annotations file. It uses one camera and the
+running mode `image`. It reads the images in ascending `image_id` order:
 
-- `run_mediapipe_on_folder.py`, `run_rtmpose_on_folder.py`, `run_charuco_on_folder.py`
-- `demo_bbox_policy.py`
+```bash
+uv run skellytracker run --pipeline yolox-rtmw-wholebody@skellytracker --coco annotations.json --images images/ --out out/ --ep cpu
+```
 
-{/* TODO(prose): describe DataStore output structure (npy/json layout) and how to
-    load it back; cross-link Observations & Keypoints. Cover ProcessingTimer/profile=True. */}
+`run` writes the timing file `timing.jsonl` in the `--out` folder. It writes no keypoint file.
+The option `--taps <dir>` gives the tap folder. [Timing and Taps](../technical/timing-and-taps)
+gives the file formats.
+
+With no `--ep`, `run` uses the recommended EP and prints it. That EP can be a GPU EP.
+
+The exit codes of `run`:
+
+| Code | Meaning |
+|---|---|
+| 0 | The run is good. |
+| 1 | A failure, also an extra or an ONNX file that is absent. |
+| 2 | A usage error, a pipeline that is not valid, or an EP key or an EP option that the EP catalog refuses. |
+| 3 | The EP is not available. |
+| 4 | A session was not created. |
+| 5 | The GPU memory is exhausted. |
+| 6 | Cancelled. |
 
 ## Next steps
 
-- [Multi-Camera Batching](../guides/multi-camera-batching.mdx) — how batched inference works
-- [Observations & Keypoints](../core-concepts/observations-and-keypoints.mdx) — the result data model
+- [Running Modes](../core-concepts/running-modes): the rules of `image`, `video` and `live`.
+- [Outputs and Keypoints](../core-concepts/outputs-and-keypoints): the result data model.

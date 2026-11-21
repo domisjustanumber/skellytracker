@@ -9,63 +9,61 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 <AiGeneratedBanner />
 
 :::warning AI GENERATED DOCS
-A robot wrote these docs based on the code in the `skellytracker/` repo. Expect jank.
-
-We'll get to human curating and cleaning them up "soon"
-
-For now, they are significantly better than nothing, which is the alternative option :)
+An AI agent wrote these pages from the code of the 2.0.0 work. A person did not review them yet.
+skellytracker 2.0.0 is work in progress. The API can change before the release.
 :::
 
 # skellytracker
 
-**skellytracker** is the pose-estimation backend for [FreeMoCap](https://freemocap.org).
-It collects different pose-estimation tools behind one consistent API built
-around a **Tracker → Session → Detector** pipeline, and runs inference on
-images, webcams, and videos.
+**skellytracker** is the tracking backend for [FreeMoCap](https://freemocap.org).
+It finds the keypoints of a person in camera frames.
+It runs on images, video files and live cameras.
 
 ## How it works
 
-An image (plus the current `TrackerState`) flows into a `Tracker`. The tracker
-runs one or more **detection stages** — each an optional `ObjectDetector` that
-crops a region of interest, followed by one or more `KeypointDetector`s that
-estimate points within it — and returns a structured `Observation` together with
-an updated `TrackerState`.
+You run a **pipeline**. A pipeline is one YAML file that connects models and glue steps into a graph.
+A run takes the frames of one or more cameras. It gives the outputs of each camera.
 
 ```mermaid
 flowchart LR
-    IN["image + TrackerState"] --> TR
-    subgraph TR["Tracker"]
+    F["Frame of each camera"] --> R
+    subgraph R["PipelineRun"]
       direction TB
-      OD["ObjectDetector<br/>(optional crop)"] --> KD["KeypointDetector(s)"]
+      N1["model node"] --> N2["glue node"] --> N3["model node"]
     end
-    TR --> OUT["Observation +<br/>updated TrackerState"]
+    R --> O["Outputs of each camera<br/>(keypoints, boxes)"]
 ```
 
-Stages compose hierarchically (e.g. a body stage whose crop feeds child hand and
-face stages), a `Session` owns the shared GPU/CPU resources for a backend, and
-`TrackerState` carries the temporal data used for smoothing across frames.
+The package has three entry points:
 
-See [Pipeline Overview](./core-concepts/pipeline-overview.mdx) for the full model.
+| Entry point | Use it to |
+|---|---|
+| `skellytracker.core.pipelines` | Load a pipeline and run it on frames |
+| `skellytracker.core.detectors` | List the detectors and make one detector, for example a charuco board detector |
+| `skellytracker.core.eps` | Find, install and select the execution provider (EP) that runs the ONNX models |
+
+`skellytracker.certify()` tests the EPs on your system.
+
+## Built-in pipelines
+
+| Key | What it does |
+|---|---|
+| `mediapipe-holistic-tasks@skellytracker` | MediaPipe Holistic on the full frame: body, hands and face of one person |
+| `yolox-rtmw-wholebody@skellytracker` | A YOLOX person detector, then RTMW whole-body keypoints for one person |
 
 ## Documentation
 
 | Page | Description |
 |------|-------------|
-| [Installation](./getting-started/installation.mdx) | Install skellytracker and pick a hardware backend |
-| [Quick Start](./getting-started/quick-start.mdx) | Run your first inference on an image |
-| [Running Demos](./getting-started/running-demos.mdx) | Live webcam demos from the command line |
-| [Processing Videos](./getting-started/processing-videos.mdx) | Run trackers over image folders and video files |
-| [Pipeline Overview](./core-concepts/pipeline-overview.mdx) | The Tracker → Stage → Detector mental model |
-| [Detectors](./core-concepts/detectors.mdx) | Available pose backends (MediaPipe, RTMPose, YOLOX, Aruco, Charuco) |
-| [GPU Setup](./guides/gpu-setup.mdx) | Execution providers: CUDA, TensorRT, DirectML, CoreML, CPU |
-| [Multi-Camera Batching](./guides/multi-camera-batching.mdx) | Batched inference across N cameras |
-| [Architecture](./technical/architecture.mdx) | System overview and data flow |
-| [API Reference](./technical/api-reference.mdx) | The public `skellytracker.core` surface |
-| [Development](./development/index.mdx) | Run from source, test, and contribute |
-| [Community](./community.mdx) | Discord, GitHub, and the project roadmap |
-
-## Community
-
-- **[Discord](https://discord.gg/freemocap)** — support and community discussion
-- **[GitHub](https://github.com/freemocap/skellytracker)** — source code and issues
-- **[FreeMoCap](https://freemocap.org)** — the parent motion-capture project
+| [Installation](./getting-started/installation) | Install skellytracker and its extras |
+| [Quick Start](./getting-started/quick-start) | Run a pipeline on one image |
+| [Processing Videos](./getting-started/processing-videos) | Run a pipeline on video files and image folders |
+| [Running Demos](./getting-started/running-demos) | Run a pipeline on a live camera from the command line |
+| [Pipeline Overview](./core-concepts/pipeline-overview) | A pipeline file, its nodes, ports and outputs |
+| [Detectors](./core-concepts/detectors) | The detector catalog and `create_detector` |
+| [Running Modes](./core-concepts/running-modes) | `image`, `video` and `live` |
+| [Execution Providers](./core-concepts/execution-providers) | EP keys, EP packs and the recommended EP |
+| [Certifying a System](./guides/certifying-a-system) | Test the EPs on your system |
+| [API Reference](./technical/api-reference) | The public API |
+| [Development](./development) | Run from source, test and contribute |
+| [Community](./community) | Where to ask questions and report bugs |

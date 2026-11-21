@@ -1,0 +1,183 @@
+---
+title: ONNX Runtime and EPs
+sidebar_position: 3
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# ONNX Runtime and EPs
+
+Each `onnx_model` node runs its model in an ONNX Runtime session. This page tells how the package
+builds the sessions and where each part of the work runs.
+[Execution Providers](../core-concepts/execution-providers) tells how an application selects an EP.
+
+## ONNX Runtime
+
+ONNX Runtime 1.30.0 is a base dependency. The distribution is `onnxruntime` on Linux and macOS, and
+`onnxruntime-windowsml` on Windows. It gives the CPU EP, the CoreML EP on macOS and the DirectML EP
+on Windows. A GPU EP for an NVIDIA GPU is a plugin EP pack that `skellytracker-eps install` puts in
+the EP store. [GPU Setup](../guides/gpu-setup) gives the procedure.
+
+The package sets `ORT_DISABLE_TELEMETRY=1` before it imports `onnxruntime`. A value that the host
+process set stays. A host that imports `onnxruntime` before skellytracker must set the variable
+itself.
+
+## EP keys
+
+An EP key is a key of the EP catalog. A run takes the key as `execution_provider`. No environment
+variable selects the EP or the device. `status().eps` gives the keys of this platform in this order:
+
+| Key | Where the EP comes from |
+|-----|-------------------------|
+| `trt-rtx` | A plugin EP pack in the EP store, on Windows and Linux. |
+| `cuda` | A plugin EP pack in the EP store, on Windows and Linux. |
+| `coreml` | A part of ONNX Runtime on macOS. |
+| `amdgpu` | The Windows ML catalog, on Windows. Field test. |
+| `migraphx` | A pack for the ROCm release of the host on Linux, and the Windows ML catalog on Windows. Field test. |
+| `directml` | A part of ONNX Runtime on Windows. Field test. |
+| `cpu` | A part of ONNX Runtime on each platform. |
+
+A field-test EP is usable only after an opt-in in the EP store. Only
+`skellytracker-eps install KEY --field-test`, the certify suite and a passed quick check of
+`skellytracker.certify()` record the opt-in. `recommend()` never gives a field-test EP.
+
+The keys `trt`, `openvino`, `qnn` and `vitisai` are reserved. A reserved key or an unknown key
+raises `EpRequestError`.
+
+## The session build
+
+`eps.build_session()` builds each session. It returns the session and a `SessionReport`.
+
+- The session never runs on another EP than the requested EP. There is no CPU fallback.
+- On a GPU EP, the session takes the ONNX Runtime EP device of the GPU. The option `device_id` is
+  refused. With no device key, the session uses the GPU with the most VRAM that the EP can use. On a
+  tie, it uses the GPU with the lowest PCI bus id.
+- The EP catalog lists the allowed options of each EP. An option value is a string.
+- The warm-up is one run on zero inputs. It gives no timing event.
+
+`build_session()` raises these errors before frame 0. They are in `skellytracker.core.errors`.
+
+| Error | Cause |
+|-------|-------|
+| `EpRequestError` | A reserved or unknown key, an option that the catalog does not list, or a `cpu_threads` that is not a positive integer. |
+| `EpUnavailableError` | The pack is not installed, does not register or lists no device. A field-test EP with no opt-in. A GPU that the check rule does not let run. |
+| `SessionCreationError` | The EP does not start, is not the first provider or has no node. |
+| `VRAMExhaustionError` | The GPU memory is exhausted at the build or at the warm-up. |
+
+A session can put some model nodes on the CPU EP. The run then gives the warning
+`ep_partial_placement`, one time for each session.
+
+An out-of-memory error during a call raises `VRAMExhaustionError`. The run does not do the call
+again and does not change the batch. The run is then closed.
+
+## The check rule
+
+An EP runs on a GPU only when one of these is true:
+
+- `ep_evidence.yaml` has a reviewed row for the EP, the GPU model, the OS and the version set of
+  this release.
+- A quick check of `skellytracker.certify()` passed for the EP on this GPU on this system.
+
+An EP never runs on a GPU after a quick check that failed there. The rule also applies to `coreml`,
+with the chip of the Mac as the key. `check_start()` and `build_session()` raise
+`EpUnavailableError` with the quick-check command. The rule has no setting.
+
+Two unclean exits in a row of a process that held a session on a GPU EP mark that EP as failed on
+this system. A passed quick check removes the mark. An application calls
+`skellytracker.note_exit_requested()` before it ends its process.
+[Certifying a System](../guides/certifying-a-system) explains the quick check.
+
+## CPU threads
+
+Each session on the CPU EP `cpu` uses `cpu_threads` as its intra-op thread count, and one inter-op
+thread. With no `cpu_threads`, the count is half of the physical cores of the host, at least 1. The
+run thus leaves cores free for the camera capture and the application.
+
+A session of a GPU EP pack uses one intra-op thread and one inter-op thread. A session on another
+built-in EP, for example `coreml`, uses the thread counts of ONNX Runtime. A `mediapipe_tasks` node
+is not an ONNX session. `PipelineRun.models` gives the applied count.
+
+## Preprocess place
+
+The run parameter `preprocess` sets where each `onnx_model` node does its preprocess:
+
+| Value | Effect |
+|-------|--------|
+| `auto` | The default. A node on `cuda` or `trt-rtx` uses the GPU preprocess. A node on each other EP uses the CPU preprocess. |
+| `gpu` | A node on each EP with the wiring for the GPU preprocess (`cuda`, `trt-rtx` and `directml`) uses it. This value is for a certification run. |
+| `cpu` | The run does the frame work on the CPU on each EP. Only the model runs on the EP. This value is for a benchmark of the CPU path against the GPU path. |
+
+With the GPU preprocess, the node runs its preprocess as a graph in its own session. The output of
+the graph goes to the model input in GPU memory, with no copy. When a node that must use the GPU
+preprocess uses the CPU preprocess, the run gives the warning `preprocessed_on_cpu`.
+
+With `auto`, a stored `fail` of the quick check `jpeg-preprocess` moves the preprocess of that GPU
+to the CPU from the start of the run.
+
+## JPEG frames
+
+A `Frame` can hold the bytes of one JPEG image. The run decodes it before the first node. It does
+not apply the EXIF orientation.
+
+- Only `cuda` and `trt-rtx` have a GPU JPEG decode. It needs the GPU JPEG decoder of the pack, the
+  component `gpu-jpeg-cu13`. `PackStatus.jpeg_decoder` gives its state.
+- The run decodes each other JPEG buffer on the CPU, with at most `cpu_threads` threads at the same
+  time.
+- When the GPU decoder refuses a buffer or does not open, the run decodes on the CPU and gives the
+  warning `jpeg_decoded_on_cpu`. The start does not fail.
+- A buffer that no decoder can read raises `CallRefusedError`. The call changes no state.
+
+## Batch
+
+- The batch on a GPU is the camera count of that GPU.
+- A node that takes boxes batches to that batch times the `I` of the instance source of its box
+  input.
+- The run converts each artifact with `batching.batch: 3` to its batch at the start. The
+  [batch conversion section](https://github.com/freemocap/skellytracker/blob/development/specs/model-sidecar/common/batch-conversion.md)
+  of the sidecar spec defines the conversion.
+- In `video`, a stateful pipeline runs at batch = camera count. The run gives the warning
+  `batch_limited_by_state`.
+
+## Example
+
+```python
+from skellytracker.core import eps
+
+for row in eps.status().eps:
+    print(row.key, row.state, row.usable, row.uses_gpu, row.install_hint)
+
+recommendation = eps.recommend("performance")
+print(recommendation.chosen.ep_key, recommendation.precision, dict(recommendation.options))
+for candidate in recommendation.skipped:
+    print("skipped:", candidate.ep_key, candidate.status, candidate.needs_check, candidate.failed_locally)
+```
+
+`status()` loads no library and uses no network. The same facts are on the command line:
+
+```bash
+uv run skellytracker-eps status
+uv run skellytracker-eps recommend
+```
+
+## Exit codes
+
+The commands `skellytracker run` and `skellytracker-eps` use the exit codes of
+`skellytracker.core.errors`:
+
+| Code | Meaning |
+|------|---------|
+| 0 | OK |
+| 1 | Failure, also an extra or an ONNX file that is absent |
+| 2 | A usage error, a pipeline that is not valid, or an EP key or option that the EP catalog refuses |
+| 3 | The EP is not available |
+| 4 | A session was not created |
+| 5 | The GPU memory is exhausted |
+| 6 | Cancelled |
+
+## See also
+
+- [Execution Providers](../core-concepts/execution-providers)
+- [GPU Setup](../guides/gpu-setup)
+- [Multi-Camera Batching](../guides/multi-camera-batching)

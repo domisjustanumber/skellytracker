@@ -9,40 +9,75 @@ import { AiGeneratedBanner } from '@freemocap/skellydocs';
 
 # Multi-Camera Batching
 
-A single `Tracker` can run across N cameras in **one batched GPU call per model**
-rather than N sequential calls. This is ideal for synchronized multi-camera
-recordings where every camera covers the same time range.
+One run can process the frames of many cameras. Give the camera ids at the start. Then give one
+mapping of camera id to `Frame` for each call. The run batches the cameras of a call.
 
-## Per-frame API
+## Example
 
 ```python
-# images and states are dicts keyed by camera id
-observations, states = tracker.process_batch(images, frame_number, states)
-# -> per-camera Observation dict, per-camera updated TrackerState dict
+from pathlib import Path
+
+from skellytracker.core.pipelines import Frame, load_pipeline, start_pipeline
+
+config = load_pipeline("yolox-rtmw-wholebody@skellytracker")
+cameras = ["cam0", "cam1", "cam2"]
+jpegs = [path.read_bytes() for path in sorted(Path("frames").glob("*.jpg"))]
+
+with start_pipeline(config, camera_ids=cameras, running_mode="video", execution_provider="cpu") as run:
+    print(run.models["wholebody"])
+    for index, data in enumerate(jpegs[:5]):
+        # video: one frame for each camera of the run in each call
+        results = run.process_batch({camera: Frame(data, frame_index=index) for camera in cameras})
+        for camera, result in results.items():
+            print(index, camera, bool(result["wholebody"].present[0]))
+
+with start_pipeline(config, camera_ids=cameras, running_mode="live", execution_provider="cpu") as run:
+    # live: a call can hold only some of the cameras
+    results = run.process_batch({"cam1": Frame(jpegs[0], frame_index=0, timestamp_ms=0.0)})
+    print(list(results))                                      # ['cam1']
 ```
 
-For ONNX-backed detectors the cameras are inferred in a single batched ORT call;
-for non-ONNX detectors a thread pool is used. Child stage hierarchies are preserved.
+The example gives the same frames to each camera. A real caller gives the frames of each camera.
 
-## Offline helpers
+## Rules
 
-For video files, the [`process_video_list` / `process_folder`](../getting-started/processing-videos.mdx)
-helpers drive `process_batch` for you.
+- The camera ids must be unique. A camera id is a string or an integer.
+- In `video` and `image`, each call must give one frame for each camera of the run. `image` has
+  one camera only.
+- In `live`, a call can hold a subset of the cameras. The result holds only the cameras of the call.
+- The cameras stay separate. No output joins the values of two cameras.
 
-:::tip Match batch size to camera count
-Create the `OnnxSession` with `batch_size` equal to the number of cameras so all
-cameras are inferred in one call.
-:::
+## The batch
 
-{/* TODO(prose):
-    - process_batch full signature & semantics (SOURCE: core/tracker/tracker.py — validated).
-    - DetectionStage.run_batch preprocess/infer/postprocess split; OnnxSession.run_batched
-      (SOURCE: core/tracker/detection_stage.py, core/sessions/onnx_session.py).
-    - Note: this is single-Tracker batched inference across cameras; cross-camera
-      correspondence/triangulation is out of scope (lives in freemocap).
-    SOURCE: rearchitecture-docs/skellytracker-architecture/10-multi-camera-batching.md. */}
+The run chooses the batch at start.
+
+- The batch on a GPU is the camera count of that GPU.
+- In `live`, the batch is the camera count.
+- In `video`, the batch of a stateful pipeline is the camera count. The built-in pipeline
+  `yolox-rtmw-wholebody` is stateful.
+- A node that takes boxes batches to the batch × the instance count of its box input.
+- The run pads a missed frame and drops the result of each padded item.
+
+## Many GPUs
+
+With two or more GPUs, the run splits its cameras over the GPUs. Each GPU runs the whole pipeline
+for its cameras. The split is fixed at start.
+
+- The weight of a GPU is its free VRAM at start, minus the VRAM reserve. The default reserve is
+  1 GiB (`vram_reserve_bytes`).
+- Each GPU gets a camera count in proportion to its weight. Each GPU that the run uses gets one
+  camera or more.
+- `device` gives the GPUs of the run. With no `device`, the run uses each GPU that the EP can use.
+- `run.models[node_id]["device"]` is a list of device keys when a node has a session on two or more
+  GPUs.
+
+## Sessions
+
+The nodes of one run with the same model file, batch, EP, EP options and device share one session.
+No session is shared between runs. `close()` frees the sessions of the run.
 
 ## See also
 
-- [Processing Videos](../getting-started/processing-videos.mdx)
-- [Trackers & Sessions](../core-concepts/trackers-and-sessions.mdx)
+- [Running Modes](../core-concepts/running-modes)
+- [Execution Providers](../core-concepts/execution-providers)
+- [Processing Videos](../getting-started/processing-videos)
