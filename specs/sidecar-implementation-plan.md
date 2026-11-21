@@ -1693,6 +1693,11 @@ these parts:
 
 ### Later
 
+- The docs site. `skellytracker-docs/` is a byte copy of that folder of the branch `sfn26` (commit
+  `2d356a6c`). Its pages describe the API of `sfn26`, not the API of this branch. Rewrite each page
+  for `detectors`, `pipelines` and `eps` before the site goes online. The workflow
+  `deploy-docs.yml` of `sfn26` is not here: the user decides when it lands and when GitHub Pages
+  goes on.
 - Move the ONNX files of `core/model_zoo/` to a Hugging Face repo
   ([ADR-AMJ8](../decisions/entries/AMJ8-replace-package-onnx-detectors.md) item 5).
 - Multi-person tracking with the new pipelines: an `associate` node gives the rows an identity

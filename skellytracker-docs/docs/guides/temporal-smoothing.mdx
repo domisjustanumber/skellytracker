@@ -1,0 +1,60 @@
+---
+title: Temporal Smoothing
+sidebar_position: 3
+---
+
+import { AiGeneratedBanner } from '@freemocap/skellydocs';
+
+<AiGeneratedBanner />
+
+# Temporal Smoothing
+
+Tracking across frames uses temporal state (held in
+[`TrackerState`](../core-concepts/tracker-state.mdx)) to stabilize both the
+bounding boxes that crop each subject and the keypoints estimated inside them.
+
+## Bounding-box policy
+
+The bounding-box policy controls how the crop for the next frame is derived from
+the current detection and keypoints, with smoothing to keep it from jittering or
+collapsing.
+
+The body and shared hand presets filter crop corners with `BBoxSmoothingConfig`:
+
+```python
+BBoxSmoothingConfig(min_cutoff=3.0, beta=0.02, d_cutoff=1.0, reset_after_seconds=0.5)
+```
+
+Cutoffs are in Hz. Lower minimum cutoff reduces jitter with more lag; beta raises
+the cutoff during motion. These are starting defaults, not a quality optimum.
+The hand crop uses three times the larger wrist-to-index/pinky-tip distance.
+It adds no further percentage margin.
+
+Provide source `timestamp_ms`, not inference-completion time. Each camera/stage
+has separate filter history and reusable NumPy corner buffers. Missing crops
+and gaps longer than `reset_after_seconds` reset that history. Missing, repeated,
+or backwards timestamps bypass/reset smoothing; they do not invent an interval.
+Reported boxes describe the exact clipped pixel rectangle passed to detection.
+
+
+## Keypoint filtering
+
+Keypoints can be smoothed with filters (e.g. one-euro / Kalman) to reduce
+frame-to-frame noise.
+
+{/* TODO(prose): document keypoint filtering config and options.
+    SOURCE: core/temporal_processing/keypoint_filtering.py; arch 09 (keypoint-smoothing sections). */}
+
+## Keypoint reset policy
+
+A reset policy determines when a keypoint detector's temporal state is cleared
+(for example when a subject is lost) so tracking recovers cleanly.
+
+{/* TODO(prose): document the reset policy and how to enable it.
+    SOURCE: core/temporal_processing/keypoint_reset_policy.py;
+    rearchitecture-docs/skellytracker-architecture/KEYPOINT_RESET_POLICY_GUIDE.md. */}
+
+## See also
+
+- [BBox Policy Reference](../technical/bbox-policy-reference.mdx)
+- [Tracker State](../core-concepts/tracker-state.mdx)
