@@ -188,6 +188,16 @@ COPIES = (
             ("(decision 0030).", f"{DECISION_0001}."),
             ("# Decision gtwq: an entry ID", "# An entry ID"),
             ("# Decision p3n3: AI attribution", "# AI attribution"),
+            (
+                "      # A public API file in the commit and no docs site file. The hook warns. It does not stop the commit.\n"
+                "      - id: docs-site\n"
+                "        name: docs site reminder\n"
+                "        entry: uv run python tools/check_docs_site.py --staged\n"
+                "        language: system\n"
+                "        pass_filenames: false\n"
+                "        verbose: true\n",
+                "",
+            ),
         ),
     ),
     Copy(

@@ -103,6 +103,7 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
 | [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question, give options or report a rule change. It is the one place for the form of a question |
 | [`brief-subagent`](.claude/skills/brief-subagent/SKILL.md) | this repository | Brief a sub-agent, and check its `path:line` claims before you use them |
+| [`update-docs-site`](.claude/skills/update-docs-site/SKILL.md) | this repository | Keep the pages of the docs site `skellytracker-docs/` true when the public API changes |
 
 ## 3. Install and Test
 

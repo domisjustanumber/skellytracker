@@ -22,6 +22,13 @@ repos:
         entry: uv run python tools/check_camera_media.py
         language: system
         verbose: true
+      # A public API file in the commit and no docs site file. The hook warns. It does not stop the commit.
+      - id: docs-site
+        name: docs site reminder
+        entry: uv run python tools/check_docs_site.py --staged
+        language: system
+        pass_filenames: false
+        verbose: true
       # Decision gtwq: an entry ID that a different file has on another branch or worktree.
       - id: decision-log-ids
         name: decision log IDs
