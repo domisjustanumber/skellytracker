@@ -1,6 +1,6 @@
 # Q7VQ — Certify rulings of 2026-11-20: validation in freemocap builds, the passive record, the suite report layout
 
-**Status:** accepted, 2026-11-20 (user).
+**Status:** absorbed into [ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`certify_platform.py`](../../tools/certify_platform.py), 2026-11-20 (absorb at 90%; PR: pending).
 
 ## Decision
 

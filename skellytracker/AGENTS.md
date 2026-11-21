@@ -119,7 +119,7 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   ([ADR-Z5X7](../decisions/entries/Z5X7-field-test-state-and-directml.md)).
 - The check rule (`core/eps/gate.py`, [ADR-ER5X](../decisions/entries/ER5X-check-rule-unclean-exits-and-coreml.md)): an EP runs
   on a GPU only with a reviewed row of `ep_evidence.yaml` for the version set of this release (its `set` is
-  `evidence.set_hash()`) or a passed quick check on this PC, and never after a quick
+  `evidence.set_hash()`) or a passed quick check on this system, and never after a quick
   check that failed there. `check_start()` and `build_session()` raise `EpUnavailableError` with the quick-check
   command. Do not add a setting, an argument or an environment variable that switches the rule off. Only the
   certification code runs inside `gate.certification_run()`. A test of an other subject on a fake GPU calls
@@ -127,7 +127,7 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   the key of its results (`gate.chip_of()`). For now, a passed quick check is the validation of a Mac: no macOS run
   of CI is required, and the certify suite on macOS comes with the level `full`.
 - `core/eps/exits.py` counts the unclean exits of a process that held a session on a GPU EP. `build_session()` writes
-  the marker. Two unclean exits in a row mark the EP as failed on this PC, and a passed quick check removes the mark.
+  the marker. Two unclean exits in a row mark the EP as failed on this system, and a passed quick check removes the mark.
   An application calls `skellytracker.note_exit_requested()` before it ends its process
   ([ADR-ER5X](../decisions/entries/ER5X-check-rule-unclean-exits-and-coreml.md) item 5).
 - `eps.build_session()` serves only new code. Do not connect it to `OnnxSession` or `Tracker.create`.
@@ -192,6 +192,12 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   user id. A failure is a fixed reason code, never an error text. `certify()` sends nothing: the
   report stays in the folder `reports` of the EP store
   ([ADR-MF2R](../decisions/entries/MF2R-ep-store-install-and-certification.md) item 17).
+- Each validation of a system, a platform, hardware or an EP must run through the certify process in a
+  freemocap build: freemocap calls `certify()` of each package, and the person hands in the report
+  file. A run on Linux, on macOS or on other hardware is such a run. No such run waits for a clone of
+  this repository ([ADR-Q7VQ](../decisions/entries/Q7VQ-certify-rulings-of-2026-11-20.md) item 1).
+- A new text for a person, for example `CERTIFY.md` or a report, must say "system", not "machine"
+  ([ADR-Q7VQ](../decisions/entries/Q7VQ-certify-rulings-of-2026-11-20.md) item 4).
 
 ## Freeze rules
 

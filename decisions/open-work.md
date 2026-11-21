@@ -38,7 +38,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
       package; the removal after a crash during `ensure_ready()` (a new enumeration must give the
       package family; a deployment that Windows ends after the cleanup stays); whether Windows
       downloads a package again after a removal or uses a local copy. The command that removes a
-      package that `install KEY --field-test` installed is item 6 of the
+      package that `install KEY --field-test` installed is item 4 of the
       [certification build list](#certification-build-list).
     - Linux with an AMD GPU and ROCm 10.0, 10.1 or 10.2: the pack choice, the install, the
       registration with the RUNPATH of 10.1 and 10.2, the preload of 10.0 (the second ONNX Runtime
@@ -61,10 +61,6 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
   - The instructions page `CERTIFY.md` is a draft. Its clone address names the fork of the user. A
     report goes to an issue of the repository `skellycertify`.
-  - Section 5 calls `run_jpeg_certification` of the JPEG branch. Until that branch lands, the
-    section is `not-run` with `not-in-this-checkout`. The section also calls it once for each EP of
-    `AMD_EPS` that passed section 3. A `directml` call is `record-only` when the hardware class of a
-    GPU that section 3 tested does not list `directml`.
   - Section 1 still checks a certification tag. Evidence needs no tag now: the report records the
     version and the commit of each package ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md)
     item 4; item 2 of the [certification build list](#certification-build-list)).
@@ -96,9 +92,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - macOS: the `onnxruntime` 1.30.0 wheel is not scanned and has no row.
 - **Field-test opt-in.** [ADR-Z5X7](entries/Z5X7-field-test-state-and-directml.md): there is no
   command that removes an opt-in. A user deletes `field-test.json` of the EP store.
-  - freemocap work: the dialog of the prompt (item 14, at the times of
-    [ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md) item 5) and of the download prompt
-    (item 9).
+  - freemocap work: the dialog of the download prompt (item 9).
 - **DirectML GPU preprocess.** A reviewed report from an AMD GPU on Windows moves `directml` into
   `GRAPH_DEFAULT_EPS` ([ADR-W4NW](entries/W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md)
   items 1 and 6). The report must show no `fail` in `preprocess_graph_amd_ep.*` and
@@ -247,6 +241,11 @@ a system is a run of the certify process in a freemocap build
    format of `skellycertify` must first define the fields of a `passive` record.
 7. Add a marker to `ep_evidence.yaml` and to `tools/onnx_stack.py` for a row from a passive record.
    The name of the field or the value is not decided.
+8. The MediaPipe smoke run of [ADR-X7WD](entries/X7WD-certify-levels-rulings-of-2026-11-20.md)
+   item 11. It is not built.
+9. A real quick run on `trt-rtx` and `cuda` with the code of
+   [ADR-X7WD](entries/X7WD-certify-levels-rulings-of-2026-11-20.md), and a real run that skips a
+   reviewed pair.
 
 CI runs `test_eps_session.py` on no Linux runner: `if: runner.os != 'Linux'` in
 `.github/workflows/ep-pack.yml:41`.

@@ -1,6 +1,6 @@
 # R0EB — The quick check runs a `video` session and a `live` session, with one CPU reference for the run
 
-**Status:** accepted, 2026-11-20 (user).
+**Status:** absorbed into [Layout](../../skellytracker/AGENTS.md#layout), [`certification.py`](../../skellytracker/certification.py), 2026-11-20 (absorb at 90%; PR: pending).
 
 ## Decision
 

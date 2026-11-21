@@ -188,7 +188,9 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       `speed_against_cpu` (`faster`, `slower` or `similar`): a rough figure, a record only that never
       changes the result.
     - `<ep>:live`: the pipeline on the EP on the frames in `live`, with a rising `timestamp_ms`. It
-      passes when each frame has finite outputs and a person. It compares nothing. It starts only after
+      passes when each frame has finite outputs and a person. It fails with the error of the run, with
+      `not-finite` on an output that is not finite, and with `no-person` on a frame with no person. It
+      compares nothing. It starts only after
       `<ep>:video` passed, else it is `not-run` with `video-not-passed`.
     It downloads nothing (ADR-X7WD item 6). With a model file that is not on this host, each of these checks
     is `not-run` with `models-missing`. With a test frames file that is absent or has a wrong sha256,
@@ -280,7 +282,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     the application must not call it while a pipeline holds the GPU.
 
     It writes in the EP store of the user: the report in the folder `reports`, the verdict of the
-    probe and the local result of each EP that ran to `pass` or `fail` in `quick-checks.json`. A `field-test`
+    probe and, in `quick-checks.json`, the result of each check `<ep>` that is `pass` or `fail` as the local result of
+    the EP. A `field-test`
     EP gets the opt-in during its check. The opt-in stays only when the check passes on a GPU (ADR-21BK item 2). The stored result is for the GPU model: two GPUs of one
     model share it, and the last check wins. The row of `quick-checks.json` of `cuda` and `trt-rtx` also holds
     `jpeg`: the result of each of the two JPEG checks.
