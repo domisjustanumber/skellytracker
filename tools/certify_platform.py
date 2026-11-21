@@ -36,10 +36,12 @@ The sections (``SECTIONS``): 1 ``checkout``, the checkout and the versions again
 ``skellytracker.certify("full")`` (``tools/certify_eps.py``).
 
 The report file obeys sections 4.1 and 4.2 of ``report-format.md`` of the repository ``skellycertify``.
-It has the title, the line of the module, the system list, the GPU table and the benchmark table from the
-``summary`` items, the camera line, the table of the checks that did not pass and, last, one fenced JSON block
-(``report_data()`` reads it):
-``{"schema", "app": null, "modules": [<module report>], "note"}``. The one module report is the
+It has the title, the line of the module, the system list, the GPU table, the benchmark table and the component
+table (``| Module | Result |``, only when a module has a ``component`` item) from the ``summary`` items, the camera
+line, the table of the checks that did not pass, the note and, last, one fenced JSON block (``report_data()`` reads it):
+``{"schema", "app": null, "modules": [<module report>], "note"}``. The Markdown part prints each value with ``cell()``:
+each match of the IPv4 pattern of rule 20 of section 6 has a space for each dot, for example ``2.1.0.5`` prints
+``2 1 0 5``. The JSON block keeps the exact value. The one module report is the
 report of section 4, with ``kind`` ``full`` and ``created_utc`` set to the start of the run. When
 section 4 gave no report, it is the empty report of ``_base_report()`` of the package. Its ``checks``
 start with the checks of the suite: ``suite:<slug>`` with the result of each section, and
@@ -101,7 +103,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellycertify.report/1.4.0"  # `SCHEMA` of `skellytracker/certification.py`
+REPORT_SCHEMA = "skellycertify.report/1.5.0"  # `SCHEMA` of `skellytracker/certification.py`
+# rule 20 of section 6 of the contract: an IPv4 address; the Markdown part prints each match with spaces for the dots
+IPV4 = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b")
 SUITE_VERSION = 2
 RESULTS = ("pass", "fail", "not-run", "record-only")
 EXIT_OK, EXIT_FAILURE, EXIT_NO_CONSENT, EXIT_CANCELLED = 0, 1, 2, 6  # the exit codes of `skellytracker-eps`
@@ -652,7 +656,11 @@ def module_report(results: list[dict], selected: set[int], interrupted: bool, cr
 
 
 def cell(text) -> str:
-    return " ".join(str(text if text is not None else "").split()).replace("|", "\\|")
+    """A value as Markdown text: one line, `|` escaped, and each IPv4 match with spaces for the dots, again until none is left."""
+    text = " ".join(str(text if text is not None else "").split()).replace("|", "\\|")
+    while IPV4.search(text):
+        text = IPV4.sub(lambda match: match.group().replace(".", " "), text)
+    return text
 
 
 def gpu_cell(gpu: dict) -> str:
@@ -687,18 +695,18 @@ def render(data: dict) -> str:
     first = modules[0]
     proof, package = first["evidence"], first["package"]
     lines = ["# Certify report", "", " · ".join([
-        f"{package['name']} {package['version'] or 'with no version'}", f"{first.get('kind')} run",
+        f"{cell(package['name'])} {cell(package['version']) or 'with no version'}", f"{first.get('kind')} run",
         f"{first['created_utc'][:16].replace('T', ' ')} UTC",
         *(["incomplete"] if {"cancelled", "interrupted"} & set(proof["reasons"]) else []),
         "valid as evidence" if proof["valid"] else f"not valid as evidence: {', '.join(proof['reasons'])}"])]
     system = system_lines(modules)
-    gpus, benchmarks, cameras, failed, checked, unchecked = [], [], [], [], set(), {}
+    gpus, benchmarks, components, cameras, failed, checked, unchecked = [], [], [], [], [], set(), {}
     for m in modules:
         found = {g["id"]: g for g in (m.get("host") or {}).get("gpus") or []}
         unchecked.update({key: gpu for key, gpu in found.items() if key not in unchecked})
         for item in m.get("summary") or []:
-            if item["group"] == "camera":
-                cameras.append(f"| {cell(item['name'])} | {shown(item)} |")
+            if item["group"] in ("camera", "component"):
+                (cameras if item["group"] == "camera" else components).append(f"| {cell(item['name'])} | {shown(item)} |")
                 continue
             device = item["device"]
             where = "-" if device is None else gpu_cell(found.get(device) or {"id": device})
@@ -715,9 +723,10 @@ def render(data: dict) -> str:
     gpus += [f"| {gpu_cell(gpu)} | | not checked |" for key, gpu in unchecked.items() if key not in checked]
     for part in (system, gpus and ["| GPU | Module | Result |", "|---|---|---|", *gpus],
                  benchmarks and ["| GPU | Module | Stage | ms/frame | FPS |", "|---|---|---|---|---|", *benchmarks],
+                 components and ["| Module | Result |", "|---|---|", *components],
                  ["| Camera | Result |", "|---|---|", *cameras] if cameras else ["Cameras: not checked on this system."],
                  failed and ["Checks that did not pass:", "", "| Package | Module | Test | Result | Reason |", "|---|---|---|---|---|", *failed],
-                 data["note"] and ["Note of the person:", "", *(f"> {line}" for line in data["note"].splitlines())]):
+                 data["note"] and ["Note of the person:", "", *(f"> {cell(line)}" for line in data["note"].splitlines())]):
         if part:
             lines += ["", *part]
     text = json.dumps(data, indent=1)

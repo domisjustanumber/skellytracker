@@ -20,7 +20,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.4.0`. An application that
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.5.0`. An application that
 runs its own check on the test frames reads them with `certify_frames()` of this module. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
@@ -42,7 +42,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-SCHEMA = "skellycertify.report/1.4.0"
+SCHEMA = "skellycertify.report/1.5.0"
 SUMMARY_NAMES = {"trt-rtx": "TensorRT RTX", "cuda": "CUDA", "directml": "DirectML", "coreml": "Core ML", "amdgpu": "AMD GPU",
                  "migraphx": "MIGraphX", "cpu": "CPU"}  # the short fixed name of each EP in `summary`; a name never changes
 RAN = ("pass", "fail", "record-only")
@@ -61,7 +61,7 @@ CPU_REFERENCE_SECONDS = 12  # not calibrated: the CPU reference: `cpu:video` and
 QUICK_BUDGET_SECONDS = 75  # not calibrated: the hard time limit of the level `quick` (ADR-X7WD item 5)
 CPU_CHECKS = ("cpu:video", "cpu:live")  # the CPU reference of the run, at the two levels
 MEDIAPIPE_CHECK = "mediapipe:smoke"  # the MediaPipe smoke run of the level `quick` (ADR-X7WD item 11); it is not an EP
-MEDIAPIPE_MODULE = "MediaPipe"  # the `module` of `mediapipe:smoke`; it has no summary item: the format has no group for it
+MEDIAPIPE_MODULE = "MediaPipe"  # the `module` of `mediapipe:smoke` and the `name` of its `component` summary item
 # not calibrated: one Windows system (MediaPipe 1.2.2, Python 3.13, CPU) measured about 3 s in one process for the import,
 # the pipeline start and the 30 frames; the `spawn` child adds its start
 MEDIAPIPE_SECONDS = 6
@@ -108,7 +108,7 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
                  pipeline=None, test_media_dir: str | os.PathLike | None = None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
-    `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.4.0`, each download
+    `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.5.0`, each download
     of a plan has `source` and `sha256`. `details.checks` gives the
     name of each EP check, one for each EP and GPU. A pair with a reviewed pass is not in it at the level
     `quick`. No level installs an EP: `details.not_run` gives each of them that will not run, with its
@@ -245,8 +245,10 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     - It is `not-run` with `models-missing` when MediaPipe is not installed, or when the model file of
       MediaPipe is not in its cache: it downloads nothing. It is `not-run` with `test-media-missing` when
       the test frames file is not valid.
-    - It is not an EP check. It stores no local result, opts in nothing, never changes an EP check and has no
-      summary item: the format has no summary group for it.
+    - It is not an EP check. It stores no local result, opts in nothing and never changes an EP check.
+    - It has one summary item of the group `component`: `{"group": "component", "name": "MediaPipe", "device": None,
+      "result": ...}`, with the result of the check when it is `pass` or `fail`. A check that is `not-run` has no item,
+      as an EP that is `not-run`. With a reviewed row, the item has the result `skipped` and the reason `reviewed`.
 
     The time budget of the level `quick` (ADR-X7WD item 5): `QUICK_BUDGET_SECONDS` (75, not calibrated) from the
     start of the call. The order is the CPU reference, then the pairs in the order of the selection, then `mediapipe:smoke`.
@@ -299,14 +301,14 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
     `cpu:*`. A JPEG check and an `exit` check have the module of their EP. The `name` of the summary item of the EP
     is the same text. `mediapipe:smoke` and its `exit` check have the module `MediaPipe`.
 
-    `summary` is the list of the summary items of the report for a person, from the format `1.4.0`. An item has
+    `summary` is the list of the summary items of the report for a person, from the format `1.5.0`. An item has
     `group`, `name`, `device` and `result`. Each EP that ran on a GPU has one item of the group `ep`, with the
     result of its check: an EP that is `not-run` has no item. `name` is the short fixed name of the EP, for
     example `TensorRT RTX`, `CUDA`, `DirectML` or `CPU`. `device` is the `id` of the GPU in `host.gpus`, or None.
     A `gpu-jpeg` item follows the `ep` item when a check of the GPU JPEG decode ran on that EP and that GPU.
     Each reviewed pair that the level `quick` skipped has an `ep` item with the result `skipped` and the reason
     `reviewed`, after the items of the pairs that ran. The CPU EP has the next item when one of its checks ran:
-    `fail` when one failed, else `record-only`. The level `full` then adds one item of the group `benchmark` for each
+    `fail` when one failed, else `record-only`. The `component` item of `mediapipe:smoke` follows it. The level `full` then adds one item of the group `benchmark` for each
     timing `<ep>:pipeline-<n>` with a median, in the order of the checks: `name` and `device` as for the `ep` item,
     `stage` (`pipeline-<n>`), `ms_per_frame` (the median time of one call, which holds one frame of each of the `<n>`
     cameras) and `fps` (the calls in each second, from the median). A `benchmark` item has no `result`.
@@ -570,7 +572,8 @@ def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
     there only when a GPU JPEG decode check ran for the pair: the check `jpeg-decode` of the level `quick`, or the
     checks `jpeg:gpu_decode.*` of the level `full`, where one `fail` gives `fail`. `device` is the id of the GPU in
     `host.gpus`, or None. The items of `skipped` (a pair with a reviewed pass) follow the pairs that ran, before the CPU EP.
-    A `benchmark` item follows for each timing of the level `full` with a median, in the order of the checks.
+    The `component` item of `mediapipe:smoke` follows the CPU EP: the result of the check when it ran, or `skipped` with
+    `reviewed` when `details.skipped` gives the check as `reviewed`. A `benchmark` item follows for each timing of the level `full` with a median, in the order of the checks.
     """
     rows = {row["name"]: row["result"] for row in report["checks"]}
     eps = report["details"].get("eps", {})
@@ -590,6 +593,11 @@ def _summary(report: dict, skipped: Sequence[dict] = ()) -> list[dict]:
     cpu = {result for name, result in rows.items() if name.startswith("cpu:")} & set(RAN)
     if cpu:
         items.append({"group": "ep", "name": SUMMARY_NAMES["cpu"], "device": None, "result": "fail" if "fail" in cpu else "record-only"})
+    smoke = {"group": "component", "name": MEDIAPIPE_MODULE, "device": None}
+    if rows.get(MEDIAPIPE_CHECK) in RAN:  # as an EP: a check that is `not-run` has no item
+        items.append({**smoke, "result": rows[MEDIAPIPE_CHECK]})
+    elif report["details"].get("skipped", {}).get(MEDIAPIPE_CHECK) == "reviewed":
+        items.append({**smoke, "result": "skipped", "reason": "reviewed"})
     for row in report["checks"]:
         timing, median = TIMING.match(row["name"]), (row.get("numbers") or {}).get("median_ms")
         if timing and row["result"] == "record-only" and median:

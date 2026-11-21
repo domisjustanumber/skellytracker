@@ -130,7 +130,7 @@ stopped it.
 
 ## Read the report
 
-The report file has the format `skellycertify.report/1.4.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.5.0` of the repository `skellycertify`. It
 has these parts:
 
 - One line with the package, its version, the time of the run and if the report is valid as evidence.
@@ -142,11 +142,18 @@ has these parts:
 - A benchmark table with one row for each timing of the pipeline: the GPU, the EP, the stage
   (`pipeline-1`, `pipeline-3` or `pipeline-6`, for 1, 3 or 6 cameras), the time of one frame of each
   camera in milliseconds and the frames in each second.
+- A component table `| Module | Result |`, only when the report has a `component` item. It has one row
+  for each component, for example `MediaPipe`. The full level has no MediaPipe check, so the report
+  of this suite has no component table.
 - The line `Cameras: not checked on this system.`
 - The line `Checks that did not pass:` and a table with one row for each check that failed. A check
   that did not run (`not run`) also has a row when its EP failed. A report with no such check has
   no such table.
 - The heading `## Data` and a JSON block. It holds each check and each fact of the run.
+
+The privacy rules do not allow an IPv4 address in the part before the JSON block (rule 20 of the
+format). That part thus shows each text with the form of an IPv4 address, for example the version
+`2.1.0.5`, with a space for each dot: `2 1 0 5`. The JSON block keeps the exact value.
 
 The column `Module` of that table holds the EP of the check, for example `CUDA`. A check of the
 suite has no module. The column `Test` holds the check name:

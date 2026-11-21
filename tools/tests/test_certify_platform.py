@@ -89,7 +89,7 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     text = out.read_text(encoding="utf-8")
     data = cp.report_data(text)
     assert text.startswith("# Certify report\n") and text.endswith("```\n")
-    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.4.0", None, None)
+    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.5.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
     assert "Checks that did not pass:" not in text and "## Sections" not in text  # no failed check: no table
@@ -168,6 +168,41 @@ Cameras: not checked on this system.
 Note of the person:
 
 > a note"""
+
+
+def test_the_component_table_follows_the_benchmark_table_with_the_display_words():
+    report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "quick", "package": {"name": "skellytracker", "version": "2.0.0"},
+              "evidence": {"valid": True, "reasons": []}, "checks": [], "details": {},
+              "summary": [{"group": "benchmark", "name": "CPU", "device": None, "stage": "pipeline-1", "ms_per_frame": 20.0, "fps": 50.0},
+                          {"group": "component", "name": "MediaPipe", "device": None, "result": "skipped", "reason": "reviewed"},
+                          {"group": "component", "name": "Other", "device": None, "result": "pass"}]}
+    text = cp.render({"schema": "s", "app": None, "modules": [report], "note": None}).split("\n\n## Data")[0]
+    assert text.split("\n\n", 2)[2] == """| GPU | Module | Stage | ms/frame | FPS |
+|---|---|---|---|---|
+| - | CPU | pipeline-1 | 20.0 | 50.0 |
+
+| Module | Result |
+|---|---|
+| MediaPipe | skipped (already reviewed) |
+| Other | pass |
+
+Cameras: not checked on this system."""  # a component item is not a row of the GPU table
+    report["summary"] = report["summary"][:1]
+    assert "| Module | Result |" not in cp.render({"schema": "s", "app": None, "modules": [report], "note": None})
+
+
+def test_the_markdown_part_prints_an_ipv4_match_with_spaces_and_the_json_block_keeps_it():
+    report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "full", "package": {"name": "skellytracker", "version": "2.1.0.5"},
+              "evidence": {"valid": True, "reasons": []}, "checks": [], "details": {},
+              "host": {"cpu": {"name": "CPU 3.1.0.4 and 32.1.0.7"}},
+              "summary": [{"group": "component", "name": "lib 1.2.3.4.5.6.7.8", "device": None, "result": "pass"}]}
+    data = {"schema": "s", "app": None, "modules": [report], "note": "seen 2.1.0.5"}
+    markdown, _ = cp.render(data).split("\n\n## Data")
+    assert "skellytracker 2 1 0 5 · full run" in markdown and "- CPU: CPU 3 1 0 4 and 32 1 0 7" in markdown
+    assert "| lib 1 2 3 4.5 6 7 8 | pass |" in markdown and "> seen 2 1 0 5" in markdown  # two matches in one value
+    assert not cp.IPV4.search(markdown)
+    assert cp.report_data(cp.render(data)) == data  # the JSON block keeps each exact value
+    assert cp.cell("1.2.3.4.5") == "1 2 3 4.5" and cp.cell("32.0.101.6881") == "32.0.101.6881"
 
 
 def test_a_backtick_run_in_the_data_does_not_break_the_json_fence():

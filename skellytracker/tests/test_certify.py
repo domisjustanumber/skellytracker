@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.4.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.5.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -48,7 +48,7 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.4.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.5.0" else ["schema"]
     found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]
@@ -218,7 +218,8 @@ def test_a_quick_pass_gives_a_valid_report_and_records_the_local_pass(quick_host
     assert report["evidence"] == {"valid": True, "reasons": []} and report["kind"] == "quick"
     assert report["summary"] == [*({"group": group, "name": name, "device": "10de:2484", "result": "pass"} for group, name in (
         ("ep", "TensorRT RTX"), ("gpu-jpeg", "TensorRT RTX"), ("ep", "DirectML"))),  # `directml` has no GPU JPEG decode
-        {"group": "ep", "name": "CPU", "device": None, "result": "record-only"}]  # the CPU reference ran
+        {"group": "ep", "name": "CPU", "device": None, "result": "record-only"},  # the CPU reference ran
+        {"group": "component", "name": "MediaPipe", "device": None, "result": "skipped", "reason": "reviewed"}]  # a reviewed row
     assert report["package"] == {"name": "skellytracker", "version": package_certification._package()[0]["version"],
                                  "commit": COMMIT, "tree_modified": False}
     assert report["host"]["os"]["arch"] == "x86_64" and report["host"]["gpus"][0]["id"] == "10de:2484"
@@ -824,6 +825,16 @@ def test_an_older_report_whose_only_pass_is_the_mediapipe_check_goes(quick_host)
     assert [path.stem for path in folder.glob("*.json")] == ["report-2"]
 
 
+def test_a_report_of_an_older_1_x_format_stays_in_the_hand_in_list(quick_host):
+    folder = certification.reports_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, schema in (("older", "skellycertify.report/1.4.0"), ("major-2", "skellycertify.report/2.0.0")):
+        store.write_json(folder / f"{name}.json", {"schema": schema, "kind": "full", "created_utc": "2030-01-01T00:00:00Z",
+                                                   "checks": [{"name": "cpu:video", "result": "pass"}]})
+    assert [row["report_id"] for row in skellytracker.pending_reports()] == ["older"]
+    assert skellytracker.read_report("older")["schema"] == "skellycertify.report/1.4.0"
+
+
 def test_the_scrub_removes_a_private_name_and_counts_a_public_one(monkeypatch):
     monkeypatch.setattr(package_certification, "_private_words", lambda: ["secretname", "Windows"])
     report = {"host": {"os": {"name": "Windows"}}, "checks": [{"name": "trt-rtx", "reason": None}],
@@ -905,6 +916,10 @@ def test_the_summary_lists_each_ep_that_ran_with_its_gpu_jpeg_result_and_the_cpu
                                                  {"name": "cuda@10de-2484-0:jpeg-decode", "result": "pass"}]}
     assert [item["group"] for item in package_certification._summary(quick)] == ["ep", "gpu-jpeg"]  # no CPU row ran: no CPU item
     assert package_certification._summary({"details": {}, "checks": []}) == []
+    smoke = {"details": {}, "checks": [{"name": "cpu:video", "result": "pass"}, {"name": "mediapipe:smoke", "result": "not-run"}]}
+    assert [item["group"] for item in package_certification._summary(smoke)] == ["ep"]  # a `not-run` check: no component item
+    smoke["checks"][-1]["result"] = "fail"
+    assert package_certification._summary(smoke)[-1] == {"group": "component", "name": "MediaPipe", "device": None, "result": "fail"}
 
 
 def test_the_full_level_runs_the_unreviewed_pairs_of_the_recommended_gpu_before_the_cpu_timings(quick_host, monkeypatch):
@@ -998,8 +1013,10 @@ def test_the_quick_level_runs_the_mediapipe_smoke_run_last_when_no_row_records_a
     assert results(report)["mediapipe:smoke"] == ("pass", None) and results(report)["trt-rtx@10de-2484-0"] == ("pass", None)
     assert report["checks"][-1]["module"] == "MediaPipe" and report["checks"][-1]["numbers"]["frames"] == 3 and len(calls) == 1
     assert seen[-1] == ("1.2.2", f"{sys.version_info.major}.{sys.version_info.minor}", "Windows 11")
-    assert [item["name"] for item in report["summary"]] == ["TensorRT RTX", "TensorRT RTX", "DirectML", "CPU"]  # no summary item
+    assert [item["name"] for item in report["summary"]] == ["TensorRT RTX", "TensorRT RTX", "DirectML", "CPU", "MediaPipe"]
+    assert report["summary"][-1] == {"group": "component", "name": "MediaPipe", "device": None, "result": "pass"}
     assert report["details"]["skipped"] == {} and len(local_results()) == 2  # it stores nothing
+    component = {"fail": {"group": "component", "name": "MediaPipe", "device": None, "result": "fail"}, "pass": report["summary"][-1]}
     for answer, expected in (((None, "crashed", 5), ("fail", "crashed")), (({"live": {"error": "RuntimeError"}}, None, 0), ("fail", "RuntimeError")),
                              (({"error": "models-missing"}, None, 0), ("not-run", "models-missing")),  # no model file in the cache
                              (({"live": {"frames": [holistic(), holistic(present=False)]}}, None, 0), ("fail", "no-person")),
@@ -1010,13 +1027,17 @@ def test_the_quick_level_runs_the_mediapipe_smoke_run_last_when_no_row_records_a
         fake_mediapipe(monkeypatch, *answer)
         report = skellytracker.certify("quick")
         assert results(report)["mediapipe:smoke"] == expected and problems_of(report) == []
+        items = [item for item in report["summary"] if item["group"] == "component"]
+        assert items == ([component[expected[0]]] if expected[0] in component else [])  # a check that is `not-run` has no item
     assert results(report)["mediapipe:smoke:exit"] == ("record-only", "hung-at-exit")  # its module is `MediaPipe` too
-    assert "mediapipe:smoke" not in results(skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"]))
-    assert "mediapipe:smoke" not in results(skellytracker.certify("quick", device="gpu:10de:2484:0"))
+    for named in (skellytracker.certify("quick", execution_providers=["trt-rtx", "directml"]),
+                  skellytracker.certify("quick", device="gpu:10de:2484:0")):
+        assert "mediapipe:smoke" not in results(named) and all(item["group"] != "component" for item in named["summary"])
     calls = fake_mediapipe(monkeypatch)
     monkeypatch.setattr(evidence, "mediapipe_reviewed", lambda *args: True)  # a reviewed row: no check
     report = skellytracker.certify("quick")
     assert "mediapipe:smoke" not in results(report) and report["details"]["skipped"] == {"mediapipe:smoke": "reviewed"} and calls == []
+    assert report["summary"][-1] == {"group": "component", "name": "MediaPipe", "device": None, "result": "skipped", "reason": "reviewed"}
 
 
 def test_the_mediapipe_smoke_run_is_not_run_with_no_mediapipe_no_test_frames_or_no_time_left(quick_host, monkeypatch):
