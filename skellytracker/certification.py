@@ -20,7 +20,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.6.0`. An application that
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.7.0`. An application that
 runs its own check on the test frames reads them with `certify_frames()` of this module. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
@@ -42,7 +42,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-SCHEMA = "skellycertify.report/1.6.0"
+SCHEMA = "skellycertify.report/1.7.0"
 SUMMARY_NAMES = {"trt-rtx": "TensorRT RTX", "cuda": "CUDA", "directml": "DirectML", "coreml": "Core ML", "amdgpu": "AMD GPU",
                  "migraphx": "MIGraphX", "cpu": "CPU"}  # the short fixed name of each EP in `summary`; a name never changes
 RAN = ("pass", "fail", "record-only")

@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.6.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.7.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -48,7 +48,7 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.6.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.7.0" else ["schema"]
     found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]

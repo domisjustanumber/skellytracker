@@ -103,7 +103,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellycertify.report/1.6.0"  # `SCHEMA` of `skellytracker/certification.py`
+REPORT_SCHEMA = "skellycertify.report/1.7.0"  # `SCHEMA` of `skellytracker/certification.py`
 SKIPPED_SHOWN = {"reviewed": "already reviewed", "not-installed": "not installed"}  # section 4.2: the display of a `skipped` reason
 # rule 20 of section 6 of the contract: an IPv4 address; the Markdown part prints each match with spaces for the dots
 IPV4 = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b")
