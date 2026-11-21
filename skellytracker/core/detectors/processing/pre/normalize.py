@@ -53,4 +53,5 @@ def normalize(
         values = (pixels - mean) / std
     else:
         raise ValueError(f"unsupported normalization: {normalization!r}")
-    return values if dtype is None else values.astype(INPUT_DTYPES[dtype])
+    # `values` is always a new array (the cast above copies), so a cast to its own dtype needs no second copy
+    return values if dtype is None else values.astype(INPUT_DTYPES[dtype], copy=False)

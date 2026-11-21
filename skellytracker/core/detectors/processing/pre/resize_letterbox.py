@@ -62,7 +62,8 @@ def letterbox(
     geometry = letterbox_geometry(src_w, src_h, target_size, pad_position, rounding)
     n_w, n_h, left, top = geometry["n_w"], geometry["n_h"], geometry["left"], geometry["top"]
     canvas = np.empty((int(target_size[0]), int(target_size[1]), 3), dtype=image.dtype)
-    canvas[...] = np.asarray(pad_value, dtype=np.float64)
+    # cast the 3 pad values first: the fill then needs no cast of each canvas element
+    canvas[...] = np.asarray(pad_value, dtype=np.float64).astype(image.dtype)
     canvas[top : top + n_h, left : left + n_w] = cv2.resize(image, (n_w, n_h), interpolation=interpolation)
     return canvas, geometry
 
