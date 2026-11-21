@@ -164,9 +164,6 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   [ADR-FBV5](entries/FBV5-gpu-path-agreement-on-the-freemocap-sample-data.md) and
   [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md), and on the pinned versions in
   [ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md). Open:
-  - On `cuda`, a call with no detector run is slower on the GPU path: +15 to +47 %
-    ([ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md) item 2). What the run
-    must do about it is not decided.
   - No run measured the keypoint preprocess with two or more boxes in a frame.
   - A model session with a dynamic batch pads the batch on the GPU path.
   - No run measured the gain of the CPU decode thread pool
