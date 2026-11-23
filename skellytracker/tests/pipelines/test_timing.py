@@ -127,6 +127,12 @@ def test_header_fields():
     assert header["spans_on"] == ["pipeline.run", "wholebody.inference"]
     assert [item["id"] for item in header["nodes"]] == [node.id for node in cfg.nodes]
     assert "mode" not in header
+    assert header["jpeg_decode"] == "cpu"  # the default: no device has a GPU JPEG decoder
+    for place in timing.JPEG_DECODE_PLACES:
+        made = timing.make_header(cfg, run_id="r", running_mode="video", warmup_passes=0, camera_ids=[0], nodes=node_items(cfg), jpeg_decode=place)
+        assert made["jpeg_decode"] == place
+    with pytest.raises(ValueError, match="jpeg_decode"):
+        timing.make_header(cfg, run_id="r", running_mode="video", warmup_passes=0, camera_ids=[0], nodes=node_items(cfg), jpeg_decode="nvjpeg")
     json.dumps(header)
     off = timing.make_header(cfg, run_id="r", running_mode="image", warmup_passes=0, camera_ids=[0], nodes=node_items(cfg), spans_on=[])
     assert off["spans_on"] == []

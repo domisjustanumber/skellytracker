@@ -287,6 +287,7 @@ class Executor:
                     # `eps.build_session` does one warm-up run for each session (pipeline.timing, Fields)
                     warmup_passes=1 if opened else 0,
                     camera_ids=self.camera_ids, nodes=list(items.values()), image_list_sha256=image_list,
+                    jpeg_decode=self._jpeg_decode_place(),
                 ))
         except BaseException:
             self.close(write_taps=False)
@@ -363,6 +364,16 @@ class Executor:
                     self.decoder_places.setdefault(index, (plan.execution_provider, places[index].device_key, places[index].ep_device_id))
                     self.decode_failed.add(index)
         return opened
+
+    def _jpeg_decode_place(self) -> str:
+        """The place of the JPEG decode at the start of the run, for the timing header (pipeline.timing, Fields).
+
+        `gpu`: each device has a GPU JPEG decoder for its JPEG buffers. `cpu`: no device has one. `mixed`: some devices
+        have one. The decoder of a device opens at its first JPEG call, so an open that fails shows only as the
+        warning `jpeg_decoded_on_cpu`.
+        """
+        on_gpu = len(set(self.decoder_places) - self.decode_failed)
+        return "cpu" if on_gpu == 0 else "gpu" if on_gpu == len(self.devices) else "mixed"
 
     def _not_wired(self) -> list[PipelineWarning]:
         """With `preprocess="gpu"`, the warning `preprocessed_on_cpu` of each node that runs on an EP with no GPU preprocess (Behaviour item 14)."""

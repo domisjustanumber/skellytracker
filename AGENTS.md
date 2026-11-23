@@ -76,6 +76,9 @@ A spec change must land before the stage of phase 1 that implements it. There is
   ([ADR-5WKW](decisions/entries/5WKW-implementation-work-in-the-plan.md)). Its heading "Reference
   examples" stays as a "Moved to" stub
   ([ADR-2XW6](decisions/entries/2XW6-process-entries-consolidation.md)).
+- `research/` holds the research notes: what is known about a subject that the project examined and
+  did not build. A note is not a decision and changes no rule. [`research/README.md`](research/README.md)
+  gives its form ([ADR-9NC2](decisions/entries/9NC2-research-notes-folder.md)).
 
 ## 2. Skills
 

@@ -368,7 +368,8 @@ BLOCKS = (
             ("`tools/tests/` or in\n  `skellytracker/tests/` is a tool", "`tools/tests/` or in the\n  tests of the package is a tool"),
             ("of one document, for example the workflow, with", "of one document with"),
             ("\n  The spec includes the `notes` of its vector files.", ""),
-            ("`open-work.md` or the implementation plan states", "`open-work.md` states"),
+            ("`open-work.md`, `hardware-runs.md` or the implementation plan states", "`open-work.md` states"),
+            ("\n  [`hardware-runs.md`](hardware-runs.md) gives its own rules.", ""),
             (" Write one at the end of the spec-build stage.", ""),
             (
                 " An older entry keeps its lower-case ID in its file name, heading and index row. Do not edit\n"

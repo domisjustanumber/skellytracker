@@ -30,8 +30,9 @@ TIMING_SCHEMA = "skellytracker.timing/1"
 EVENT_FIELDS = ("images", "node_id", "span", "batch_size", "start_ns", "end_ns")
 HEADER_FIELDS = (
     "schema", "run_id", "skellytracker_version", "clock", "anchor", "running_mode", "warmup_passes",
-    "image_list_sha256", "camera_ids", "pipeline_sha256", "spans_on", "nodes",
+    "image_list_sha256", "camera_ids", "pipeline_sha256", "spans_on", "jpeg_decode", "nodes",
 )
+JPEG_DECODE_PLACES = ("gpu", "cpu", "mixed")
 NODE_ITEM_FIELDS = (
     "id", "type", "batching", "inputs", "key", "sidecar_sha256", "artifact_sha256", "size", "precision",
     "execution", "stage_providers", "shared_with",
@@ -154,13 +155,17 @@ def make_header(
     nodes: Sequence[Mapping[str, Any]],
     image_list_sha256: str | None = None,
     spans_on: Sequence[str] | None = None,
+    jpeg_decode: str = "cpu",
 ) -> dict[str, Any]:
     """Return the header line of a timing file, with exactly `HEADER_FIELDS`.
 
     `nodes` holds one node item for each node (`make_node_item`). `spans_on` is the list of the
     timing spans that are on. Its default is `instrumentation.timing_spans` of the config. The
-    function reads the event clock and the Unix clock for `anchor`.
+    function reads the event clock and the Unix clock for `anchor`. `jpeg_decode` is the place of
+    the JPEG decode at the start of the run, one of `JPEG_DECODE_PLACES`.
     """
+    if jpeg_decode not in JPEG_DECODE_PLACES:
+        raise ValueError(f"jpeg_decode must be one of {list(JPEG_DECODE_PLACES)}, not {jpeg_decode!r}")
     for item in nodes:
         if set(item) != set(NODE_ITEM_FIELDS):
             raise ValueError(f"a node item must have exactly the keys {list(NODE_ITEM_FIELDS)}")
@@ -177,6 +182,7 @@ def make_header(
         "camera_ids": list(camera_ids),
         "pipeline_sha256": pipeline_sha256(config),
         "spans_on": list(config.instrumentation.timing_spans if spans_on is None else spans_on),
+        "jpeg_decode": jpeg_decode,
         "nodes": [dict(item) for item in nodes],
     }
 

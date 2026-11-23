@@ -40,6 +40,7 @@ These entries are `accepted`.
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
 | [K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) | Host facts only in `core/system`, `core/metrics`; ONNX Runtime and its hook through this package; EP page from `status()` | accepted |
+| [S4MT](entries/S4MT-two-preprocess-paths.md) | Graph only for JPEG on `cuda` and `trt-rtx`; else the CPU path with a reused batch | accepted |
 
 ### Evidence
 
@@ -64,7 +65,8 @@ you make a measurement ([Rules](#rules)).
 | [58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md) | Native JPEG numbers on ONNX Runtime 1.30.0, `cuda-cu13` 0.2.0: detector call -35 to -63 %; keypoint-only call on `cuda` +15 to +47 % on the GPU path | evidence |
 | [C9ME](entries/C9ME-exit-hang-rate-with-the-telemetry-switch.md) | Exit hang of the minimal reproducer, `cuda-cu13` 0.3.0: 0 of 120 with `ORT_DISABLE_TELEMETRY=1`, 1 of 120 without; not separated (p = 1.0) | evidence |
 | [J9KX](entries/J9KX-exit-hang-of-the-full-run-with-the-telemetry-switch.md) | Exit hang of the full run, `cuda-cu13` 0.3.0: 0 of 240 with `ORT_DISABLE_TELEMETRY=1`, 28 of 120 without | evidence |
-| [B5Z0](entries/B5Z0-yolox-preprocess-timing-on-an-intel-igpu-system.md) | yolox preprocess on an Intel iGPU system: OpenVINO on the iGPU loses in the detector call; a reused output batch on the CPU takes 1.0 ms for 3 cameras | evidence |
+| [B5Z0](entries/B5Z0-yolox-preprocess-timing-on-an-intel-igpu-system.md) | yolox preprocess on a system with an Intel iGPU, not quiet | evidence |
+| [4JFP](entries/4JFP-preprocess-paths-timing.md) | Each preprocess path and resize method, quiet system | evidence |
 
 ### Proposed
 
@@ -119,8 +121,9 @@ implementation-stage work is in the [implementation plan](../specs/sidecar-imple
   document for the rules of the API of that module ([ADR-W823](entries/W823-absorb-in-the-commit-group-that-states-the-rules.md)).
   The spec includes the `notes` of its vector files. An accepted entry is absorbed when the absorb
   documents together state all of its rules. Open work of the entry does not stop the absorb when
-  `open-work.md` or the implementation plan states that work in full. A link to the entry is not
+  `open-work.md`, `hardware-runs.md` or the implementation plan states that work in full. A link to the entry is not
   enough ([ADR-5EVP](entries/5EVP-absorb-across-documents.md)).
+  [`hardware-runs.md`](hardware-runs.md) gives its own rules.
 - Absorb at landing. The commit group that writes or lands an entry, or that writes the rules of an
   entry into the absorb documents, absorbs the entry in its last commit when the absorb documents
   state all of its rules. This applies in each log, in each skill and without a skill. If an absorb

@@ -1,16 +1,17 @@
 """The generic object detector: one object model of the sidecar spec, on a batch of images."""
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 
 from skellytracker.core.detectors.generic.inference import run_batches
 from skellytracker.core.detectors.processing.post.object_selection_nms import decode_nms
-from skellytracker.core.detectors.processing.pre.preprocess import ResizeGeometry, preprocess_image
+from skellytracker.core.detectors.processing.pre.preprocess import BatchPreprocessor, ResizeGeometry
 from skellytracker.core.model_spec.model import ObjectDecodeSpec, SidecarModel
 
 _PRIMARY = ("packed_detections", "boxes")
@@ -93,8 +94,9 @@ class GenericObjectDetector:
 
     `sidecar`, `size` and `precision` give each parameter. `session` is an ONNX Runtime session of
     the artifact of that size and precision, with any batch. `decode` replaces
-    `object.decode` of the sidecar when the caller changes fields of it. The detector keeps no
-    state between calls.
+    `object.decode` of the sidecar when the caller changes fields of it. The result of a call does
+    not depend on an earlier call. The detector uses one input batch again at each call
+    (`BatchPreprocessor`), so its preprocess and its model run are one call at a time.
     """
 
     sidecar: SidecarModel
@@ -102,6 +104,8 @@ class GenericObjectDetector:
     precision: str
     session: Any
     decode: ObjectDecodeSpec | None = None
+    _preprocessor: Any = field(default=None, init=False, repr=False, compare=False)
+    _lock: Any = field(default_factory=threading.Lock, init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         if "object_detector" not in self.sidecar.role or self.sidecar.object is None:
@@ -133,12 +137,15 @@ class GenericObjectDetector:
         if not images:
             return []
         clock = time.perf_counter_ns
-        marks = [clock()]
-        prepared = [preprocess_image(image, self.sidecar, self.size, self.precision) for image in images]
-        marks.append(clock())
-        outputs = run_batches(session, self.sidecar, [tensor for tensor, _ in prepared])
-        marks.append(clock())
-        found = decode_objects(outputs, self.sidecar, self.decode, [geometry for _, geometry in prepared], min_score)
+        with self._lock:  # the next call writes into the batch: the model run ends in the lock
+            marks = [clock()]
+            if self._preprocessor is None:
+                self._preprocessor = BatchPreprocessor(self.sidecar, self.size, self.precision)
+            batch, geometries = self._preprocessor.preprocess(images)
+            marks.append(clock())
+            outputs = run_batches(session, self.sidecar, batch)
+            marks.append(clock())
+        found = decode_objects(outputs, self.sidecar, self.decode, geometries, min_score)
         marks.append(clock())
         if timer is not None:
             for index, span in enumerate(("preprocess", "inference", "postprocess")):

@@ -16,20 +16,22 @@ def session_batch(session: Any) -> int | None:
     return batch if isinstance(batch, int) and batch > 0 else None
 
 
-def run_batches(session: Any, sidecar: SidecarModel, tensors: Sequence[np.ndarray]) -> dict[str, np.ndarray]:
+def run_batches(session: Any, sidecar: SidecarModel, tensors: Sequence[np.ndarray] | np.ndarray) -> dict[str, np.ndarray]:
     """Run N input tensors, one for each image or crop. Return each output by name, with N rows.
 
     Implements: common.outputs
 
-    The function feeds the tensors to the input `input.name`, in their dtype: `preprocess_image`
+    `tensors` is the batch of `BatchPreprocessor` (N items on axis 0), or a sequence of N tensors.
+    The function feeds the tensors to the input `input.name`, in their dtype: the preprocess
     gives the `input.dtype` of the precision. It reads each output by its `outputs[].name`. A
     session with a fixed batch runs groups of that batch. Zero tensors fill the last group, and
     their output rows go. A session with a dynamic batch runs the N tensors in one call. A float16
     output becomes float32, which changes no value. `tensors` must hold one tensor or more. An
-    out-of-memory error of the session raises `VRAMExhaustionError`, with no retry.
+    out-of-memory error of the session raises `VRAMExhaustionError`, with no retry. Each session
+    call ends before the function returns, and no output shares memory with `tensors`.
     """
     names = [output.name for output in sidecar.outputs]
-    stacked = np.stack(tensors)
+    stacked = tensors if isinstance(tensors, np.ndarray) else np.stack(tensors)
     batch = session_batch(session) or len(stacked)
     parts: list[list[np.ndarray]] = []
     for start in range(0, len(stacked), batch):

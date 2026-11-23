@@ -708,6 +708,7 @@ def test_jpeg_frames_on_a_gpu_ep_decode_on_the_gpu_with_no_upload_and_give_the_r
                 assert frame.pixels is None and frame.device.device_name() == "cuda"
         warnings = [warning for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"]
     assert warnings == [] and [id(image) for image in uploads] == [id(frames["c"].image) for frames in calls]  # only the array camera uploads
+    assert lines[0]["jpeg_decode"] == "gpu"
     assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
         ("decode", ["a", "b"]), ("upload", ["c"])] * len(calls)
     assert_agree(gpu, cpu, JPEG_SCORE_TOLERANCE)
@@ -755,6 +756,7 @@ def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_and_keeps_the_gpu_preproce
     assert [execution_provider] * 2 == [ep for ep, _ in reads] and all(key.startswith("gpu:") for _, key in reads)
     assert [dict(warning.details) for warning in run.warnings if warning.code == "jpeg_decoded_on_cpu"] == [{"reason": "quick_check_failed"}]
     assert cpu_warnings(run) == [] and len(bound_runs) == 2 * len(calls)  # each node of each call ran its preprocess graph
+    assert lines[0]["jpeg_decode"] == "cpu"  # the header gives the place that the run starts with
     assert [(event["span"], [image["camera_id"] for image in event["images"]]) for event in lines[1:] if event["node_id"] == "frame"] == [
         ("decode", ["a", "b"]), ("upload", ["a", "b", "c"])] * len(calls)
     assert_agree(gpu, cpu)

@@ -98,7 +98,8 @@ An `onnx` key needs `execution_provider`: a key of the EP catalog, for example `
 - A top-down keypoint detector takes the images and one ROI `(cx, cy, w, h, rotation)` for each
   image. It returns `KeypointDetections`: `keypoints` `(N, P, 2)` in source pixels, `scores` and `raw_scores`
   `(N, P)`. A missing point has NaN coordinates and the score 0.
-- A detector keeps no state between calls.
+- A detector keeps no result between calls. Two `detect` calls on one detector object run one after
+  the other.
 
 ### Calibration detectors
 

@@ -459,6 +459,7 @@ def test_the_timing_file_starts_with_the_header_and_holds_one_event_for_each_spa
     timed_run(root, path)
     header, *events = timing.read_timing(path)
     assert tuple(header) == timing.HEADER_FIELDS and header["schema"] == "skellytracker.timing/1"
+    assert header["jpeg_decode"] == "cpu"  # the CPU EP has no GPU JPEG decoder
     assert (header["running_mode"], header["camera_ids"], header["image_list_sha256"], header["spans_on"]) == ("video", [0], None, SPANS)
     assert header["warmup_passes"] == 1
     nodes = {item["id"]: item for item in header["nodes"]}
@@ -941,6 +942,19 @@ def test_gpu_decoded_frames_go_to_the_graph_path_with_no_upload_and_one_batch_fo
         for camera in wanted:
             np.testing.assert_array_equal(found[camera]["wholebody"].xy, wanted[camera]["wholebody"].xy)
             np.testing.assert_array_equal(found[camera]["boxes"].xyxy, wanted[camera]["boxes"].xyxy)
+
+
+def test_the_header_gives_the_jpeg_decode_place_of_the_start_also_when_the_decoder_does_not_open(root: Path, gpu_decode: dict[str, Any]) -> None:
+    gpu_decode["decoder"] = False  # the decoder opens at the first JPEG call, after the header
+    lines: list[dict] = []
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], timing_sink=lines.append) as run:
+        run.process_batch(jpeg_calls(1)[0])
+        assert len(jpeg_warnings(run)) == 1
+    assert lines[0]["jpeg_decode"] == "gpu"
+    lines.clear()
+    with start(root, detector_pipeline(), camera_ids=["a", "b", "c"], preprocess="cpu", timing_sink=lines.append):
+        pass
+    assert lines[0]["jpeg_decode"] == "cpu"
 
 
 def test_a_buffer_that_the_gpu_decoder_refuses_decodes_on_the_cpu_with_one_warning_for_each_camera(root: Path, gpu_decode: dict[str, Any]) -> None:

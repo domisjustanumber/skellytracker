@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import onnx
 import pytest
 
 from skellytracker.core.detectors import catalog  # noqa: E402
@@ -264,6 +265,53 @@ def test_a_session_downloads_a_url_artifact_that_is_not_present(root: Path, tmp_
 # ---------------------------------------------------------------------------------------------
 # Threads
 # ---------------------------------------------------------------------------------------------
+
+
+def echo_model() -> bytes:
+    """A graph whose output `echo` is its input `input`, with a dynamic batch: ONNX Runtime can give the output the input buffer."""
+    helper, proto = onnx.helper, onnx.TensorProto
+    graph = helper.make_graph(
+        [helper.make_node("Identity", ["input"], ["echo"])], "echo",
+        [helper.make_tensor_value_info("input", proto.FLOAT, ["N", 3, 32, 32])], [helper.make_tensor_value_info("echo", proto.FLOAT, ["N", 3, 32, 32])],
+    )
+    return helper.make_model(graph, opset_imports=[helper.make_opsetid("", 13)], ir_version=8).SerializeToString()
+
+
+def test_an_output_of_the_batch_loop_does_not_change_when_the_next_call_writes_the_batch() -> None:
+    """The batch of `BatchPreprocessor` is the array of its next call: no output of `run_batches` can share its memory."""
+    from skellytracker.core.detectors.generic.inference import run_batches
+    from skellytracker.core.detectors.processing.pre.preprocess import BatchPreprocessor
+    from skellytracker.core.eps import build_session
+    from skellytracker.core.model_spec.model import SidecarModel
+
+    sidecar = SidecarModel.model_validate(object_sidecar())
+    sidecar = sidecar.model_copy(update={"outputs": [sidecar.outputs[0].model_copy(update={"name": "echo"})]})
+    session, _ = build_session(echo_model(), execution_provider="cpu")
+    preprocessor = BatchPreprocessor(sidecar, "n", "fp32")
+    batch, _ = preprocessor.preprocess([frame(1), frame(2), frame(3)])
+    first = run_batches(session, sidecar, batch)["echo"]
+    kept = first.copy()
+    assert np.array_equal(first, batch) and not np.shares_memory(first, batch)
+    second_batch, _ = preprocessor.preprocess([frame(9), frame(8), frame(7)])
+    assert np.shares_memory(batch, second_batch) and not np.array_equal(batch, kept)  # the next call wrote the batch
+    assert np.array_equal(first, kept)
+
+
+def test_a_result_that_the_caller_keeps_does_not_change_at_the_next_call(root: Path) -> None:
+    put(root, object_sidecar(), object_model())
+    detector = create_detector(OBJECT_KEY, execution_provider="cpu", user_root=root)
+    first = detector.detect([frame(1), frame(2)])
+    kept = [(found.boxes.copy(), found.scores.copy()) for found in first]
+    detector.detect([frame(3), frame(4), frame(5)])
+    for found, (boxes, scores) in zip(first, kept, strict=True):
+        assert np.array_equal(found.boxes, boxes) and np.array_equal(found.scores, scores)
+    put(root, keypoint_sidecar(), keypoint_model())
+    keypoints = create_detector(KEYPOINT_KEY, execution_provider="cpu", user_root=root)
+    image = np.random.default_rng(0).integers(0, 256, (120, 100, 3), dtype=np.uint8)
+    found = keypoints.detect([image] * 2, [(50.0, 60.0, 30.0, 40.0, 0.0), (40.0, 70.0, 30.0, 40.0, 0.0)])
+    kept_points = found.keypoints.copy()
+    keypoints.detect([image], [(60.0, 50.0, 30.0, 40.0, 0.5)])
+    assert np.array_equal(found.keypoints, kept_points, equal_nan=True)
 
 
 def test_a_detector_made_on_one_thread_runs_on_other_threads_and_closes_from_an_other_thread(root: Path) -> None:

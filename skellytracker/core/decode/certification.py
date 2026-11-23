@@ -616,6 +616,8 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         present = [sum(int(np.count_nonzero(~np.isnan(arrays[k]))) for arrays in gpu["arrays"]) for k in (1, 3)]
         numbers = {f"max_{name}_diff": round(value, 6) for name, value in worst.items()} | {
             "presence_changes": presence, "frames": PIPELINE_FRAMES, "box_scores_present": present[0], "point_scores_present": present[1]}
+        # the median of each span of the two runs: the report shows if the graph is faster on this GPU
+        numbers |= {f"gpu.{k}_ms": v for k, v in gpu["medians_ms"].items()} | {f"cpu.{k}_ms": v for k, v in host["medians_ms"].items()}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers, "warnings": gpu["warnings"] + host["warnings"]}
 
     def amd_repeat_equal() -> dict:
