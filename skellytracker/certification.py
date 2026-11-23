@@ -20,7 +20,7 @@ always worth an offer (`has_failure`). A pass alone gives no prompt. A new repor
 each older report of a pass that it repeats, when the user did not hand that report in.
 
 The two functions are `skellytracker.certify` and `skellytracker.certify_plan`. They obey the contract
-`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.7.0`. An application that
+`report-format.md` of the repository `skellycertify`, format `skellycertify.report/1.9.0`. An application that
 runs its own check on the test frames reads them with `certify_frames()` of this module. The reason codes
 of this package are in `skellytracker/REASON_CODES.md`. A plain `import skellytracker` imports this
 module only: it imports `eps`, `pipelines` and ONNX Runtime in the function bodies.
@@ -42,7 +42,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-SCHEMA = "skellycertify.report/1.7.0"
+SCHEMA = "skellycertify.report/1.9.0"
 SUMMARY_NAMES = {"trt-rtx": "TensorRT RTX", "cuda": "CUDA", "directml": "DirectML", "coreml": "Core ML", "amdgpu": "AMD GPU",
                  "migraphx": "MIGraphX", "cpu": "CPU"}  # the short fixed name of each EP in `summary`; a name never changes
 RAN = ("pass", "fail", "record-only")
@@ -107,7 +107,7 @@ def certify_frames(test_media_dir: str | os.PathLike | None = None) -> list[byte
 
 
 def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None,
-                 pipeline=None, test_media_dir: str | os.PathLike | None = None) -> dict:
+                 pipeline=None, test_media_dir: str | os.PathLike | None = None, setups: Sequence[str] | None = None) -> dict:
     """The plan of a `certify()` call with the same arguments. It loads no GPU library and downloads nothing.
 
     `downloads` is empty at the two levels: `certify()` downloads nothing. In the format `1.6.0`, each download
@@ -127,10 +127,12 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
     release of the OS, for example `Windows 11`, `Ubuntu 24.04` or `macOS 15`. An update of the OS is not a new OS
     (ADR-X7WD item 8).
     `test_media_dir` does not change the plan: the test frames are never a download.
+    `setups` is the list of the setups that the person accepted (format 1.8.0, section 2.6). This package has no
+    setup check: the plan always has an empty `setups` list, and the option changes nothing.
     """
     _check_level(level)
     plan = {"package": PACKAGE, "kind": level, "seconds_estimate": 0, "total": 0, "risks": [], "downloads": [],
-            "system_changes": [], "questions": []}
+            "system_changes": [], "questions": [], "setups": []}
     from skellytracker.core.eps import evidence
     from skellytracker.core.eps.catalog import load_catalog
     from skellytracker.core.system.host import probe_host
@@ -161,7 +163,7 @@ def certify_plan(level: str, *, execution_providers: Sequence[str] | None = None
 
 def certify(level: str, progress: Callable[[dict], object] | None = None, cancel=None, *,
             execution_providers: Sequence[str] | None = None, device: str | Sequence[str] | None = None, pipeline=None,
-            test_media_dir: str | os.PathLike | None = None, abandon=None) -> dict:
+            test_media_dir: str | os.PathLike | None = None, abandon=None, setups: Sequence[str] | None = None) -> dict:
     """Run the certification checks of this package at `level`, and return the module report.
 
     - `level`: `quick` or `full`. Each other value raises `ValueError`. The level `quick` checks that
@@ -196,6 +198,8 @@ def certify(level: str, progress: Callable[[dict], object] | None = None, cancel
       `<sha256>.zip`, with the sha256 of `frames_record()`. With None, or when the folder does not hold that file, the
       run uses the file of the package (format 1.6.0, section 2.8). A file in the folder with a wrong sha256 is never
       used: the session checks are then `not-run` with `test-media-missing`. The path is never in the report.
+    - `setups`: the `id` of each setup that the person accepted, or None (format 1.8.0, section 2.6). This package
+      has no setup check, so the option changes no check and no report.
 
     The quick check shows that a post-hoc session (the running mode `video`) and a realtime session (the
     running mode `live`) start and run. Each check below runs in its own `spawn` child. The frames are the

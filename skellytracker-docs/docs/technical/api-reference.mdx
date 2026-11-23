@@ -184,8 +184,8 @@ explain how to use them.
 
 | Signature | Result |
 |-----------|--------|
-| `certify(level, progress=None, cancel=None, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None, abandon=None)` | The module report, a `dict`. `level` is `quick` or `full`. A set `abandon` stops the run as `cancel` does, and the run writes no report file and stores no local result. |
-| `certify_plan(level, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None)` | The plan of a `certify()` call with the same arguments, a `dict`. It loads no GPU library and downloads nothing. |
+| `certify(level, progress=None, cancel=None, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None, abandon=None, setups=None)` | The module report, a `dict`. `level` is `quick` or `full`. A set `abandon` stops the run as `cancel` does, and the run writes no report file and stores no local result. |
+| `certify_plan(level, *, execution_providers=None, device=None, pipeline=None, test_media_dir=None, setups=None)` | The plan of a `certify()` call with the same arguments, a `dict`. It loads no GPU library and downloads nothing. |
 | `pending_reports(include_handed_in=False)` | The reports of `certify()` on this host that the user did not hand in, the oldest first. |
 | `read_report(report_id)` | The module report of a row of `pending_reports()`. |
 | `mark_reports(report_ids, state, *, reference=None)` | Sets the hand-in state: `pending`, `opened` or `covered`. |

@@ -1,4 +1,4 @@
-"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.7.0`.
+"""Tests of `skellytracker.certify()` and `skellytracker.certify_plan()`: the format `skellycertify.report/1.9.0`.
 
 They use the fakes of `hw_fakes.py` and need no GPU. The cancel tests start real `spawn` children with the targets of
 `child_fakes.py`.
@@ -48,7 +48,7 @@ def problems_of(report: dict) -> list[str]:
     """Each rule of the contract that the module report breaks."""
     found = [f"no field {name}" for name in ("schema", "package", "kind", "created_utc", "host", "checks", "evidence")
              if name not in report]
-    found += [] if report.get("schema") == "skellycertify.report/1.7.0" else ["schema"]
+    found += [] if report.get("schema") == "skellycertify.report/1.9.0" else ["schema"]
     found += [] if UUID4.match(str(report.get("id"))) else ["id"]
     found += [] if report.get("kind") in ("quick", "full") else ["kind"]
     found += [] if re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", report.get("created_utc", "")) else ["created_utc"]
@@ -532,6 +532,7 @@ def test_the_plan_gives_the_time_the_total_and_each_ep_that_will_not_run_and_dow
         patch.setattr(pc, "QUICK_BUDGET_SECONDS", 10)
         assert skellytracker.certify_plan("quick")["seconds_estimate"] == 10  # at most the budget
     assert plan["system_changes"] == [] and plan["questions"] == [] and plan["kind"] == "quick"
+    assert plan["setups"] == [] and skellytracker.certify_plan("quick", execution_providers=["directml", "cuda"], setups=["a-setup"]) == plan
     nothing = skellytracker.certify_plan("quick", execution_providers=["cuda"])
     assert (nothing["total"], nothing["seconds_estimate"]) == (0, 0)  # no check can run
     old_set = reviewed("trt-rtx", set="0" * 64)  # a row of an other version set is not reviewed: it still gives `os_known`

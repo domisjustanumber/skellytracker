@@ -130,7 +130,7 @@ stopped it.
 
 ## Read the report
 
-The report file has the format `skellycertify.report/1.7.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.9.0` of the repository `skellycertify`. It
 has these parts:
 
 - One line with the package, its version, the time of the run and if the report is valid as evidence.

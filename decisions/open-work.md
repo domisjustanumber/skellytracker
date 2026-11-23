@@ -35,6 +35,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
   - The instructions page `CERTIFY.md` is a draft. Its clone address names the fork of the user. A
     report goes to an issue of the repository `skellycertify`.
+  - Format 1.9.0 ([ADR-2YJX](entries/2YJX-report-format-1-9-0-and-the-option-setups.md)): the check
+    of each existing check against section 5.6 of the format of `skellycertify` is not done. No
+    real run made a report in the format 1.6.0 or later yet.
   - Section 1 still checks a certification tag. Evidence needs no tag now: the report records the
     version and the commit of each package ([ADR-P0JZ](entries/P0JZ-certify-contract-in-each-package.md)
     item 4; item 2 of the [certification build list](#certification-build-list)).
