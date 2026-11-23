@@ -1,6 +1,6 @@
 """The form of a sidecar vector file, and the comparison of two results of a case.
 
-This module uses only the standard library and imports under Python 3.9, so that
+This module uses only the standard library, so that
 a tool of a contributor can check a vector file without the environment of this
 repository.
 

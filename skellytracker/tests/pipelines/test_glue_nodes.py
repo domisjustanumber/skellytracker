@@ -1,6 +1,6 @@
 """Tests for the glue node types of the pipeline spec (stage 1.10 of the implementation plan).
 
-The vector cases of each node run in ``tools/tests/test_vectors.py``. These tests check the load
+The vector cases of each node run in ``tools/tests/test_package_vectors.py``. These tests check the load
 rules of ``output_info``, the fixed shapes and the padding rows, the ``instance_score`` copy rules
 and that no call changes an input or a state in place.
 """

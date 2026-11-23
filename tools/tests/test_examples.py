@@ -1,27 +1,28 @@
-"""The spec's reference examples parse, resolve, hold correct hashes and have provenance.
+"""The spec's reference examples hold correct hashes, keep the placeholder in place and have provenance.
 
 The examples under `specs/model-sidecar/examples/` follow the package's `detectors/`
-layout, so their `$ref` paths resolve with that folder as the sidecar root. The
-spec loader `skellytracker/core/model_spec/` resolves and validates each example:
-`load_sidecar` checks each V- rule of the spec, except the bytes of the ONNX files.
+layout, so their `$ref` paths resolve with that folder as the sidecar root.
 
 Every other YAML file under the examples is a fragment, in `shared/` or next to
 a sidecar. Each fragment has a `fragments` entry in `inventory.yaml`. A package
 copy is not a source (ADR-VV8B).
+
+This file moves to the specs repository with the spec. It imports no skellytracker, onnx or
+onnxruntime, and it reads no file of the package (`tools/tests/test_intake_gate.py` checks the
+imports). The skellytracker test `tools/tests/test_package_examples.py` resolves and validates
+each example with the spec loader `skellytracker/core/model_spec/`, and checks the package files
+for the placeholder.
 """
 
 import functools
 import re
 from pathlib import Path
-from typing import Any
 
 import pytest
 import sidecar_refs
 import sidecar_trace
 import yaml
 from intake_bundle import FRAGMENT_KEYS, INVENTORY_KEYS
-
-from skellytracker.core.model_spec import load_sidecar, resolve_sidecar_composition
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES_ROOT = REPO_ROOT / "specs" / "model-sidecar" / "examples"
@@ -61,23 +62,6 @@ def test_there_are_examples() -> None:
 
 
 @pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_resolves(path: Path) -> None:
-    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
-    assert resolved["model_id"] == path.stem
-    assert resolved["schema_version"] == "2.0.0"
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_passes_the_rules_of_the_spec(path: Path) -> None:
-    """The spec loader validates the example: each V- rule, except the bytes of the ONNX files.
-
-    The landmark schema registry is the package registry (V-post.keypoint.schema-10).
-    """
-    sidecar = load_sidecar(path, EXAMPLES_ROOT)
-    assert sidecar.model_id == path.stem
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
 def test_example_passes_the_reference_hash_check(path: Path) -> None:
     """`tools/sidecar_refs.py --check <example>` passes (the same root and the same checks)."""
     errors = sidecar_refs.check(path)
@@ -94,60 +78,6 @@ def test_example_has_a_source(path: Path) -> None:
     assert isinstance(source, dict) and set(source) == {"name", "version"}
     assert isinstance(source["name"], str) and SOURCE_NAME.fullmatch(source["name"])
     assert isinstance(source["version"], str) and source["version"]
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_has_one_batch_field(path: Path) -> None:
-    """One `batching.batch`, and `batching.batch_conversion` only with batch 3 (ADR-JAA4, item 1).
-
-    The key check does not find `batch_artifacts`: its Removed stub heading still names it.
-    """
-    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
-    batching = resolved["batching"]
-    batch = batching["batch"]
-    assert not isinstance(batch, bool) and batch in (3, 1, "dynamic"), batching
-    assert set(batching) <= {"batch", "batch_conversion"}, batching
-    conversion = batching.get("batch_conversion")
-    assert (batch == 3) == (conversion is not None), batching
-    assert conversion in (None, {"profile_id": "static-batch-v1"}), batching
-    for size, entry in resolved["sizes"].items():
-        assert "batch_artifacts" not in entry["onnx"], size
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_gives_output_shapes_in_each_size(path: Path) -> None:
-    """`onnx.output_shapes` of each size: one entry for each output, in order (ADR-JAA4, item 2).
-
-    An entry has the dims of `outputs[i].shape`. Each fixed dim of that shape is equal or -1 in the
-    entry. Dim 0 is `batching.batch`, or -1 for `dynamic`.
-    """
-    resolved = resolve_sidecar_composition(path, EXAMPLES_ROOT)
-    outputs, batch = resolved["outputs"], resolved["batching"]["batch"]
-    for size, entry in resolved["sizes"].items():
-        shapes = entry["onnx"].get("output_shapes")
-        assert isinstance(shapes, list) and len(shapes) == len(outputs), size
-        for output, shape in zip(outputs, shapes, strict=True):
-            where = (size, output["name"])
-            assert isinstance(shape, list) and shape, where
-            assert shape[0] == (-1 if batch == "dynamic" else batch), where
-            family = output.get("shape")
-            if family is None:
-                continue
-            assert len(shape) == len(family), where
-            assert all(f == -1 or d in (f, -1) for f, d in zip(family, shape, strict=True)), where
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_the_hash_tool_finds_the_artifacts_of_each_size(path: Path) -> None:
-    """`sidecar_refs` scans each `precision_artifacts` entry. A moved key hides an artifact from the hash check."""
-    scanned = {
-        artifact.filename
-        for file in sidecar_refs.files(path, EXAMPLES_ROOT)
-        for artifact in sidecar_refs._scan(file.read_text(encoding="utf-8")).artifacts
-    }
-    for size, entry in resolve_sidecar_composition(path, EXAMPLES_ROOT)["sizes"].items():
-        names = {artifact["filename"] for artifact in entry["onnx"]["precision_artifacts"].values()}
-        assert names and names <= scanned, (size, sorted(names - scanned))
 
 
 SPEC_ROOT = REPO_ROOT / "specs" / "model-sidecar"
@@ -223,107 +153,44 @@ def test_a_selector_path_is_a_defined_key() -> None:
     assert "batch_conversion" in defined_keys()
 
 
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_has_only_keys_that_the_spec_defines(path: Path) -> None:
-    """A key that the spec does not define is invalid (V-format.composition-5, ADR-0QKK)."""
-    assert not unknown_keys(resolve_sidecar_composition(path, EXAMPLES_ROOT))
+def placeholder_scan_paths(folders: tuple[str, ...] = ("specs", "tools")) -> list[Path]:
+    """Every YAML file of `folders`, and every Markdown file of the spec when `folders` holds `specs`.
 
-
-@pytest.mark.parametrize(
-    ("where", "key"),
-    [
-        (("input", "resize"), "preserve_aspect_ratio"),
-        (("object", "decode"), "requires_nms"),
-        (("object", "decode"), "may_include_non_person_classes"),
-        (("input",), "layout"),
-        (("input", "resize"), "supports_dynamic_size"),
-        (("outputs", 0), "rank"),
-        (("sizes", "m", "onnx", "precision_artifacts", "fp32"), "input_dtype"),
-        (("keypoint", "decode"), "is_3d"),
-        (("keypoint",), "canonical_mapping"),
-        # keypoint.groups (ADR-23F5) is now a name of score_map.groups. The path-aware validator
-        # checks it: V-format.composition-5 in skellytracker/tests/model_spec/test_model_validation.py.
-    ],
-)
-def test_the_key_check_finds_a_deleted_key(where: tuple[str | int, ...], key: str) -> None:
-    sidecar = resolve_sidecar_composition(example_paths()[0], EXAMPLES_ROOT)
-
-    def step(node: Any, name: str | int) -> Any:
-        return node[name] if isinstance(name, int) else node.setdefault(name, {})
-
-    functools.reduce(step, where, sidecar)[key] = True
-    assert unknown_keys(sidecar) == [key]
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_declares_its_normalization(path: Path) -> None:
-    """`input.normalization` is required (ADR-0QKK)."""
-    assert "normalization" in resolve_sidecar_composition(path, EXAMPLES_ROOT)["input"]
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_keypoint_example_declares_its_geometry(path: Path) -> None:
-    """`keypoint.geometry` is required at the keypoint level (ADR-90CE)."""
-    keypoint = resolve_sidecar_composition(path, EXAMPLES_ROOT).get("keypoint")
-    assert keypoint is None or keypoint.get("geometry") in {"2d", "3d"}
-
-
-def placeholder_scan_paths() -> list[Path]:
-    """Every YAML file of the package, the spec and the tools, and every Markdown file of the spec."""
+    `tools/tests/test_package_examples.py` scans the folder `skellytracker` of the package.
+    """
     paths = [
         p
-        for folder in ("skellytracker", "specs", "tools")
+        for folder in folders
         for pattern in ("*.yaml", "*.yml")
         for p in (REPO_ROOT / folder).rglob(pattern)
     ]
-    paths += (REPO_ROOT / "specs").rglob("*.md")
+    if "specs" in folders:
+        paths += (REPO_ROOT / "specs").rglob("*.md")
     return sorted(p for p in paths if EXAMPLES_ROOT not in p.parents)
+
+
+def placeholder_holders(folders: tuple[str, ...] = ("specs", "tools")) -> list[str]:
+    """The files of `placeholder_scan_paths(folders)` that hold the placeholder hash."""
+    return [
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in placeholder_scan_paths(folders)
+        if sidecar_refs.PLACEHOLDER in p.read_text(encoding="utf-8")
+    ]
 
 
 def test_the_placeholder_scan_reads_the_sidecars_and_the_spec() -> None:
     shown = {p.relative_to(REPO_ROOT).as_posix() for p in placeholder_scan_paths()}
     assert "specs/model-sidecar/common/sizes-and-artifacts.md" in shown
-    assert (
-        "skellytracker/core/detectors/keypoint_detectors/rtmw/wholebody/rtmw-wholebody.yaml"
-        in shown
-    )
     assert not any(name.startswith("specs/model-sidecar/examples/") for name in shown)
 
 
 def test_no_file_outside_the_examples_holds_the_placeholder() -> None:
-    """The placeholder hash is valid only under `specs/model-sidecar/examples/` (V-common.sizes_and_artifacts-11)."""
-    holders = [
-        p.relative_to(REPO_ROOT).as_posix()
-        for p in placeholder_scan_paths()
-        if sidecar_refs.PLACEHOLDER in p.read_text(encoding="utf-8")
-    ]
+    """The placeholder hash is valid only under `specs/model-sidecar/examples/` (V-common.sizes_and_artifacts-11).
+
+    `tools/tests/test_package_examples.py` checks the files of the package.
+    """
+    holders = placeholder_holders()
     assert not holders, holders
-
-
-TOKENS = r"[a-z0-9]+(-[a-z0-9]+)*"  # the pattern of {family} and {variant} (V-common.identity-7)
-
-
-@pytest.mark.parametrize("path", example_paths(), ids=example_key)
-def test_example_follows_the_storage_layout(path: Path) -> None:
-    """The folder and the keypoint detector id (V-common.identity-7, V-common.identity-8)."""
-    parts = path.relative_to(EXAMPLES_ROOT / "detectors").parts
-    if parts[0] == "object_detectors":
-        assert len(parts) == 3, parts
-        return
-    assert parts[0] == "keypoint_detectors"
-    assert len(parts) == 4, parts
-    family, group = parts[1], parts[2]
-    model_id = resolve_sidecar_composition(path, EXAMPLES_ROOT)["model_id"]
-    assert re.fullmatch(TOKENS, family), parts
-    assert model_id == f"{family}-{group}" or (
-        model_id.startswith(f"{family}-{group}-")
-        and re.fullmatch(TOKENS, model_id.removeprefix(f"{family}-{group}-"))
-    ), (model_id, parts)
-    keypoint_set = re.fullmatch(r"[a-z]+([1-9][0-9]*)", group)
-    assert group in {"hand", "face", "body", "wholebody"} or keypoint_set, parts
-    if keypoint_set:
-        points = resolve_sidecar_composition(path, EXAMPLES_ROOT)["keypoint"]["point_names"]
-        assert int(keypoint_set.group(1)) == len(points), (group, len(points))
 
 
 def test_every_example_has_one_provenance_entry() -> None:

@@ -1,6 +1,6 @@
 """The spec preprocessing modules of `processing/pre/`: each resize method, the normalization and the dispatcher.
 
-`tools/tests/test_vectors.py` runs the numeric vector cases of each section. These tests cover the
+`tools/tests/test_package_vectors.py` runs the numeric vector cases of each section. These tests cover the
 image functions, the dispatcher and the cases that the vector test does not run.
 """
 from __future__ import annotations

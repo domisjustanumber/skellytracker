@@ -166,9 +166,12 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - No document states some kept rules of the consolidation entries of 2026-11-23, so these entries
     stay `accepted`. Write each rule in the docstring of its module, then absorb the entries.
 - **Specs move to `skellyspecs`** ([ADR-2DJ8](entries/2DJ8-spec-tools-with-no-package-import.md)). Open: the pin file and the sibling
-  checkout; the delete of the two spec folders here, in the pin commit; the split of the tests of
-  `tools/tests/` that move and still import the package; `--root` with no default (item 7); the
-  gate runner of the reference files; the made-up sample of the reference files.
+  checkout; the delete of the two spec folders here, in the pin commit; the gate runner of the
+  reference files; the made-up sample of the reference files. After the move, the gate tool must
+  give the spec checkout and the package checkout as two paths.
+- **Python 3.13 in each exporter** ([ADR-0GHT](entries/0GHT-python-3-13-in-each-environment.md)). Open: the route for the
+  conversion of OpenMMLab-Exporter, which runs in a Docker image with an older Python; the two
+  exporters that require Python 3.14.
 - **Certify report** ([ADR-8N03](entries/8N03-certify-report-rules-of-format-1-10.md)). Open: the judging of the GPU frame path by GPU
   model (item 8); a run of the Linux `is_integrated` reader on an AMD APU and an AMD dedicated card; `GpuInfo.is_integrated` in the facts of
   `PipelineRun.models` with `cpu_nodes`, for the metrics panel of freemocap; a real run of the level

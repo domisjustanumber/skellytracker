@@ -39,6 +39,7 @@ These entries are `accepted`.
 | [XM9C](entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) | No real model in CI before the pre-release; public reference frames with a stated licence; certify model files move before 2.0.0; no upstream reports | accepted |
 | [2DJ8](entries/2DJ8-spec-tools-with-no-package-import.md) | The spec tools import no package code; the specs move to `skellyspecs`; the reference files of a model are tracked in the package test fixtures | accepted |
 | [8N03](entries/8N03-certify-report-rules-of-format-1-10.md) | Certify report in format 1.10.0: rows an EP can have, error numbers, the check list, and the end of each record-only check | accepted |
+| [0GHT](entries/0GHT-python-3-13-in-each-environment.md) | Python 3.13 in each environment; `fill` requires `--root` and refuses the hand-over folder | accepted |
 
 ### Proposed
 

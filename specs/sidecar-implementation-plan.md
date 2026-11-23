@@ -574,7 +574,7 @@ Not in this stage:
   missing ([Keypoint schema](model-sidecar/post/keypoint/schema.md#fields)). The loader checks only
   that the weights of a derived point sum to 1 within `1e-6`. The processing code of stage 1.5 must
   apply these rules.
-- `REMOVED_VALUES` in `tools/tests/test_traceability.py` goes at stage 2.3
+- `REMOVED_VALUES` in `tools/tests/test_package_traceability.py` goes at stage 2.3
   ([ADR-9MJ6](../decisions/entries/9MJ6-remove-the-heatmap-decode.md)).
 - The section [License and training data](model-sidecar/common/license.md) is `draft`, so the
   `2.0.0` release (stage 2.5) also needs its graduation or its removal from the release.
@@ -658,7 +658,7 @@ Done:
   float32 steps. The normalization is float32. The score comparisons are float32
   ([ADR-XXZ8](../decisions/entries/XXZ8-host-frame-precision-and-score-comparisons.md) items 2
   and 3).
-- `PACKAGE_RUNNERS` of `tools/tests/test_vectors.py` has an adapter for each new function that runs
+- `PACKAGE_RUNNERS` of `tools/tests/test_package_vectors.py` has an adapter for each new function that runs
   vector cases. Each case that a function agrees with names it in `verified_against`. The old
   entries (`letterbox_preprocess` and `fit_preprocess`) did not change. A change of
   `verified_against` needed no spec content commit: the test vectors are a non-spec change.
@@ -1559,7 +1559,7 @@ work of this phase, not of 1.11 ([ADR-Q9R6](../decisions/entries/Q9R6-certify-ru
   `object_detection_decode.py` and `simcc_decode.py`), `golden_parity.py`,
   `test_image_preprocessing.py`, `test_object_detection_decode.py`, the old entries of
   `PACKAGE_RUNNERS` and the old `resolve_overlay_groups`.
-- Delete `REMOVED_VALUES` and `MERGED_IMAGENET_MODES` in `tools/tests/test_traceability.py` when the
+- Delete `REMOVED_VALUES` and `MERGED_IMAGENET_MODES` in `tools/tests/test_package_traceability.py` when the
   model at `core/sidecar/` has none of those values.
 - Gate: the full suite and the vector tests pass.
 - After this stage, do the item "Code citations of `sidecar-spec.md`" below. The new code cites
@@ -1567,7 +1567,7 @@ work of this phase, not of 1.11 ([ADR-Q9R6](../decisions/entries/Q9R6-certify-ru
 - **Code citations of `sidecar-spec.md`.** This item carries out item 3 of
   [ADR-CN15](../decisions/entries/CN15-spec-readme-is-the-only-entry-point.md). The docstrings and
   comments of the old package cite headings of `specs/model-sidecar/sidecar-spec.md`. Stage 2.3 deletes those modules. The new code cites the
-  section ID of each section file, for example `pre.normalize`. A citation of the whole spec cites `specs/model-sidecar/README.md`. In `tools/tests/test_traceability.py`, change `CITATION`
+  section ID of each section file, for example `pre.normalize`. A citation of the whole spec cites `specs/model-sidecar/README.md`. In `tools/tests/test_package_traceability.py`, change `CITATION`
   and `citations()` to read the section-ID form, so that `test_the_code_cites_the_spec` counts the
   new citations. Replace `test_every_spec_citation_in_the_code_names_a_heading_of_the_index` with a
   test that checks that each cited section ID exists (`section_ids()`). Remove `INDEX_PATH`,

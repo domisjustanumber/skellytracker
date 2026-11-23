@@ -21,7 +21,7 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
 - Each example is a file under `specs/model-sidecar/examples/detectors/`. Its path follows the
   `detectors/` layout of the package, so that each `$ref` path resolves.
 - Package code does not read the examples. The tools under `tools/` read them:
-  - `tools/tests/test_examples.py` checks that each example parses, resolves and has a provenance
+  - `tools/tests/test_examples.py` and `tools/tests/test_package_examples.py` check that each example parses, resolves and has a provenance
     entry.
   - `uv run python tools/sidecar_trace_package.py matrix` writes
     [`TRACEABILITY.md`](../TRACEABILITY.md). It maps each example to the sections that it uses.
@@ -107,7 +107,7 @@ Replace the example when the copy of its exporter obeys each rule
    only in the examples of the spec.
 6. **Check.** Apply the validation rules of each section that the sidecar uses (the
    [index of validation rules](../README.md)). Make sure that each `$ref` resolves. Run
-   `uv run pytest tools/tests`. `tools/tests/test_examples.py` checks that the example resolves.
+   `uv run pytest tools/tests`. `tools/tests/test_package_examples.py` checks that the example resolves.
 7. **Land it.** A new or replaced example changes no normative text. Thus it goes in a non-spec PR
    with its provenance ([`specs/model-sidecar/AGENTS.md`](../AGENTS.md)). A spec-forced edit goes in
    the content commit of its change

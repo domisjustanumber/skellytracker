@@ -1,6 +1,6 @@
 """The spec postprocessing modules of `processing/post/`: the unprojection, the decodes and the keypoint rules.
 
-`tools/tests/test_vectors.py` runs the numeric vector cases of each section. These tests cover the
+`tools/tests/test_package_vectors.py` runs the numeric vector cases of each section. These tests cover the
 array forms, the run-time rules of a keypoint and the cases that the vector test does not run.
 """
 from __future__ import annotations

@@ -66,7 +66,7 @@ def spec(tmp_path: Path) -> tuple[Path, Path]:
 def test_fill_writes_only_expect_with_the_emitter_of_the_generator(tmp_path: Path) -> None:
     """Without a bundle module, the producer of this checkout gives the bytes of the published file."""
     target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
-    assert mv.fill(target, tmp_path / "payload" / "reference") == []
+    assert mv.fill(target, tmp_path / "payload" / "reference", tmp_path / "intakes") == []
     assert target.read_text(encoding="utf-8") == SECTION_FILE.read_text(encoding="utf-8")
 
 
@@ -82,31 +82,44 @@ def test_fill_runs_the_bundle_reference_without_the_formula_cross_check(tmp_path
         encoding="utf-8",
     )
     target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
-    assert mv.fill(target, reference) == []
+    assert mv.fill(target, reference, tmp_path / "intakes") == []
     assert load(target)["cases"][1]["expect"] == {"source_xy": [960.5, 540]}
 
 
 def test_fill_refuses_a_file_of_this_checkout(tmp_path: Path) -> None:
     before = SECTION_FILE.read_bytes()
-    (found,) = mv.fill(SECTION_FILE, tmp_path)
+    (found,) = mv.fill(SECTION_FILE, tmp_path, tmp_path / "intakes")
     assert "outside this checkout" in found
     assert SECTION_FILE.read_bytes() == before
 
 
 def test_fill_refuses_a_reference_folder_of_this_checkout(tmp_path: Path) -> None:
-    """A bundle in intakes/ or a record is in this checkout: fill never runs its code (ADR-AD33, item 5)."""
+    """A record is in this checkout: fill never runs its code (ADR-AD33, item 5)."""
     target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
     before = target.read_bytes()
-    for folder in (mv.REPO_ROOT / "intakes" / "model-x@y" / "v1" / "reference", mv.REFERENCE_DIR):
-        (found,) = mv.fill(target, folder)
+    for folder in (mv.REPO_ROOT / "specs" / "model-sidecar" / "proposals" / "x" / "reference", mv.REFERENCE_DIR):
+        (found,) = mv.fill(target, folder, tmp_path / "intakes")
         assert "fill runs only the reference folder of a payload outside this checkout" in found
     assert target.read_bytes() == before
+
+
+def test_fill_refuses_a_payload_of_the_hand_over_folder(tmp_path: Path) -> None:
+    """A bundle in `intakes/` is untrusted: fill runs no code of it, also its own reference folder (ADR-AD33, item 5)."""
+    root = tmp_path / "intakes"
+    payload = root / "model-x@y" / "v1"
+    target = dump(payload / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
+    before = target.read_bytes()
+    (found,) = mv.fill(target, payload / "reference", root)
+    assert "fill runs no code of the hand-over folder" in found and target.read_bytes() == before
+    assert mv.main(["make_vectors.py", "fill", str(target), "--reference", str(payload / "reference"), "--root", str(root)]) == 1
+    with pytest.raises(SystemExit):  # `--root` has no default
+        mv.main(["make_vectors.py", "fill", str(target), "--reference", str(payload / "reference")])
 
 
 def test_fill_refuses_the_reference_folder_of_another_payload(tmp_path: Path) -> None:
     target = dump(tmp_path / "payload" / "vectors" / NAME, strip_expect(load(SECTION_FILE)))
     before = target.read_bytes()
-    (found,) = mv.fill(target, tmp_path / "other" / "reference")
+    (found,) = mv.fill(target, tmp_path / "other" / "reference", tmp_path / "intakes")
     assert "fill runs only <payload>/reference of the payload" in found
     assert target.read_bytes() == before
 
@@ -114,7 +127,7 @@ def test_fill_refuses_the_reference_folder_of_another_payload(tmp_path: Path) ->
 def test_fill_reports_a_form_problem_and_writes_nothing(tmp_path: Path) -> None:
     target = dump(tmp_path / "vectors" / NAME, {**strip_expect(load(SECTION_FILE)), "tolerance": -1})
     before = target.read_bytes()
-    (found,) = mv.fill(target, tmp_path / "reference")
+    (found,) = mv.fill(target, tmp_path / "reference", tmp_path / "intakes")
     assert "tolerance must be a number of 0 or more" in found
     assert target.read_bytes() == before
 

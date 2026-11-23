@@ -35,7 +35,7 @@ implements the node types ([ADR-Y753](../../../decisions/entries/Y753-pipeline-t
 | 3. Find out if the work is blocked | An example pipeline in `specs/pipeline/examples/` is the reference example. Skip item 3: the exporter table does not name node types. |
 | 4. Plan the work | The node code goes in `core/pipelines/_runtime/`. The params model moves into `core/pipelines/config.py` in stage 1.10 of the [implementation plan](../../../specs/sidecar-implementation-plan.md#110-the-pipeline-api-was-p). The dispatch point is the executor of `_runtime/`, not `preprocess_image`. The validator changes go in `core/pipelines/config.py`, not in `core/sidecar/model.py`. Skip item 9. |
 | 5. Port or compare | From the 2.0.0 pre-release, a node proposal gives its code as `skellytracker.patch`. Follow [Patch review](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#patch-review). |
-| 6. Implement and test | Add the adapter of the node to `PACKAGE_RUNNERS` of `tools/tests/test_vectors.py`. The tests for the rule IDs do not go in `test_model_validation.py`. Write their place as `for the implementer` in the plan of step 4. The `verified_against` of item 9 is in `specs/pipeline/vectors/node.<type>.yaml`. |
+| 6. Implement and test | Add the adapter of the node to `PACKAGE_RUNNERS` of `tools/tests/test_package_vectors.py`. The tests for the rule IDs do not go in `test_model_validation.py`. Write their place as `for the implementer` in the plan of step 4. The `verified_against` of item 9 is in `specs/pipeline/vectors/node.<type>.yaml`. |
 | 7. Update the traceability | Do only items 5 and 6. A node section has no `implemented_by`, step `status` or `tests`, and the pipeline spec has no traceability matrix. |
 
 ## Stop points

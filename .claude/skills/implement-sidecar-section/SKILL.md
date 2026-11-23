@@ -36,7 +36,7 @@ gives the order of the steps, the inputs, the outputs and the stop points.
 |---|---|
 | The code of each step | `skellytracker/`, for example a function under `skellytracker/core/detectors/processing/` and a validator in `skellytracker/core/sidecar/model.py` |
 | The line `Implements: <section-id>` | The docstring of each implementing function |
-| The adapter | An entry in `PACKAGE_RUNNERS` of `tools/tests/test_vectors.py` that runs the implementing function on one case of `specs/model-sidecar/vectors/<section-id>.yaml` |
+| The adapter | An entry in `PACKAGE_RUNNERS` of `tools/tests/test_package_vectors.py` that runs the implementing function on one case of `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new front matter | `implemented_by`, `status` and `tests` of the section file |
 | The new `verified_against` | The vector file `specs/model-sidecar/vectors/<section-id>.yaml` |
 | The new traceability matrix | `specs/model-sidecar/TRACEABILITY.md` |
@@ -70,7 +70,7 @@ names (`model_input` or `source`). It does not infer the space from the other ke
 | Verified vectors | `specs/model-sidecar/vectors/<section-id>.yaml`: `verified_against` at the top of the file, or for each case. `unverified: <reason>` means that no implementation verified the file. |
 | A reference implementation | `specs/model-sidecar/reference/<section_module>.py` |
 | An exporter implementation | `external_impl` in the front matter, and "External implementations" in `TRACEABILITY.md` |
-| A bundle that waits to land | `uv run --no-sync python -B tools/intake_bundle.py list` ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)): a `model` bundle with `reference/<section_module>.py`, and each `proposal` bundle that changes the section. Read the files. Do not change them. |
+| A bundle that waits to land | `uv run --no-sync python -B tools/intake_bundle.py list --root intakes` ([Hand-over bundles](../../../specs/model-sidecar/model-addition-workflow/hand-over.md)): a `model` bundle with `reference/<section_module>.py`, and each `proposal` bundle that changes the section. Read the files. Do not change them. |
 
 If the section has no vector file, the section has no verified vectors.
 
@@ -153,7 +153,7 @@ A skellytracker session must land it first, with the skill
    `skellytracker/tests/sidecar/test_model_validation.py`.
 3. Add the line `Implements: <section-id>` to the docstring of each implementing function.
 4. If `tools/tests` has no test that checks the `Implements:` lines, add that test in the same PR.
-5. Add an adapter to `PACKAGE_RUNNERS` in `tools/tests/test_vectors.py`. Its key is the
+5. Add an adapter to `PACKAGE_RUNNERS` in `tools/tests/test_package_vectors.py`. Its key is the
    `path::symbol` of the implementing function. The adapter runs the function on one case and
    returns the result in the form of `expect`, or `None` when the function cannot run the case. An
    example is `fit_runner`. Do not add a constant to `tools/make_vectors.py`.

@@ -35,7 +35,29 @@ MOVING = (
     *sorted((REPO / "specs" / "model-sidecar" / "reference").glob("*.py")),
     *sorted((REPO / "specs" / "pipeline" / "reference").glob("*.py")),
 )
-DYNAMIC_CALLS = ("import_module", "__import__", "spec_from_file_location", "find_spec")
+# The tests that move with the tools, and the conftest.py that they load. Each one runs in the
+# specs repository, where the package is not installed. A test of the package stays here, in a
+# file `test_package_<subject>.py`. A moving test can never import such a file.
+TESTS = TOOLS / "tests"
+MOVING_TESTS = tuple(
+    TESTS / name
+    for name in (
+        "conftest.py",
+        "test_changelog_revision.py",
+        "test_examples.py",
+        "test_intake_bundle.py",
+        "test_land_fill.py",
+        "test_pipeline_changelog.py",
+        "test_pipeline_schema.py",
+        "test_proposal_records.py",
+        "test_retired_names.py",
+        "test_sidecar_refs.py",
+        "test_sidecar_trace.py",
+        "test_traceability.py",
+        "test_vectors.py",
+    )
+)
+DYNAMIC_CALLS = ("import_module", "__import__", "spec_from_file_location", "find_spec", "importorskip")
 # Each dynamic import call of the moving set: (file, function that holds the call). A new one needs a review.
 KNOWN_DYNAMIC = {
     # Loads `<folder>/<section_module>.py` of a given folder. The callers give a reference folder or
@@ -51,7 +73,8 @@ KNOWN_DYNAMIC = {
 def _imports(path: Path) -> tuple[set[str], list[tuple[str, str]]]:
     """Return the module names that a file imports at any depth, and its dynamic import calls.
 
-    A name of an `import_module` or `__import__` call with a literal string counts as an import.
+    A name of an `import_module`, `__import__` or `importorskip` call with a literal string counts
+    as an import. An `importorskip` call with a literal string is not a dynamic import call.
     """
     names: set[str] = set()
     dynamic: list[tuple[str, str]] = []
@@ -68,6 +91,8 @@ def _imports(path: Path) -> tuple[set[str], list[tuple[str, str]]]:
                 continue
             if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                 names.add(node.args[0].value)
+                if callee == "importorskip":
+                    continue  # an import of a named module, not a load of a file
             owner = min(
                 (f for f in functions if f.lineno <= node.lineno <= (f.end_lineno or f.lineno)),
                 key=lambda f: (f.end_lineno or f.lineno) - f.lineno,
@@ -78,14 +103,14 @@ def _imports(path: Path) -> tuple[set[str], list[tuple[str, str]]]:
 
 
 def _chain() -> tuple[dict[Path, set[str]], list[tuple[str, str]]]:
-    """Return the imports of each file of the import chain of `MOVING`, and the dynamic imports.
+    """Return the imports of each file of the import chain of `MOVING` and `MOVING_TESTS`, and the dynamic imports.
 
     A name is a local module when `<folder of the file>/<name>.py` or `tools/<name>.py` exists. The
     walk follows each local module.
     """
     seen: dict[Path, set[str]] = {}
     dynamic: list[tuple[str, str]] = []
-    todo = list(MOVING)
+    todo = [*MOVING, *MOVING_TESTS]
     while todo:
         path = todo.pop()
         if path in seen:
@@ -99,16 +124,17 @@ def _chain() -> tuple[dict[Path, set[str]], list[tuple[str, str]]]:
 
 
 def test_the_moving_tools_import_no_package_and_no_onnx_stack() -> None:
-    """The moving tools and their whole import chain must not import skellytracker, onnx or onnxruntime.
+    """The moving tools and tests and their whole import chain must not import skellytracker, onnx or onnxruntime.
 
-    These tools move to the specs repository with the specs, and the specs repository must not
-    depend on the package. The rule applies to an import inside a function too, to each local
-    module that a file imports, and to `import_module` or `__import__` with a literal name. The
-    checks that need these modules stay here: `tools/intake_gate.py` and
-    `tools/sidecar_trace_package.py`.
+    These tools and their tests move to the specs repository with the specs, and the specs
+    repository must not depend on the package. The rule applies to an import inside a function
+    too, to each local module that a file imports, and to `import_module`, `__import__` or
+    `pytest.importorskip` with a literal name. The checks that need these modules stay here:
+    `tools/intake_gate.py`, `tools/sidecar_trace_package.py` and the tests `test_package_*.py`.
     """
     seen, _ = _chain()
     assert TOOLS / "check_private_data.py" in seen  # the walk follows the local modules
+    assert TESTS / "test_intake_bundle.py" in seen and TESTS / "conftest.py" in seen
     found = [
         f"{path.relative_to(REPO).as_posix()}: {name}"
         for path, names in seen.items()
@@ -117,6 +143,60 @@ def test_the_moving_tools_import_no_package_and_no_onnx_stack() -> None:
     ]
     assert found == []
     assert not [p for p in seen if p.name in ("intake_gate.py", "sidecar_trace_package.py")]
+
+
+def test_a_moving_test_imports_only_moving_tests() -> None:
+    """A test of the import chain that is not in `MOVING_TESTS` stays here, so a moving test must not import it."""
+    seen, _ = _chain()
+    staying = sorted(p.name for p in seen if p.parent == TESTS and p not in MOVING_TESTS)
+    assert staying == []
+
+
+def test_each_test_file_is_moving_or_staying() -> None:
+    """A new test file of `tools/tests/` needs a place: `MOVING_TESTS`, or the reviewed list `STAYING_TESTS`."""
+    assert {p.name for p in TESTS.glob("*.py")} == {p.name for p in MOVING_TESTS} | STAYING_TESTS
+    assert not {p.name for p in MOVING_TESTS} & STAYING_TESTS
+
+
+# The tests that stay in skellytracker: a test of a staying tool, or a test that needs the package.
+STAYING_TESTS = {
+    "test_bootstrap_kit.py",
+    "test_camera_media.py",
+    "test_certify_eps.py",
+    "test_certify_hardware.py",
+    "test_certify_platform.py",
+    "test_check_ai_attribution.py",
+    "test_check_dist_onnx.py",
+    "test_check_ste_tokens.py",
+    "test_decision_log.py",
+    "test_dependency_pins.py",
+    "test_docs_site.py",
+    "test_ep_catalog.py",
+    "test_graphify_hooks.py",
+    "test_intake_gate.py",
+    "test_landmark_schemas.py",
+    "test_links.py",
+    "test_onnx_stack.py",
+    "test_package_examples.py",
+    "test_package_sidecar_trace.py",
+    "test_package_traceability.py",
+    "test_package_vectors.py",
+    "test_package_verified_against.py",
+    "test_pipeline_node_catalog.py",
+    "test_pipeline_package_schema.py",
+    "test_private_data.py",
+    "test_private_data_allowed_url.py",
+    "test_run_checks.py",
+    "test_sidecar_normalize.py",
+}
+
+
+def test_the_gate_takes_the_intakes_folder_and_the_patch_scope_of_its_own_checkout() -> None:
+    """`tools/intake_bundle.py` has no default root (ADR-2DJ8, item 7). The gate stays in this checkout."""
+    assert not hasattr(ib, "DEFAULT_ROOT")
+    assert gate.DEFAULT_ROOT == REPO / "intakes"
+    assert gate.PACKAGE_FOLDER == ib.PATCH_SCOPE == "skellytracker/"
+    assert (REPO / gate.PACKAGE_FOLDER / "__init__.py").is_file()
 
 
 def test_each_dynamic_import_of_the_moving_tools_is_known() -> None:
@@ -518,3 +598,9 @@ def test_the_sidecar_load_checks_do_not_run_for_a_key_with_no_package_sidecar(
     findings = gate.verify("pipeline-yolox-boxes@openmmlab-exporter", root)
     assert not [f for f in findings if "load checks" in f], findings
     assert "the load checks that need the sidecars did not run" in capsys.readouterr().err
+
+
+def test_each_tracked_parity_folder_passes_the_parity_check() -> None:
+    """The reference files of the landed models (ADR-2DJ8, item 6). With no folder yet, the test checks nothing."""
+    for folder in sorted((gate.REPO_ROOT / "skellytracker/tests/sidecar/fixtures/parity").glob("*/")):
+        assert ib.parity_problems(folder, yaml) == [], folder.name

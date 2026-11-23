@@ -266,7 +266,7 @@ expected output.
   file hashes of the manifest (skellytracker ADR-8DSW, item 6).
 
   ```sh
-  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/make_vectors.py fill <payload folder>/vectors/<section ID>.yaml --reference <payload folder>/reference
+  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/make_vectors.py fill <payload folder>/vectors/<section ID>.yaml --reference <payload folder>/reference --root ../freemocap/skellytracker/intakes
   ```
 
 - `fill` runs the code of `--reference`. Give only the `reference/` folder of your own payload.

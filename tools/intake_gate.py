@@ -33,9 +33,7 @@ from pathlib import Path, PureWindowsPath
 
 import intake_bundle
 from intake_bundle import (
-    DEFAULT_ROOT,
     PROFILE,
-    REPO_ROOT,
     SOURCE_BATCH,
     VERIFICATION_BATCHES,
     BundleError,
@@ -47,9 +45,14 @@ from intake_bundle import (
     sha256,
 )
 
-# The package sidecar root of this repository, relative to the checkout. `verify` gives it to
-# `intake_bundle.verify`, which names no folder of this repository.
+# This tool stays in the repository that holds the hand-over folder and the package. So it can
+# take its default `--root` from its own place. `tools/intake_bundle.py` has no default root.
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ROOT = REPO_ROOT / "intakes"
+# The package sidecar root and the package folder of this repository, relative to the checkout.
+# `verify` gives them to `intake_bundle.verify`, which names no folder of this repository.
 PACKAGE_SIDECARS = "skellytracker/core/model_zoo/detectors"
+PACKAGE_FOLDER = "skellytracker/"  # the one folder that a patch of a bundle can change
 TARGETS = (1, 2, 6)
 DYNAMIC_BATCHES = (1, 2, 3)
 TOLERANCE = {"fp32": 1e-5, "fp16": 1e-3}
@@ -129,9 +132,12 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     """Return the findings of `intake_bundle.verify`, then the findings of the package load checks.
 
     `intake_bundle.verify` gets the package sidecars of `repo` (`PACKAGE_SIDECARS`), so its pipeline
-    check also finds a landed package sidecar.
+    check also finds a landed package sidecar. It also gets the package folder (`PACKAGE_FOLDER`),
+    the one folder that a patch can change.
     """
-    findings = intake_bundle.verify(name, root, repo, overlay, package_sidecars=repo / PACKAGE_SIDECARS)
+    findings = intake_bundle.verify(
+        name, root, repo, overlay, package_sidecars=repo / PACKAGE_SIDECARS, patch_scope=PACKAGE_FOLDER
+    )
     return findings + load_findings(name, findings, root, repo, overlay)
 
 

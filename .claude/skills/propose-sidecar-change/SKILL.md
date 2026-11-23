@@ -69,7 +69,7 @@ that is missing in part 1.
 
 In skellytracker:
 
-- the proposal bundles in `intakes/`. `uv run --no-sync python -B tools/intake_bundle.py list` lists them
+- the proposal bundles in `intakes/`. `uv run --no-sync python -B tools/intake_bundle.py list --root intakes` lists them
   ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)).
 
 A gap that a skellytracker session finds goes on the spec-defect list of the
@@ -109,7 +109,7 @@ A contributor writes its proposal bundle.
    [decision log](../../../specs/model-sidecar/decisions/README.md#proposed). Read each entry whose Section cell
    is one of your sections or `none`. Also read each `proposed` entry that the "Authoring
    guidance" or the "Implementer guidance" of your sections cites.
-6. Run `python -B ../freemocap/skellytracker/tools/intake_bundle.py list`. Choose the form of each
+6. Run `python -B ../freemocap/skellytracker/tools/intake_bundle.py list --root ../freemocap/skellytracker/intakes`. Choose the form of each
    proposal: a new proposal, a contribution or a follow-up
    ([Proposal forms](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#proposal-forms)). If a `proposed` entry covers your
    rows, do not write a competing proposal. Cite the entry in the header and in part 1.
@@ -223,7 +223,7 @@ A contributor writes its proposal bundle.
 
 ### Step 3: Copy the proposal into the spec folder
 
-1. Run `uv run --no-sync python -B tools/intake_bundle.py record <bundle id>`. It copies the
+1. Run `uv run --no-sync python -B tools/intake_bundle.py record <bundle id> --root intakes`. It copies the
    current version folder `v<k>/` byte for byte to `specs/model-sidecar/proposals/<slug>/`, and a
    contribution to `specs/model-sidecar/proposals/<slug>/contributions/<contributor>/`
    ([Tracked records](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#tracked-records)). Do not copy

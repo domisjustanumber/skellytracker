@@ -170,6 +170,22 @@ def test_pack_stops_on_private_data(tmp_path: Path, root: Path) -> None:
     assert not root.exists()
 
 
+def test_pack_and_verify_read_the_private_terms_of_the_checkout_of_the_hand_over_folder(tmp_path: Path) -> None:
+    """The terms come from `--root`, not from the place of the tool (ADR-2DJ8, item 7)."""
+    checkout, contributor = tmp_path / "checkout", tmp_path / "contributor"
+    contributor.mkdir()
+    (checkout / "intakes").mkdir(parents=True)
+    (checkout / ".private-terms").write_text("zzmadeupterm\n", encoding="utf-8")
+    source = payload(contributor, {"proposal.md": "zzmadeupterm\n"})
+    with pytest.raises(ib.BundleError, match="private data"):
+        ib.pack(source, proposal_fields(), checkout / "intakes", cwd=contributor)
+    (checkout / ".private-terms").write_text("zzothermadeupterm\n", encoding="utf-8")
+    ib.pack(source, proposal_fields(), checkout / "intakes", cwd=contributor)
+    (checkout / ".private-terms").write_text("zzmadeupterm\n", encoding="utf-8")
+    findings = ib.verify("proposal-box-clamp@ultralytics-exporter", checkout / "intakes")
+    assert any(f.startswith("private data: ") for f in findings), findings
+
+
 def test_list_gives_states_owners_reverse_links_and_can_delete(tmp_path: Path, root: Path) -> None:
     source = payload(tmp_path, {"proposal.md": "text\n"})
     ib.pack(source, proposal_fields(), root, cwd=tmp_path)
@@ -494,7 +510,7 @@ def test_external_paths_take_a_sibling_layout_and_stay_outside_the_repo(tmp_path
     ib.pack(source, model_fields(external=[item]), root, cwd=tmp_path)
     inside = tmp_path / "skellytracker" / "m.onnx"
     inside.write_bytes(b"onnx")
-    with pytest.raises(ib.BundleError, match="outside the skellytracker repo"):
+    with pytest.raises(ib.BundleError, match="outside the checkout of the hand-over folder"):
         ib.pack(source, model_fields(external=[{**item, "path": "../skellytracker/m.onnx"}]), root, cwd=tmp_path)
 
 
@@ -701,6 +717,18 @@ def test_responses_are_json_that_yaml_also_reads(tmp_path: Path, root: Path) -> 
 def test_each_sub_command_takes_root_after_its_name(root: Path, capsys: pytest.CaptureFixture) -> None:
     assert ib.main(["list", "--root", str(root)]) == 0
     assert capsys.readouterr().out == "no bundles\n"
+
+
+@pytest.mark.parametrize(
+    "argv", [["pack", "--from", "x", "--fields", "f"], ["pack", "--dry-run", "--from", "x", "--fields", "f"],
+             ["list"], ["verify", "b"], ["record", "b"]],
+)
+def test_each_sub_command_requires_root(argv: list[str], capsys: pytest.CaptureFixture) -> None:
+    """The tool has no default path into another repository (ADR-2DJ8, item 7)."""
+    with pytest.raises(SystemExit) as exit_info:
+        ib.main(argv)
+    assert exit_info.value.code == 2
+    assert "--root" in capsys.readouterr().err
 
 
 def tree(folder: Path) -> dict[str, bytes]:
@@ -1375,6 +1403,14 @@ def test_verify_finds_a_patch_outside_its_scope(tmp_path: Path, root: Path) -> N
     assert f"{ib.PATCH_FILE}: tools/x.py: a patch changes only skellytracker/ and no conftest.py; this stops the review" in findings
 
 
+def test_the_patch_scope_is_a_parameter_of_the_host() -> None:
+    """`verify` takes the folder that a patch can change; `tools/intake_gate.py` gives `skellytracker/`."""
+    assert ib.patch_problems(GOOD_PATCH, "skellytracker/") == []
+    assert ib.patch_problems(GOOD_PATCH, "pkg/") == [
+        f"{ib.PATCH_FILE}: skellytracker/core/x.py: a patch changes only pkg/ and no conftest.py; this stops the review"
+    ]
+
+
 @pytest.mark.parametrize(
     ("files", "fields", "message"),
     [
@@ -1528,8 +1564,3 @@ def test_the_parity_check_refuses_an_object_array_and_a_bad_manifest(tmp_path: P
     assert "m.fp32.npz: not a readable .npz file" in ib.parity_problems(folder, yaml)
     (folder / "parity.yaml").write_text("parity_format: 2\n", encoding="utf-8")
     assert ib.parity_problems(folder, yaml)[0].startswith("parity.yaml must have exactly the keys")
-
-
-def test_each_tracked_parity_folder_passes_the_parity_check() -> None:
-    for folder in sorted((REPO_ROOT / "specs" / "model-sidecar" / "parity").glob("*/")):
-        assert ib.parity_problems(folder, yaml) == [], folder.name

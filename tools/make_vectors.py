@@ -37,13 +37,13 @@ that produced the same results) or `unverified` (the reason that none did). An
 entry is a skellytracker function (`path::function`) or an exporter function
 (`{<Exporter repo>: <file>::<function>}`). This tool checks the form of an entry only, and
 imports no skellytracker function. `tools/tests/test_package_verified_against.py` checks that
-each skellytracker entry names a function, and `tools/tests/test_vectors.py` runs each
+each skellytracker entry names a function, and `tools/tests/test_package_vectors.py` runs each
 skellytracker function through its adapter in `PACKAGE_RUNNERS`.
 
 Usage:
     python tools/make_vectors.py            # write the files
     python tools/make_vectors.py --check    # exit 1 when a file differs
-    python tools/make_vectors.py fill <bundle vectors file> --reference <bundle reference folder>
+    python tools/make_vectors.py fill <bundle vectors file> --reference <bundle reference folder> --root <hand-over folder>
     python tools/make_vectors.py land <part 4 file> [--contribution <file>...] --replaces [<id>...]
 
 `fill` and `land` are items 6 and 5 of ADR-8DSW. Each prints its problems and
@@ -515,7 +515,7 @@ def _load(path: Path) -> Any:
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def fill(path: Path, reference: Path) -> list[str]:
+def fill(path: Path, reference: Path, root: Path) -> list[str]:
     """Write `expect` in one bundle vector file with the bundle reference (ADR-8DSW, item 6).
 
     The producer is `<reference>/<section_module>.py`, else the producer of this
@@ -523,11 +523,15 @@ def fill(path: Path, reference: Path) -> list[str]:
     `proposal.md` next to the reference folder. A proposed reference can differ
     from the current text, so no formula module cross-checks it. The tool writes
     only `path`, never a file of this checkout. It runs the code of `reference`,
-    so it refuses a folder of this checkout, for example a bundle in `intakes/`
-    or a record, and a folder that is not the `reference/` folder of the payload
-    of `path` (ADR-AD33, item 5). Return the problems.
+    so it refuses a folder of this checkout, for example a record, a folder of
+    `root`, the hand-over folder `intakes/`, and a folder that is not the
+    `reference/` folder of the payload of `path` (ADR-AD33, item 5). `root` has
+    no default: the tool does not know where the hand-over folder is
+    (ADR-2DJ8, item 7). Return the problems.
     """
-    path, reference = path.resolve(), reference.resolve()
+    path, reference, root = path.resolve(), reference.resolve(), root.resolve()
+    if path.is_relative_to(root) or reference.is_relative_to(root):
+        return [f"{reference}: fill runs no code of the hand-over folder {root}, and writes no file there"]
     if path.is_relative_to(REPO_ROOT):
         return [f"{path}: fill writes only a vector file of a payload folder outside this checkout"]
     if reference.is_relative_to(REPO_ROOT):
@@ -715,6 +719,7 @@ def main(argv: list[str]) -> int:
     fill_command.add_argument(
         "--reference", type=Path, required=True, help="the reference folder of the payload"
     )
+    fill_command.add_argument("--root", type=Path, required=True, help="the hand-over folder intakes/, which fill refuses")
     land_command = commands.add_parser("land", help="land the vectors of an accepted proposal")
     land_command.add_argument("part4", type=Path, help="the part 4 vector file of the record")
     land_command.add_argument("--contribution", type=Path, nargs="+", action="extend", default=[])
@@ -725,7 +730,7 @@ def main(argv: list[str]) -> int:
 
     if args.command:
         if args.command == "fill":
-            found = fill(args.file, args.reference)
+            found = fill(args.file, args.reference, args.root)
         else:
             found = land(args.part4, args.contribution, args.replaces)
         print("\n".join(found) or f"{args.command}: no problems")

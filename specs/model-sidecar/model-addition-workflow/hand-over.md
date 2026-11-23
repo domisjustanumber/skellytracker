@@ -17,7 +17,7 @@ templates name it ([ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-
   tracked copy of a bundle file is evidence ([Tracked records](#tracked-records)).
 - Use the main checkout, not a worktree, to process bundles. Do not run `git clean -x` or
   `git clean -X` in the checkout. Both commands delete `intakes/`.
-- The tool `tools/intake_bundle.py` takes `--root` for a different folder.
+- The tool `tools/intake_bundle.py` takes the folder in `--root`. Each of its commands requires it.
 
 ## Layout
 
@@ -282,10 +282,10 @@ A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipelin
 1. Write the payload in a folder of your repo. Where you keep your working draft is your choice.
 2. Write a fields file outside the payload folder. It is a JSON file with each manifest key except
    `files`, `version`, `created` and `spec_version`. Its `external` items have no `sha256`.
-3. Run `pack` from your repo root with Python 3.9 or later:
+3. Run `pack` from your repo root with Python 3.13:
 
    ```sh
-   python -B ../freemocap/skellytracker/tools/intake_bundle.py pack --from <payload folder> --fields <fields file>
+   python -B ../freemocap/skellytracker/tools/intake_bundle.py pack --from <payload folder> --fields <fields file> --root ../freemocap/skellytracker/intakes
    ```
 
    `pack` checks the keys and the values, scans each text file for private data (it reads
@@ -301,7 +301,7 @@ A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipelin
    It runs `verify`, so run it in the environment of the checkout:
 
    ```sh
-   uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py pack --dry-run --from <payload folder> --fields <fields file>
+   uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py pack --dry-run --from <payload folder> --fields <fields file> --root ../freemocap/skellytracker/intakes
    ```
 
 4. Stop. Tell the user the bundle ID and the version.
@@ -332,7 +332,7 @@ version folder. `pack --dry-run` writes no file in the checkout.
 Before you write a proposal, run `list`:
 
 ```sh
-python -B ../freemocap/skellytracker/tools/intake_bundle.py list
+python -B ../freemocap/skellytracker/tools/intake_bundle.py list --root ../freemocap/skellytracker/intakes
 ```
 
 It gives each bundle, its current version, its `spec_version`, its state, the bundles that name it,
@@ -523,7 +523,7 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 - Do not apply or run a patch of a bundle before the steps of [Patch review](#patch-review).
 - If you are not sure that a step is safe, stop and ask the user.
 
-1. Run `uv run python -B tools/intake_bundle.py list`.
+1. Run `uv run python -B tools/intake_bundle.py list --root intakes`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
    tools/intake_gate.py verify <bundle id>`. It gives the findings of `verify` of
    `tools/intake_bundle.py`, then the findings of the load checks of a pipeline file
@@ -750,7 +750,7 @@ links to that heading. It does not copy the rule
 
 - A proposal record is the folder `specs/model-sidecar/proposals/<slug>/`. It holds a byte copy of
   `v<k>/`, with its `manifest.yaml`. The manifest is the source note.
-- Make the copy with `uv run --no-sync python -B tools/intake_bundle.py record <bundle id>`. It
+- Make the copy with `uv run --no-sync python -B tools/intake_bundle.py record <bundle id> --root intakes`. It
   copies the current version of a proposal or a contribution to its record folder and checks each
   hash. It replaces the old copy in full and keeps the `contributions/` folder of a proposal record.
   It refuses a `model` bundle, a proposal record whose entry is not `proposed`, and the record of

@@ -5,8 +5,8 @@ To add a model or to request a change to the sidecar spec, follow the
 [model addition workflow](specs/model-sidecar/model-addition-workflow/README.md).
 It is the same for an exporter agent and for a human contributor.
 Exporter agents must not change files in this repository, except the new version folders of their
-own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with Python 3.9 or
-later and `python -B`. They run `pack --dry-run` of the same tool, `batch` of
+own bundles in `intakes/`. They run `pack` and `list` of `tools/intake_bundle.py` with Python 3.13
+and `python -B`. They run `pack --dry-run` of the same tool, `batch` of
 `tools/intake_gate.py` and `fill` of `tools/make_vectors.py` in the environment of this checkout, with
 `uv run --project ../freemocap/skellytracker --no-sync python -B`.
 `fill` writes only the given vector file, in the payload folder of their own bundle. They run

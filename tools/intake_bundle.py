@@ -6,11 +6,16 @@ The rules are in `specs/model-sidecar/model-addition-workflow/hand-over.md` and
 
 Usage::
 
-    python -B tools/intake_bundle.py pack --from DIR --fields FILE.json [--root INTAKES]
-    uv run python -B tools/intake_bundle.py pack --dry-run --from DIR --fields FILE.json [--root INTAKES]
-    python -B tools/intake_bundle.py list [--root INTAKES]
-    uv run python -B tools/intake_bundle.py verify BUNDLE [--root INTAKES]
-    python -B tools/intake_bundle.py record BUNDLE [--root INTAKES]
+    python -B tools/intake_bundle.py pack --from DIR --fields FILE.json --root INTAKES
+    uv run python -B tools/intake_bundle.py pack --dry-run --from DIR --fields FILE.json --root INTAKES
+    python -B tools/intake_bundle.py list --root INTAKES
+    uv run python -B tools/intake_bundle.py verify BUNDLE --root INTAKES
+    python -B tools/intake_bundle.py record BUNDLE --root INTAKES
+
+`--root` is the hand-over folder `intakes/`. That folder stays in skellytracker when this tool moves
+to the specs repository. So each sub-command requires `--root`, and the tool has no default path
+into another repository (ADR-2DJ8, item 7). The tool reads the spec, the changelog and the records
+of the checkout that holds this file. `record` writes the record there.
 
 This tool moves to the specs repository with the specs. So this file and each local module that
 it imports have no import of skellytracker, onnx or onnxruntime, at any level
@@ -21,7 +26,7 @@ and `verify` with the load checks of the package on the pipeline file of a `pipe
 pipeline check finds a landed sidecar in the examples of the spec, and also in the package
 sidecars of a host when the host gives them (`package_sidecars`; `tools/intake_gate.py` does).
 
-`pack` and `list` use only the standard library, so Python 3.9 or later runs them. `verify`
+`pack` and `list` use only the standard library and the check tools of this folder. `verify`
 reads YAML and the producers of this checkout, so it runs in the environment of this repository.
 It gives the format checks only. It reads each Python file of a bundle as text and never runs it
 (ADR-AD33). It runs no ONNX file (ADR-271H). `pack` and `verify` read
@@ -55,9 +60,8 @@ from urllib.parse import unquote
 
 import check_private_data
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_ROOT = REPO_ROOT / "intakes"
-SPEC = "specs/model-sidecar"
+REPO_ROOT = Path(__file__).resolve().parents[1]  # the checkout of the spec that holds this file
+SPEC ="specs/model-sidecar"
 SECTION_FOLDERS = ("format", "common", "pre", "post")
 PIPELINE_SPEC = "specs/pipeline"  # node.<type> sections, records and entries (ADR-3SF2, item 7)
 SPECS = (SPEC, PIPELINE_SPEC)
@@ -78,7 +82,7 @@ def link_findings(folder: Path, rels: object, manifest: dict, repo: Path = REPO_
     file of the bundle or of `repo`, and its `#anchor` is a heading of that Markdown file. A record
     is a byte copy, so `pack` refuses such a link and `verify` gives a finding (ADR-730P).
     """
-    import check_links  # standard library only, so `pack` still runs on Python 3.9
+    import check_links
 
     if manifest.get("kind") != "proposal":
         return []
@@ -123,26 +127,33 @@ def refused_file(rel: str) -> str | None:
 
 
 PATCH_FILE = "skellytracker.patch"
+# The folder that a patch can change: the package folder that the name of PATCH_FILE gives
+# ([Patches] of hand-over.md). `pack` uses it. `verify` takes it as `patch_scope`, and
+# `tools/intake_gate.py` gives the package folder of its checkout.
+PATCH_SCOPE = "skellytracker/"
 PATCH_PATH = re.compile(r"^(?:diff --git a/(\S+) b/(\S+)|--- a/(\S+)|\+\+\+ b/(\S+)|(?:rename|copy) (?:from|to) (\S+))$")
 PATCH_BINARY = re.compile(r"^(?:GIT binary patch|Binary files .* differ)$")
 
 
-def patch_problems(text: str) -> list[str]:
-    """Return why a patch leaves its scope (ADR-6J8E, items 2 and 3). The patch is read as text, never applied."""
+def patch_problems(text: str, scope: str = PATCH_SCOPE) -> list[str]:
+    """Return why a patch leaves its scope (ADR-6J8E, items 2 and 3). The patch is read as text, never applied.
+
+    `scope` is the one folder, with a trailing `/`, that the paths of the patch can be in.
+    """
     lines = text.split("\n")
     problems = [f"{PATCH_FILE}: a binary change; a patch holds only text changes" for line in lines if PATCH_BINARY.match(line)][:1]
     paths = sorted({path for line in lines if (match := PATCH_PATH.match(line)) for path in match.groups() if path})
     if not paths:
         problems.append(f"{PATCH_FILE}: not a unified diff with a/ and b/ paths")
     problems += [
-        f"{PATCH_FILE}: {path}: a patch changes only skellytracker/ and no conftest.py; this stops the review"
+        f"{PATCH_FILE}: {path}: a patch changes only {scope} and no conftest.py; this stops the review"
         for path in paths
-        if not path.startswith("skellytracker/") or path.rsplit("/", 1)[-1] == "conftest.py"
+        if not path.startswith(scope) or path.rsplit("/", 1)[-1] == "conftest.py"
     ]
     return problems
 
 
-def patch_findings(manifest: dict, rels: object, read) -> list[str]:  # noqa: ANN001
+def patch_findings(manifest: dict, rels: object, read, scope: str = PATCH_SCOPE) -> list[str]:  # noqa: ANN001
     """Return the patch findings of a payload: its kind, `patch_release` and `patch_problems` (ADR-6J8E)."""
     release = manifest.get("patch_release")
     if PATCH_FILE not in rels:
@@ -150,7 +161,7 @@ def patch_findings(manifest: dict, rels: object, read) -> list[str]:  # noqa: AN
     if manifest.get("kind") != "proposal" or manifest.get("contributes_to"):
         return [f"{PATCH_FILE}: only a proposal that is not a contribution can hold a patch"]
     problems = [] if release is not None else [f"{PATCH_FILE}: set patch_release to the release tag of the patch"]
-    return problems + patch_problems(read(PATCH_FILE))
+    return problems + patch_problems(read(PATCH_FILE), scope)
 
 KINDS = ("model", "proposal", "pipeline")  # pipeline: ADR-271H
 VERDICTS = ("describes", "does not describe", "pending")
@@ -712,13 +723,13 @@ def _text_form(data: bytes, rel: str) -> bytes:
 def pack(
     source: Path,
     fields: dict,
-    root: Path = DEFAULT_ROOT,
+    root: Path,
     cwd: Path | None = None,
     today: str | None = None,
     repo: Path = REPO_ROOT,
     external_base: Path | None = None,
 ) -> Path:
-    """Write a new version of a bundle and return its folder. The manifest is written last.
+    """Write a new version of a bundle in the hand-over folder `root` and return its folder. The manifest is written last.
 
     `spec_version` is the newest version heading of the changelog of `repo` (ADR-ZXD7, item 2).
     Each later version keeps the `created` of version 1. The `external` paths are relative to
@@ -743,9 +754,11 @@ def pack(
         payload[rel] = _text_form(data, rel) if is_text(rel) else data
     if problems := patch_findings(fields, payload, lambda rel: payload[rel].decode("utf-8")):
         raise BundleError("bad patch:\n  " + "\n  ".join(problems))
-    terms =check_private_data.private_terms(REPO_ROOT) + check_private_data.private_terms(
-        cwd or Path.cwd()
-    )
+    base = external_base or root.parent  # the checkout of the hand-over folder
+    # The terms of this checkout, of the checkout of the hand-over folder and of the contributor repo.
+    terms = list(dict.fromkeys(
+        term for folder in (REPO_ROOT, base, cwd or Path.cwd()) for term in check_private_data.private_terms(folder)
+    ))
     findings = [
         str(f)
         for rel, data in payload.items()
@@ -757,13 +770,12 @@ def pack(
     if findings := link_findings(source, payload, fields, repo):
         raise BundleError("links that fail from the record path:\n  " + "\n  ".join(findings))
     external = []
-    base = external_base or root.parent
     for item in fields["external"]:
         target = (base / item["path"]).resolve()
         if not target.is_file():
             raise BundleError(f"external file not found: {item['path']}")
         if target.is_relative_to(base.resolve()):
-            raise BundleError(f"external file must be outside the skellytracker repo: {item['path']}")
+            raise BundleError(f"external file must be outside the checkout of the hand-over folder: {item['path']}")
         digest = hashlib.sha256()
         with target.open("rb") as handle:
             for block in iter(lambda: handle.read(1 << 20), b""):
@@ -802,7 +814,7 @@ def pack(
 
 
 def dry_pack(
-    source: Path, fields: dict, root: Path = DEFAULT_ROOT, cwd: Path | None = None, repo: Path = REPO_ROOT
+    source: Path, fields: dict, root: Path, cwd: Path | None = None, repo: Path = REPO_ROOT
 ) -> list[str]:
     """Pack in a temporary folder and return the `verify` findings of the result. Write nothing in `root`.
 
@@ -839,9 +851,10 @@ def record_folder(manifest: dict, repo: Path = REPO_ROOT) -> Path:
     return repo / spec_folder(manifest) / "proposals" / manifest["name"]
 
 
-def record(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> Path:
+def record(name: str, root: Path, repo: Path = REPO_ROOT) -> Path:
     """Copy the current version of a proposal bundle byte for byte to its tracked record, and return the record.
 
+    The bundle is in the hand-over folder `root`. The record is in the spec of `repo`.
     The copy replaces the old record in full. A proposal record keeps its `contributions/` folder.
     Each file is read as bytes and checked against the manifest before the copy, and the copy is
     read back after it. No file of the bundle is imported or run (ADR-AD33).
@@ -902,7 +915,7 @@ def record(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> Path
 # --------------------------------------------------------------------------------------------
 
 
-def list_lines(root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT) -> list[str]:
+def list_lines(root: Path, repo: Path = REPO_ROOT) -> list[str]:
     """Return the text that `list` prints.
 
     A `waiting` model bundle gets the line `waiting_on no longer open: <ids>` when a bundle of the
@@ -1616,17 +1629,19 @@ def _pipeline_problems(
 
 def verify(
     name: str,
-    root: Path = DEFAULT_ROOT,
+    root: Path,
     repo: Path = REPO_ROOT,
     overlay: Path | None = None,
     package_sidecars: Path | None = None,
+    patch_scope: str = PATCH_SCOPE,
 ) -> list[str]:
-    """Return the findings for the current version of one bundle. An empty list means it passes.
+    """Return the findings for the current version of one bundle in the hand-over folder `root`. An empty list means it passes.
 
     The bundles in `overlay` replace those of `root` with the same ID (`pack --dry-run`). The
     external files resolve from the parent of `root`. `package_sidecars` is the folder of the
-    package sidecars of a host. The pipeline check also finds a landed sidecar there. This tool
-    names no folder of a host: the host gives it.
+    package sidecars of a host. The pipeline check also finds a landed sidecar there.
+    `patch_scope` is the folder that a patch can change. This tool names no folder of a host: the
+    host gives it.
     """
     import yaml  # only verify needs it
 
@@ -1685,7 +1700,7 @@ def verify(
     findings += [f"{rel}: a {what} bundle needs this file" for rel in required if rel not in listed]
     findings += patch_findings(
         manifest, listed, lambda rel: (version_dir / rel).read_text(encoding="utf-8", errors="replace")
-        if (version_dir / rel).is_file() else ""
+        if (version_dir / rel).is_file() else "", patch_scope
     )
     if manifest["kind"] == "proposal" and not contribution and "proposal.md" in listed:
         # Parts 3 and 4 name the reference and vector files by their bundle path.
@@ -1739,7 +1754,10 @@ def verify(
         findings += [f"{rel}: {p}" for p in vector_problems(data, section, [version_dir, *owner_dirs])]
 
     # Text checks: private data, plans/ paths, links.
-    terms = check_private_data.private_terms(repo)
+    # The terms of this checkout and of the checkout of the hand-over folder.
+    terms = list(dict.fromkeys(
+        term for folder in (repo, root.parent) for term in check_private_data.private_terms(folder)
+    ))
     for rel in sorted(r for r in listed if is_text(r) and (version_dir / r).is_file()):
         text = (version_dir / rel).read_text(encoding="utf-8", errors="replace")
         findings.extend(f"private data: {f}" for f in check_private_data.scan_text(rel, text, terms))
@@ -1794,7 +1812,7 @@ def verify(
         if not target.is_file():
             findings.append(f"external file not found: {item['path']}")
         elif target.is_relative_to(root.parent.resolve()):
-            findings.append(f"external file must be outside the skellytracker repo: {item['path']}")
+            findings.append(f"external file must be outside the checkout of the hand-over folder: {item['path']}")
         elif sha256(target.read_bytes()) != item["sha256"]:
             findings.append(f"external file does not match its sha256: {item['path']}")
 
@@ -1862,8 +1880,9 @@ def verify(
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     # Each sub-command takes --root after its name, as the usage of the module docstring shows.
+    # --root has no default: the hand-over folder stays in skellytracker when this tool moves (ADR-2DJ8, item 7).
     root = argparse.ArgumentParser(add_help=False)
-    root.add_argument("--root", type=Path, default=DEFAULT_ROOT, help="the intakes folder")
+    root.add_argument("--root", type=Path, required=True, help="the hand-over folder intakes/")
     commands = parser.add_subparsers(dest="command", required=True)
     pack_parser = commands.add_parser("pack", parents=[root], help="write a new version of a bundle")
     pack_parser.add_argument("--from", dest="source", type=Path, required=True)

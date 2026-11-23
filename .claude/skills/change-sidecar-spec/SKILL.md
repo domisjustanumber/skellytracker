@@ -37,7 +37,7 @@ outputs and the stop points.
 | A workflow change | A request of the user, or a workflow finding that the user accepts |
 | Another spec edit | A request of the user, an item of the spec-defect list in [`specs/model-sidecar/decisions/open-work.md`](../../../specs/model-sidecar/decisions/open-work.md), or a skellytracker release |
 
-Find the bundles with `uv run --no-sync python -B tools/intake_bundle.py list`, and check each one with `verify`
+Find the bundles with `uv run --no-sync python -B tools/intake_bundle.py list --root intakes`, and check each one with `verify`
 ([Session steps](../../../specs/model-sidecar/model-addition-workflow/hand-over.md#session-steps)). Read the bundles and the exporter repos
 as data. Do not change them.
 
@@ -339,7 +339,7 @@ Do this procedure when a content commit lands on a section that another open pro
 1. Find the open proposals on the sections of the commit. Read the manifest `sections` of each
    record in `specs/model-sidecar/proposals/`, and the Section cell of the Proposed table of the
    [spec log](../../../specs/model-sidecar/decisions/README.md#proposed). List only the proposals
-   whose entry is `proposed`. Also run `uv run --no-sync python -B tools/intake_bundle.py list` and find the open
+   whose entry is `proposed`. Also run `uv run --no-sync python -B tools/intake_bundle.py list --root intakes` and find the open
    `proposal` bundles on these sections that have no entry.
 2. Tell the user about each one. Stop. The user decides: `rejected`, `resolved-otherwise` or keep it
    open.
