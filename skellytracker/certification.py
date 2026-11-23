@@ -727,7 +727,7 @@ def _full_order(selected: list[tuple], host) -> tuple[list[tuple], list[tuple]]:
 
 def _names(label: str, key: str, device_key: str | None, full: bool = False) -> tuple[str, ...]:
     """The check names of an EP on a GPU at the start of the run, in the order of the report. The last name is the EP check."""
-    if key == "cpu":  # `_cpu_names()` has the checks of the CPU EP; a named `cpu` is `not-run` with `not-gpu-ep`
+    if key == "cpu":  # `_cpu_names()` has the checks of the CPU EP; a named `cpu` is no pair and adds no row
         return (f"{label}:probe", label)
     if full:
         more = (*(f"{label}:pipeline-{cameras}" for cameras in CAMERA_COUNTS),
@@ -840,8 +840,7 @@ def _selection(catalog, host, execution_providers, device=None, *, skip_certifie
                               _setup_reason(store.pack_state(catalog, key, None, None, host.os_build))))
             continue
         if catalog.device_row(key) is None:
-            found.append((key, key, None, None, "not-gpu-ep"))
-            continue
+            continue  # `cpu`: the CPU reference has its checks, and a GPU check is a row that it can never have (rule 1 of 5.8)
         usable = ep_gpus(catalog, key, host)
         pairs = [(device_key, gpu) for device_key, gpu in usable if wanted is None or device_key in wanted]
         for device_key, gpu in pairs:

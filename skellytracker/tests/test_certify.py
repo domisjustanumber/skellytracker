@@ -382,8 +382,7 @@ def test_missing_models_and_an_ep_that_cannot_run_are_not_run_and_record_nothing
         "cpu:video": ("not-run", "models-missing"), "cpu:live": ("not-run", "models-missing"),
         "trt-rtx@10de-2484-0:probe": ("pass", None), "trt-rtx@10de-2484-0:video": ("not-run", "models-missing"),
         "trt-rtx@10de-2484-0:live": ("not-run", "video-not-passed"), "trt-rtx@10de-2484-0": ("not-run", "models-missing"),
-        **{f"cuda@10de-2484-0{part}": ("not-run", "ep-not-installed") for part in (":probe", ":video", ":live", "")},
-        "cpu:probe": ("not-run", "not-gpu-ep"), "cpu": ("not-run", "not-gpu-ep")}
+        **{f"cuda@10de-2484-0{part}": ("not-run", "ep-not-installed") for part in (":probe", ":video", ":live", "")}}  # a named `cpu` adds no row: it can never have a GPU check
     assert local_results() == {}
 
 
@@ -801,9 +800,9 @@ def test_the_full_level_keeps_the_ep_checks_when_a_child_ends_or_the_video_check
     assert problems_of(report) == []
     assert found["cpu:pipeline-1"] == ("fail", "crashed") and found["cpu:jpeg"] == ("fail", "timed-out")
     assert found[f"{ep}:pipeline-1"] == ("not-run", "video-not-passed") and found[f"{ep}:jpeg"] == ("fail", "timed-out")
-    assert found[ep] == ("fail", "box-differs") and found["cpu"] == ("not-run", "not-gpu-ep")  # a named `cpu` adds no second timing
+    assert found[ep] == ("fail", "box-differs") and "cpu" not in found and "cpu:probe" not in found  # a named `cpu` adds no row and no second timing
     assert [name for name in found if name.startswith("cpu")] == ["cpu:video", "cpu:live", "cpu:pipeline-1", "cpu:pipeline-3",
-                                                                  "cpu:pipeline-6", "cpu:jpeg", "cpu:probe", "cpu"]
+                                                                  "cpu:pipeline-6", "cpu:jpeg"]
 
 
 def test_a_version_that_is_not_semver_gives_no_version(monkeypatch):
