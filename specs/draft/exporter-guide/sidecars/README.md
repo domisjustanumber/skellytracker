@@ -21,7 +21,7 @@ spec. If this guide and the spec do not agree, the spec is correct.
 - Only skellytracker sessions write the skellytracker repo. The only exception: an exporter agent
   writes the new version folders of its own bundles in `intakes/` of the checkout
   ([Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md);
-  [ADR-FADS](../../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md)). There is no spec freeze.
+  [ADR-ZXD7](../../../../decisions/entries/ZXD7-bundle-process.md)). There is no spec freeze.
 - An exporter overhaul copies the fenced block of
   [The block for the exporter `AGENTS.md`](#the-block-for-the-exporter-agentsmd) into the exporter's
   `AGENTS.md`. It copies the block without change, and fills in only the commit of the source line.
@@ -49,15 +49,18 @@ spec. If this guide and the spec do not agree, the spec is correct.
 The decisions behind this guide:
 
 - [0013](../../../../decisions/entries/0013-spec-structure.md): section IDs, rule IDs, reference
-  implementations and test vectors. [ADR-TA0G](../../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md) supersedes it. It gives
-  the vector cases and the reference modules.
+  implementations and test vectors. [ADR-TA0G](../../../../decisions/entries/TA0G-vector-cases-and-reference-modules.md) superseded it.
+  [ADR-8DSW](../../../../decisions/entries/8DSW-vector-files-are-the-case-source.md) supersedes TA0G.
+  It gives the vector cases and the reference modules.
 - [0014](../../../../decisions/entries/0014-spec-lifecycle.md): the spec lifecycle, the `vNEXT` rule and the
   new-model workflow. The workflow headings
   [Stages](../../../model-sidecar/model-addition-workflow/README.md#stages) and
   [Publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md#publishing)
-  state its rules now. [ADR-FADS](../../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md) supersedes it.
+  state its rules now. [ADR-FADS](../../../../decisions/entries/FADS-hand-over-bundles-in-intakes.md) superseded it.
+  [ADR-ZXD7](../../../../decisions/entries/ZXD7-bundle-process.md) supersedes FADS.
 - [0016](../../../../decisions/entries/0016-sidecar-catalogs.md): sidecar catalogs: `source`, reference
-  hashes, roots, discovery and the capability check. The spec text for exporters is in
+  hashes, roots, discovery and the capability check.
+  [ADR-0QKK](../../../../decisions/entries/0QKK-no-legacy-layer.md) supersedes it. The spec text for exporters is in
   [`common.identity`](../../../model-sidecar/common/identity.md#fields) (`source`),
   [`format.composition`](../../../model-sidecar/format/composition.md#reference-hashes) (the reference hashes and the bytes
   of a file) and
@@ -86,7 +89,8 @@ The templates are [model intake](../../../model-sidecar/templates/model-intake.m
 
 ## Run the skellytracker tools
 
-These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-and-batch-conversion-check.md).
+These rules are in [ADR-JAA4](../../../../decisions/entries/JAA4-one-batch-field.md) item 4 and
+[ADR-6J8E](../../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1.
 
 - The rule now: run the `batch` sub-command of the hand-over tool from the skellytracker checkout,
   in the skellytracker environment of the checkout
@@ -102,7 +106,7 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
 - From the 2.0.0 pre-release, each exporter adds the pre-release as a dependency with an exact pin.
   It runs that release as its ONNX host
   ([ADR-6J8E](../../../../decisions/entries/6J8E-exporters-run-released-skellytracker.md) item 1;
-  [ADR-M2C6](../../../../decisions/entries/M2C6-exact-pins-and-one-python-patch-release.md)):
+  [ADR-N6E8](../../../../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md)):
 
   ```toml
   requires-python = "==3.13.18"
@@ -111,8 +115,10 @@ These rules are in [ADR-JC4T](../../../../decisions/entries/JC4T-parity-gates-an
 
   `<pre-release>` is the version of the 2.0.0 pre-release. Each dependency of the exporter has an
   exact pin (`==`), with no range. Pin each package that the exporter shares with skellytracker to
-  its version in the `uv.lock` of that release. skellytracker brings ONNX Runtime 1.31 for the CPU.
-  Do not add `onnxruntime`, `onnxruntime-gpu` or `onnxruntime-directml` to the exporter. For a GPU,
+  its version in the `uv.lock` of that release. skellytracker brings ONNX Runtime 1.30.0:
+  `onnxruntime` on Linux and macOS, and `onnxruntime-windowsml` on Windows. Do not add
+  `onnxruntime`, `onnxruntime-windowsml`, `onnxruntime-gpu` or `onnxruntime-directml` to the
+  exporter. For a GPU,
   install a plugin EP pack with `skellytracker-eps install cuda` or
   `skellytracker-eps install trt-rtx`. The packs need CUDA 13 and an NVIDIA GPU of the Turing
   generation or newer.
@@ -170,5 +176,11 @@ The Sidecars section is split into these files:
 - [Validation and publishing](../../../model-sidecar/model-addition-workflow/validation-and-publishing.md):
   Validation, Opset and GPU placement, Publishing, `source` and hashes. It is in the model
   addition workflow.
+- [Hand-over bundles](../../../model-sidecar/model-addition-workflow/hand-over.md): the bundles in
+  `intakes/`, the commands `pack` and `list` of `tools/intake_bundle.py`, the states and the
+  responses. [Batch-conversion check](../../../model-sidecar/model-addition-workflow/batch-conversion-check.md)
+  gives the `batch` command. [Reference files](../../../model-sidecar/model-addition-workflow/parity.md#reference-files)
+  gives the `parity/` folder of a `model` bundle and the gate on it. They are in the model addition
+  workflow.
 
 The [known open items for the exporter overhaul](known-open-items.md) are not a part of the Sidecars section.
