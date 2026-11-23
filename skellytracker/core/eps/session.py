@@ -8,6 +8,13 @@ batch.
 skellytracker never runs a session on an other EP than the requested EP. A node of the model can
 run on the CPU EP: `SessionReport.cpu_nodes` and `cpu_op_types` report it. `build_session()` serves
 the new code only. The caller fills `ModelRef` from the sidecar: this module reads no sidecar.
+
+`build_session()` raises `EpRequestError` for a reserved key, an unknown key, or an option name or
+value that the EP catalog does not list, before any call of ONNX Runtime. It builds the session with
+`enable_fallback=0`. Then it checks that the requested EP is the first provider and has one node or
+more, else it raises `SessionCreationError`. Each session sets
+`session.record_ep_graph_assignment_info=1`. `session.disable_cpu_ep_fallback` stays 0, except in
+the strict probe of `verify()` (ADR-9NW0 items 1, 2, 4 and 5).
 """
 
 import os

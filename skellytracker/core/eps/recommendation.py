@@ -2,6 +2,11 @@
 
 No function here imports `onnxruntime`, loads a library or uses the network. The recommended EP
 comes only from the hardware classes of the EP catalog. No benchmark runs on the host.
+
+`recommend("accuracy")` gives `cpu`. `recommend("performance")` gives the first ready candidate of
+the hardware class of the host. `skipped` names each candidate before it, with the reason. A caller
+resolves a form to an EP key and its options with `recommend()`: a run takes no form (ADR-9NW0
+item 3).
 """
 
 from collections.abc import Collection, Sequence

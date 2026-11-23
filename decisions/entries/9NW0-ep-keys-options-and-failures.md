@@ -1,6 +1,6 @@
 # 9NW0 — EP keys from the EP catalog; a run takes EP options; a whole-EP failure raises; CPU nodes are reported
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** absorbed into [Running: Fields](../../specs/pipeline/running.md#fields), [Running: Behaviour](../../specs/pipeline/running.md#behaviour), [Running: Validation rules](../../specs/pipeline/running.md#validation-rules), [`onnx_model`: Fields](../../specs/pipeline/nodes/onnx_model.md#fields), [`onnx_model`: Implementer guidance](../../specs/pipeline/nodes/onnx_model.md#implementer-guidance), [Timing: Fields](../../specs/pipeline/timing.md#fields), [Package: ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`core/eps/__init__.py`](../../skellytracker/core/eps/__init__.py), [`core/eps/catalog.py`](../../skellytracker/core/eps/catalog.py), [`core/eps/session.py`](../../skellytracker/core/eps/session.py), [`core/eps/recommendation.py`](../../skellytracker/core/eps/recommendation.py), [`core/eps/cli.py`](../../skellytracker/core/eps/cli.py), [`core/pipelines/cli.py`](../../skellytracker/core/pipelines/cli.py), 2026-11-23 (absorb pass of 2026-11-23; PR: pending). It was `accepted` from 2026-11-12 (user).
 
 ## Decision
 

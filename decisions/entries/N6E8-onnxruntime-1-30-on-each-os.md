@@ -1,6 +1,6 @@
 # N6E8 — ONNX Runtime 1.30.0 on each OS, with the Windows ML build on Windows
 
-**Status:** accepted, 2026-11-18 (user).
+**Status:** absorbed into [Package: ONNX Runtime](../../skellytracker/AGENTS.md#onnx-runtime), [`tools/tests/test_dependency_pins.py`](../../tools/tests/test_dependency_pins.py), [`pyproject.toml`](../../pyproject.toml), [`tools/ep_catalog.py`](../../tools/ep_catalog.py), [`tools/onnx_stack.py`](../../tools/onnx_stack.py), [`core/eps/ep_catalog.yaml`](../../skellytracker/core/eps/ep_catalog.yaml), [`tests/test_mediapipe_landmarker_lifetime.py`](../../skellytracker/tests/test_mediapipe_landmarker_lifetime.py), 2026-11-23 (absorb pass of 2026-11-23; PR: pending). It was `accepted` from 2026-11-18 (user).
 
 ## Decision
 

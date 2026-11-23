@@ -111,6 +111,12 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   `onnxruntime`. They come only through this package. Until the SemVer scheme of the user exists, freemocap pins
   this package to an exact commit of the working branch
   ([ADR-K8Q0](../decisions/entries/K8Q0-platform-rulings-of-2026-11-19.md) items 2 and 3).
+- freemocap and each exporter use the versions of the pins of `pyproject.toml`. The EP store compares the
+  installed ONNX Runtime distribution with `ort_core` of the EP catalog (`EpStatus.core_matches_pin`). Each GPU
+  pack uses CUDA 13 only, with the same pack versions on each OS. `trt-rtx` is the PyPI wheel
+  `onnxruntime-ep-nv-tensorrt-rtx-cu13` on each OS, not the TensorRT RTX EP of the Windows ML catalog. No pack
+  holds NVRTC. `ep_catalog.yaml` pins each pack version and its driver floor
+  ([ADR-N6E8](../decisions/entries/N6E8-onnxruntime-1-30-on-each-os.md) items 1 to 3).
 - New code takes the EP as `execution_provider`, a concrete key of the EP catalog: `trt-rtx`, `cuda`,
   `coreml`, `amdgpu`, `migraphx`, `directml` or `cpu`. No environment variable selects the EP or the
   device.
