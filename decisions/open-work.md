@@ -154,6 +154,9 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
   QPS7 and Z05A pin the commit `0d88941` of that branch. When the PR merges with a different SHA,
   pin the merged commit.
+  The checkout `../project` has the two-way kit sync from 2026-11-23, and the old one-way check
+  `tools/sync_bootstrap_kit.py --check` fails against it. `tools/run_checks.py` does not run that check, and
+  its copy test is skipped, until this repository takes `kit_sync.py` and `kit.toml` (user, 2026-11-23).
 - **Rulings of 2026-11-23**
   ([ADR-4JAW](entries/4JAW-rulings-of-2026-11-23-on-sessions-the-certify-prompt-and-linux.md)):
   - Item 3 is not built: set `enable_cuda_graph` to `1` in the defaults of `trt-rtx` in the EP
