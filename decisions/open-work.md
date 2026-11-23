@@ -31,7 +31,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   - The model list `models` (path, URL, sha256, bytes) is in the `certification` block of
     `ep_catalog.yaml` (item 12). The files are in the public model repository of the certify suite,
     on a personal Hugging Face account, not of the freemocap organisation. The term check of
-    `tools/check_private_data.py` allows that one address (user, 2026-11-18).
+    `tools/check_private_data.py` allows that one address (user, 2026-11-18). The files move before
+    the 2.0.0 release ([ADR-XM9C](entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) item 3).
   - A leak that the suite cannot stop: the cache of `uv`. It belongs to the tool of the volunteer.
   - The instructions page `CERTIFY.md` is a draft. Its clone address names the fork of the user. A
     report goes to an issue of the repository `skellycertify`.
@@ -135,13 +136,15 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
 - **AMD JPEG decode with rocJPEG (Linux):** see the research note
   [gpu-jpeg-decode-amd-rocjpeg.md](../research/gpu-jpeg-decode-amd-rocjpeg.md).
 - **nvImageCodec hang of a one-image decode**
-  ([ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md)). Open: the report to NVIDIA (a
-  minimal reproducer is ready). The other runs are in [hardware-runs.md](hardware-runs.md).
+  ([ADR-975Z](entries/975Z-nvimagecodec-one-image-decode-hang.md)). The runs are in
+  [hardware-runs.md](hardware-runs.md). The project sends no report to NVIDIA
+  ([ADR-XM9C](entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) item 4).
 - **Exit hang of the CUDA EP plugin** ([ADR-C6A5](entries/C6A5-exit-hang-of-the-cuda-ep-plugin.md)).
   Open: more full runs on ONNX Runtime 1.30.0 with `cuda-cu13` 0.2.0 (0 of 43 is not enough); a
-  full run on `trt-rtx`; a longer run of the minimal reproducer; the report to ONNX Runtime
+  full run on `trt-rtx`; a longer run of the minimal reproducer
   ([ADR-J9KX](entries/J9KX-exit-hang-of-the-full-run-with-the-telemetry-switch.md) has the run with
-  the telemetry switch).
+  the telemetry switch). The project sends no report to ONNX Runtime
+  ([ADR-XM9C](entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) item 4).
 - **Repair of a damaged store folder.** A damaged pack or component folder of the EP store gives a
   state whose hint is the install command, but the install does not repair a folder that exists.
   The remedy today: remove the pack or the component, then install it again

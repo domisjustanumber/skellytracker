@@ -1096,7 +1096,9 @@ Open:
   counts the rows that only one side keeps. The image list is a stop-gap until freemocap makes
   its recording.
 - **Operating systems and CI.** The gate ran only on Windows. CI holds no ONNX file, so no CI job
-  runs a real export.
+  runs a real export. CI runs no real model before the 2.0.0 pre-release: the gate on the reference
+  files runs on a developer system, and its result is evidence
+  ([ADR-XM9C](../decisions/entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) item 1).
 - **Export error on `trt-rtx`.** The raw SimCC difference from the upstream output is larger on
   `trt-rtx` than on `cuda`, up to 1.47 for `x-384` fp16
   ([ADR-GPW6](../decisions/entries/GPW6-model-gate-of-the-first-models.md) item 8). The measured
@@ -1642,6 +1644,10 @@ work of this phase, not of 1.11 ([ADR-Q9R6](../decisions/entries/Q9R6-certify-ru
   ([ADR-D3VP](../decisions/entries/D3VP-ruff-0-17-with-the-old-rule-set.md) item 3).
 - **Test coverage review.** Review the test coverage of the package code. Add the tests that the
   review finds missing.
+- **Certify model files.** Before this release, move the model files of the certify suite from the
+  personal Hugging Face account to an account of the freemocap organisation. Change the addresses
+  of the list `models` of `ep_catalog.yaml`. The SHA-256 values do not change
+  ([ADR-XM9C](../decisions/entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) item 3).
 - Gate: the full suite passes. The ruff rule review and the test coverage review are done.
 - **The first package release.** Added on 2026-11-03. The spec version is the skellytracker
   version. The spec has no `vNEXT`, and the open target is `2.0.0`

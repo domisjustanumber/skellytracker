@@ -36,6 +36,7 @@ These entries are `accepted`.
 | [4RWX](entries/4RWX-sessions-and-errors-consolidation.md) | Consolidation of D8DH: `core/errors.py`, the exit-code table, the ready rule, `build_session()` and no EP variables | accepted |
 | [J4SH](entries/J4SH-pipeline-api-second-consolidation.md) | Second consolidation of the pipeline entries: links to the pipeline spec and the package docstrings, and the Python API text that they do not state | accepted |
 | [4JAW](entries/4JAW-rulings-of-2026-11-23-on-sessions-the-certify-prompt-and-linux.md) | Thread counts and optimization level as session attributes; freemocap stores "do not ask again"; catalog sets `enable_cuda_graph`; Linux only through certify | accepted |
+| [XM9C](entries/XM9C-rulings-of-2026-11-23-on-ci-models-frames-and-upstream-reports.md) | No real model in CI before the pre-release; public reference frames with a stated licence; certify model files move before 2.0.0; no upstream reports | accepted |
 
 ### Proposed
 
