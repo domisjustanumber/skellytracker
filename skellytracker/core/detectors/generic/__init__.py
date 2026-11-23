@@ -5,6 +5,10 @@
 
 `create_detector` goes from a catalog key to a detector with its session. `open_session` builds
 the session alone, also at an other batch than the batch of the artifact.
+
+A generic detector uses one input batch again at each call (`BatchPreprocessor`). It holds a lock
+from its preprocess to the end of its model run, so two `detect` calls on one detector object run
+one after the other (ADR-S4MT item 6).
 """
 from skellytracker.core.detectors.generic.batch_conversion import model_batch_convert
 from skellytracker.core.detectors.generic.download import ArtifactDownloadError, download_artifact

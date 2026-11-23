@@ -4,6 +4,12 @@
 
 The texts of a param are the texts of the node tables of the pipeline spec
 (`specs/pipeline/nodes/<type>.md`). A doc test compares them with the committed tables.
+
+`NodeTypeInfo.params_schema` is `Params.model_json_schema()` of the node type. It gives the same
+params as `params`, in the same order. `params` keeps the texts of the node tables.
+`params_schema` gives the types, the enums, the bounds and the defaults as data, so that an editor
+makes its param fields from it. `NodeTypeInfo.any_from` holds the names of `NodeType.any_from`: the
+inputs that give an output with two or more port types its type (ADR-4WR9).
 """
 from __future__ import annotations
 

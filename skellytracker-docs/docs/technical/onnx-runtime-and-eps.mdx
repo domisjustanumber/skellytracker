@@ -105,8 +105,8 @@ The run parameter `preprocess` sets where each `onnx_model` node does its prepro
 
 | Value | Effect |
 |-------|--------|
-| `auto` | The default. A node on `cuda` or `trt-rtx` uses the GPU preprocess. A node on each other EP uses the CPU preprocess. |
-| `gpu` | A node on each EP with the wiring for the GPU preprocess (`cuda`, `trt-rtx` and `directml`) uses it. This value is for a certification run. |
+| `auto` | The default. A node on `cuda` or `trt-rtx` uses the GPU preprocess for a call with a JPEG buffer that the GPU decoder decodes. For a call of decoded arrays, and on each other EP, the node uses the CPU preprocess. |
+| `gpu` | A node on each EP with the wiring for the GPU preprocess (`cuda`, `trt-rtx` and `directml`) uses it, also for a decoded array. This value is for a certification run. |
 | `cpu` | The run does the frame work on the CPU on each EP. Only the model runs on the EP. This value is for a benchmark of the CPU path against the GPU path. |
 
 With the GPU preprocess, the node runs its preprocess as a graph in its own session. The output of

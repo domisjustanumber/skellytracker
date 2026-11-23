@@ -1,7 +1,9 @@
 """The GPU preprocess of an `onnx_model` node (pipeline.running, Implementer guidance; ADR-W4NW), on the CPU EP.
 
 The graph path runs on `cuda` and `trt-rtx` only (`onnx_model.GRAPH_DEFAULT_EPS`). The fixture `graph_on`
-adds `cpu` to it, so the whole wiring runs here on the CPU EP with `OrtValue`s in host memory. The
+adds `cpu` to it and to `GRAPH_EPS`, so the whole wiring runs here on the CPU EP with `OrtValue`s in host
+memory. With `auto`, a call of decoded arrays uses the CPU preprocess (ADR-S4MT), so the fixture also makes
+`gpu` the preprocess place of `start`: it uploads the arrays, as a certification run does. The
 tests with the marker `gpu` run the same path on each NVIDIA EP pack. The images are synthetic.
 
 Tolerance: the graph and the CPU preprocess agree within one `uint8` step on each pixel (the resize
@@ -56,10 +58,17 @@ def root(tmp_path: Path) -> Path:
     return write_models(tmp_path / "user", graphs=True)
 
 
+def turn_graph_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run the graph path on the CPU EP too, and make `gpu` the preprocess place of `start`."""
+    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    monkeypatch.setattr(onnx_model, "GRAPH_EPS", onnx_model.GRAPH_EPS | {"cpu"})
+    monkeypatch.setitem(START_DEFAULTS, "preprocess", "gpu")
+
+
 @pytest.fixture
 def graph_on(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run the graph path on the CPU EP too."""
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    """Run the graph path on the CPU EP too, with the preprocess place `gpu` as the default of `start`."""
+    turn_graph_on(monkeypatch)
 
 
 @pytest.fixture
@@ -92,7 +101,11 @@ def on_ep(data: dict[str, Any], execution_provider: str) -> dict[str, Any]:
     return data
 
 
+START_DEFAULTS: dict[str, Any] = {}
+
+
 def start(root: Path, data: dict[str, Any] | None = None, **parameters: Any) -> Any:
+    parameters = {**START_DEFAULTS, **parameters}
     parameters.setdefault("camera_ids", ["a", "b"])
     parameters.setdefault("running_mode", "video")
     return start_pipeline(load_pipeline(data or detector_pipeline(), user_root=root), user_root=root, **parameters)
@@ -140,7 +153,7 @@ def test_the_graph_path_gives_the_results_of_the_cpu_path_for_a_detector_and_a_t
     calls = two_camera_calls(sizes)
     cpu, _ = run_calls(root, calls)
     assert bound_runs == []
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     graph, run = run_calls(root, calls)
     assert len(bound_runs) == 2 * len(calls)  # each node of each call ran its preprocess graph
     assert cpu_warnings(run) == []
@@ -152,7 +165,7 @@ def test_each_camera_frame_uploads_one_time_for_each_call_and_the_cpu_path_uploa
     calls = two_camera_calls({"a": (32, 32), "b": (32, 48)}, count=3)
     run_calls(root, calls)
     assert uploads == []
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     with start(root) as run:
         for frames in calls:
             before = len(uploads)
@@ -269,7 +282,7 @@ def test_a_camera_that_is_not_in_the_call_and_a_frame_with_no_box_keep_the_graph
         {"a": Frame(noise(32, 32, 3), 2, 80.0), "b": Frame(noise(32, 32, 4), 2, 80.0)},
     ]
     cpu, _ = run_calls(root, calls, running_mode="live")
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     graph, run = run_calls(root, calls, running_mode="live")
     assert graph[0]["a"]["node_ran"] == {"person": True, "body": False}
     assert_agree(graph, cpu)
@@ -338,7 +351,7 @@ def area_models(root: Path) -> Path:
 def test_a_combination_that_the_graph_refuses_gives_one_warning_and_the_cpu_results(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = area_models(tmp_path / "area")
     cpu, _ = run_calls(root, three_calls())
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     received: list[Any] = []
     with start(root, on_warning=received.append) as run:
         assert cpu_warnings(run) == []  # the warning comes at the first call that uses the CPU preprocess
@@ -363,7 +376,7 @@ def test_a_graph_session_that_does_not_build_gives_one_warning_and_no_second_bui
         return session, dataclasses.replace(report, cpu_nodes=3, ep_name="CUDAExecutionProvider")  # a node on the CPU EP of a GPU EP
 
     cpu, _ = run_calls(root, three_calls())
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     monkeypatch.setattr(eps_session, "build_session", build)  # the preprocess sessions only: the model sessions are built through `open_session`
     graph, run = run_calls(root, three_calls())
     assert len(builds) == 2  # one build for each node, at the first call; no build again for that set of frame sizes
@@ -375,7 +388,7 @@ def test_a_fifth_set_of_frame_sizes_gives_one_warning_and_the_cpu_results(root: 
     sizes = [(32, 32), (32, 40), (40, 32), (48, 48), (36, 52), (32, 32)]  # 5 sets, then the first set again
     calls = [{0: Frame(noise(*size, seed=index), index)} for index, size in enumerate(sizes)]
     cpu, _ = run_calls(root, calls, camera_ids=[0], running_mode="image")
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     graph = []
     with start(root, camera_ids=[0], running_mode="image") as run:
         for index, frames in enumerate(calls):
@@ -392,6 +405,16 @@ def test_a_fifth_set_of_frame_sizes_gives_one_warning_and_the_cpu_results(root: 
 def test_a_run_on_the_cpu_ep_gives_no_warning_preprocessed_on_cpu(root: Path, bound_runs: list[int]) -> None:
     _, run = run_calls(root, three_calls(), preprocess="auto")
     assert run.warnings == () and bound_runs == []
+
+
+def test_auto_with_decoded_arrays_uses_the_cpu_preprocess_with_no_upload_and_no_warning(
+    root: Path, graph_on: None, bound_runs: list[int], uploads: list[Any],
+) -> None:
+    """With `auto`, the graph is only for the frames of the GPU JPEG decoder (ADR-S4MT items 2 and 3)."""
+    cpu, _ = run_calls(root, three_calls(), preprocess="cpu")
+    found, run = run_calls(root, three_calls(), preprocess="auto")
+    assert run.warnings == () and bound_runs == [] and uploads == []
+    assert_agree(found, cpu, score_tolerance=0.0)
 
 
 def test_preprocess_gpu_on_an_ep_with_no_wiring_preprocesses_on_the_cpu_and_warns_ep_not_wired_at_the_start(
@@ -501,7 +524,7 @@ def preprocess_providers(root: Path) -> dict[str, Any]:
 
 def test_stage_providers_preprocess_is_the_provider_of_the_graph_at_the_start_else_null(root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     assert preprocess_providers(root) == {"person": None, "body": None}  # an EP with no graph path
-    monkeypatch.setattr(onnx_model, "GRAPH_DEFAULT_EPS", onnx_model.GRAPH_DEFAULT_EPS | {"cpu"})
+    turn_graph_on(monkeypatch)
     assert preprocess_providers(root) == {"person": "CPUExecutionProvider", "body": "CPUExecutionProvider"}
     assert preprocess_providers(area_models(tmp_path / "area")) == {"person": None, "body": "CPUExecutionProvider"}
 

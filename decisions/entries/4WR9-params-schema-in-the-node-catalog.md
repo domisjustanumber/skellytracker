@@ -1,6 +1,6 @@
 # 4WR9 — The node catalog gives the JSON Schema of the params and the `any_from` inputs of each node type
 
-**Status:** accepted, 2026-11-16 (user, question Q14 of the pipeline editor plan of freemocap).
+**Status:** absorbed into [`core/pipelines/nodes.py`](../../skellytracker/core/pipelines/nodes.py), [`core/pipelines/cli.py`](../../skellytracker/core/pipelines/cli.py), 2026-11-23 (absorb pass of 2026-11-23; PR: pending). It was `accepted` from 2026-11-16 (user, question Q14 of the pipeline editor plan of freemocap).
 
 ## Decision
 

@@ -1181,7 +1181,7 @@ def preprocess_warnings(run: Any) -> list[Any]:
     return [warning for warning in run.warnings if warning.code == "preprocessed_on_cpu"]
 
 
-def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_keeps_the_gpu_preprocess_and_warns_one_time(
+def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_uses_the_cpu_preprocess_and_warns_one_time(
     root: Path, gpu_decode: dict[str, Any], stored: dict[str, Any],
 ) -> None:
     stored["checks"] = {"jpeg-decode": "fail", "jpeg-preprocess": "pass"}
@@ -1190,7 +1190,7 @@ def test_a_stored_jpeg_decode_fail_decodes_on_the_cpu_keeps_the_gpu_preprocess_a
         for frames in jpeg_calls(3):
             before = len(gpu_decode["uploads"])
             run.process_batch(frames)
-            assert len(gpu_decode["uploads"]) - before == 3  # the CPU frames of a and b upload for the GPU preprocess, as c does
+            assert len(gpu_decode["uploads"]) == before  # each frame of the call is in host memory: the CPU preprocess, no upload (ADR-S4MT)
             assert port_values(run, "a")["frame.image"].pixels is not None
         assert run._executor.models["person"].graph_on_at_start  # noqa: SLF001
     assert gpu_decode["log"] == [] and preprocess_warnings(run) == []  # no GPU decoder opens

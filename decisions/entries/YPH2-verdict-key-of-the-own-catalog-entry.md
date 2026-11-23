@@ -1,6 +1,6 @@
 # YPH2 — The key of a stored verification verdict holds the catalog entry of its own EP
 
-**Status:** accepted, 2026-11-19 (user).
+**Status:** absorbed into [`core/eps/store.py`](../../skellytracker/core/eps/store.py), [`tests/test_eps_store.py`](../../skellytracker/tests/test_eps_store.py), 2026-11-23 (absorb pass of 2026-11-23; PR: pending). It was `accepted` from 2026-11-19 (user).
 
 ## Decision
 

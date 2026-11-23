@@ -14,6 +14,9 @@ running mode `image`, and the images in ascending `image_id` order. `--out` gets
 path that ends in `.jsonl` is the file, and each other path is a folder that gets `timing.jsonl`.
 `run` writes no other file there. `--taps` gives the tap folder.
 
+`nodes --json` writes each `NodeTypeInfo` with `dataclasses.asdict`, also `params_schema` and
+`any_from`. The text output of `nodes` does not show `params_schema` (ADR-4WR9).
+
 With no `--ep`, `run` and the demo use `eps.recommend("performance")` and print the chosen EP and
 its options. They do this only when the run must give an EP (`V-pipeline.running-8`).
 

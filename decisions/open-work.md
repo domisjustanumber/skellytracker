@@ -112,8 +112,8 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   [ADR-BP5Y](entries/BP5Y-gpu-huffman-decode-threshold.md) and
   [ADR-58F5](entries/58F5-native-jpeg-numbers-on-the-pinned-versions.md). The reused batch
   (`BatchPreprocessor` of `core/detectors/processing/pre/preprocess.py`) is in the CPU path. Open:
-  - The user decided on 2026-11-23 to route array input on `cuda` and `trt-rtx` to the CPU
-    preprocess. It is not built.
+  - Measure JPEG input on `cuda` and `trt-rtx` with the CPU decode and the reused batch against
+    the GPU path. The `cpu` rows of ADR-4JFP item 5 used the CPU code before the reused batch.
   - No run measured the keypoint preprocess with two or more boxes in a frame.
   - A model session with a dynamic batch pads the batch on the GPU path.
   - No run measured the gain of the CPU decode thread pool

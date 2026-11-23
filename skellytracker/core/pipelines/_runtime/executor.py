@@ -556,7 +556,9 @@ class Executor:
         size, kept until the close. Before its first frame, a camera takes the size of the first
         frame of the call on its device. The set of frame sizes thus changes only when a camera
         changes its frame size. The slot sizes are committed with the call. A frame of the GPU
-        decoder is in GPU memory already: it does not upload. The event `frame.upload` gives the
+        decoder is in GPU memory already: it does not upload. With `preprocess="auto"`, a device gets
+        no slots in a call where each of its frames is in host memory: its nodes then use the CPU
+        preprocess, and no frame uploads. The event `frame.upload` gives the
         cameras whose frame uploads; its time also holds the upload of a new zero frame.
         """
         begin = time.perf_counter_ns()
@@ -567,6 +569,10 @@ class Executor:
             slot_cameras = [camera_id for camera_id in self.camera_ids if self.device_of[camera_id] == index]
             present = [camera_id for camera_id in slot_cameras if camera_id in pixels]
             if not present:
+                continue
+            # with `auto`, the graph is for the frames of the GPU JPEG decoder: a call whose frames of the device are all
+            # in host memory uploads no frame, and its nodes use the CPU preprocess (Behaviour item 14; ADR-S4MT)
+            if self.preprocess == "auto" and all(pixels[camera_id].device is None for camera_id in present):
                 continue
             upload = functools.partial(eps_session.upload_frame, device_type=device_type)
             values, sources = [], []
@@ -711,7 +717,8 @@ class Executor:
                 self._add_span, events, node.id, [(frames[camera_id].frame_index, camera_id) for camera_id in cameras],
             )
             boxes = [ready[camera_id]["boxes"] for camera_id in cameras] if runner.kind == "top_down" else None
-            if runner.graph is None:
+            # no slots on an upload device: the frame stage left the frames of this call in host memory
+            if runner.graph is None or (index in self.upload_devices and index not in self.call_slots):
                 found = runner.run(index, [ready[camera_id]["image"].host for camera_id in cameras], boxes, timer)
             else:  # the graph path reads the device frames of the frame stage
                 found = runner.run(index, [ready[camera_id]["image"] for camera_id in cameras], boxes, timer, self.call_slots.get(index))

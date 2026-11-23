@@ -33,15 +33,11 @@ These entries are `accepted`.
 | [MF2R](entries/MF2R-ep-store-install-and-certification.md) | EP catalog, lock and store; download after the user accepts; the app prompts; `certify()` with a local report; `ep_evidence.yaml`; supersedes 246B | accepted |
 | [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
-| [4WR9](entries/4WR9-params-schema-in-the-node-catalog.md) | `NodeTypeInfo.params_schema` and `NodeTypeInfo.any_from`: the JSON Schema of the params and the inputs that type an `any` output, for an editor | accepted |
 | [Y14H](entries/Y14H-certify-suite.md) | Certify suite: one command from a clone at a tag, seven sections in child processes, one private Markdown report; AMD EPs; Linux gate of N6E8 | accepted |
 | [Z5X7](entries/Z5X7-field-test-state-and-directml.md) | Field-test EP state: opt-in in the EP store, refused without it, never recommended; `directml` built in on Windows, GPU by ORT device | accepted |
 | [XSE7](entries/XSE7-amd-eps-in-the-field-test.md) | AMD EPs in the field test: `migraphx` ROCm packs on Linux, Windows ML `amdgpu` and `migraphx`; field-test packs not in the set hash; ORT 1.29 fallback | accepted |
-| [YPH2](entries/YPH2-verdict-key-of-the-own-catalog-entry.md) | The key of a stored verification verdict holds the sha256 of the own EP row, pack row and lock row, not the whole-catalog revision | accepted |
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
-| [K8Q0](entries/K8Q0-platform-rulings-of-2026-11-19.md) | Host facts only in `core/system`, `core/metrics`; ONNX Runtime and its hook through this package; EP page from `status()` | accepted |
-| [S4MT](entries/S4MT-two-preprocess-paths.md) | Graph only for JPEG on `cuda` and `trt-rtx`; else the CPU path with a reused batch | accepted |
 
 ### Proposed
 

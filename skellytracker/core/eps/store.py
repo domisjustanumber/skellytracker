@@ -17,6 +17,14 @@ a folder of the same form.
     <root>/.lock                            the lock between processes
     <root>/.partial/                        downloads that are not complete, kept for a resume
     <root>/.staging/, <root>/.trash/        an install in progress, and deletes that wait
+
+A key of `verdicts.json` holds the ONNX Runtime distribution version, the pack id, the pack version,
+the driver version, the PCI ids of the GPU, the device key, the OS build and `entry_digest()`
+(ADR-YPH2). `entry_digest()` is the sha256 of the EP row with no `packs` and no `test_packs`, the
+pack row and the lock row of the pack for the platform. For a built-in EP and an EP of the Windows
+ML catalog, it is the sha256 of the EP row. A stored verdict stops matching only when one of these
+parts changes. A YAML comment, the row of another EP, another pack of the same EP and the other
+blocks of the catalog keep it.
 """
 
 import contextlib

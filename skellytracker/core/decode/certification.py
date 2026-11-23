@@ -7,6 +7,10 @@ synthetic image that the function makes and encodes in memory. The function writ
 of the result holds an absolute path, a host name, a user name, a serial number or an environment
 dump.
 
+The check `pipeline_amd_ep.gpu_vs_cpu_preprocess` also records the median of each span of its two
+runs, as `gpu.<span>_ms` and `cpu.<span>_ms`, so that a report from an AMD GPU shows which
+preprocess is faster there (ADR-S4MT item 7).
+
 This module imports no `onnxruntime`, no `onnx`, no `cv2` and no GPU library at import time.
 """
 from __future__ import annotations

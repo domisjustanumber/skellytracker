@@ -136,13 +136,15 @@ class OnnxModelRunner:
         """Run the model on the images of one call, in one inference call. Return the outputs of each image.
 
         `device` is the index of the session. `images` holds host frames, or `DecodedFrame`s for a
-        runner with a graph. `boxes` holds the `boxes` value of each image of a top-down model: the
+        runner with a graph. A runner with a graph that gets host frames uses the CPU preprocess for
+        the call, with no warning. `boxes` holds the `boxes` value of each image of a top-down model: the
         model runs once for each present row. `timer` gets the spans `preprocess`, `inference` and
         `postprocess`. `slots` are the device frames of the call for a runner with a graph.
         """
         detector = self.detectors[device]
         detect = detector.detect
-        if self.graph is not None:
+        # host frames to a runner with a graph: the executor left the frames of the call in host memory (`auto`, no JPEG)
+        if self.graph is not None and not (images and isinstance(images[0], np.ndarray)):
             detect = self._graph_detect(device, images, slots)
             if detect is None:
                 detect, images = detector.detect, [frame.host for frame in images]

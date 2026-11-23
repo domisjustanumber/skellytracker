@@ -1,6 +1,6 @@
 # S4MT — Two preprocess paths stay; the CPU path uses a reused batch
 
-**Status:** accepted, 2026-11-23 (PR: pending).
+**Status:** absorbed into [Running: Behaviour](../../specs/pipeline/running.md#behaviour), [Package: Layout](../../skellytracker/AGENTS.md#layout), [`pre/preprocess.py`](../../skellytracker/core/detectors/processing/pre/preprocess.py), [`core/detectors/generic/__init__.py`](../../skellytracker/core/detectors/generic/__init__.py), [`core/decode/certification.py`](../../skellytracker/core/decode/certification.py), 2026-11-23 (absorb pass of 2026-11-23; PR: pending). It was `accepted` from 2026-11-23 (PR: pending).
 
 ## Decision
 

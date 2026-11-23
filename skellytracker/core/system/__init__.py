@@ -1,4 +1,10 @@
-"""Facts that are fixed while the application runs: the host, the runtime and the environment."""
+"""Facts that are fixed while the application runs: the host, the runtime and the environment.
+
+Hardware facts and live metrics have one home: `core.system` and `core.metrics`. An application,
+for example freemocap, takes each host fact from them, also the facts of its anonymous ping
+(`probe_host()` and `probe_environment()`), and gathers none of its own. This package sends no
+ping (ADR-K8Q0 item 1).
+"""
 
 from skellytracker.core.system.environment import probe_environment
 from skellytracker.core.system.host import gpu_device_keys, probe_host
