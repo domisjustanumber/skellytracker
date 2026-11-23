@@ -172,7 +172,7 @@ legacy path puts the old points in the raw names of `wholebody.keypoints` and ca
   - `skellytracker/__init__.py` runs `os.environ.setdefault("ORT_DISABLE_TELEMETRY", "1")` as its
     first statement, before each `import onnxruntime` of the package. A value that the host process
     set stays. A host that imports `onnxruntime` before skellytracker must set the variable itself.
-    `tools/intake_bundle.py` sets it before each of its `import onnxruntime` lines.
+    `tools/intake_gate.py` sets it before each of its `import onnxruntime` lines.
   - `RuntimeInfo.ort_disable_telemetry` holds the value or `None`. Section 1 of the certify suite
     records it in `onnx_stack`, with the check `suite:checkout:telemetry-switch`: `pass` for `1` or
     `true` (trimmed, any case), else `record-only` with `telemetry-on`.

@@ -99,7 +99,7 @@ These rules are in [ADR-JAA4](../../../../decisions/entries/JAA4-one-batch-field
   the checkout:
 
   ```sh
-  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch <args>
+  uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_gate.py batch <args>
   ```
 
 - Before the 2.0.0 pre-release, do not add skellytracker as a dependency of the exporter repo.
@@ -143,7 +143,7 @@ Do not change this section here. Copy it again when the source changes.
   your own bundles in `intakes/`. Read
   `../freemocap/skellytracker/specs/model-sidecar/model-addition-workflow/hand-over.md`.
 - Run the batch check in the checkout environment:
-  `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch ...`.
+  `uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_gate.py batch ...`.
   Before the 2.0.0 pre-release, do not add skellytracker as a dependency. Then pin the pre-release.
 - To add a pipeline file or to change a node type, follow
   `../freemocap/skellytracker/specs/pipeline/contributions.md`.

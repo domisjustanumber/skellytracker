@@ -179,7 +179,7 @@ A skellytracker session must land it first, with the skill
      path in `implemented_by`;
    - `missing`: no function does the step.
 3. Add the new test files to `tests`.
-4. Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
+4. Regenerate the matrix with `uv run python tools/sidecar_trace_package.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 5. If the change completes an item of the [implementation plan](../../../specs/sidecar-implementation-plan.md), delete its bullet
    and add one line to the status of its stage, in the same PR

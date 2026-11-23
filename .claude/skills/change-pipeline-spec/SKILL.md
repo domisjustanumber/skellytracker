@@ -27,7 +27,8 @@ It runs only in skellytracker. The user decides each acceptance. The bundle rule
 
 ## Procedure A: land a pipeline bundle
 
-1. Run `uv run python -B tools/intake_bundle.py verify <bundle id>`. Each finding gives the response
+1. Run `uv run python -B tools/intake_gate.py verify <bundle id>`. It also runs the load checks of
+   the package on the pipeline file. Each finding gives the response
    `needs-contributor`. If a `depends_on` bundle has not landed, the response is `waiting`, with that
    bundle in `waiting_on`.
 2. Ask the user to accept the pipeline. Use the form of

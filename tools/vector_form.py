@@ -47,6 +47,11 @@ NO_RULE = "no-rule"
 DATA_ONLY = "none"
 EXPORTER_ENTRY = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
 FUNCTION_REFERENCE = re.compile(r"[A-Za-z0-9_./-]+\.py::[A-Za-z_][A-Za-z0-9_]*")
+# A skellytracker entry: `skellytracker/<path>.py::<function name>`. Each path segment is a Python
+# name, so the entry has no `..`, no `-` and no empty segment.
+PACKAGE_ENTRY = re.compile(
+    r"skellytracker/(?:[A-Za-z_][A-Za-z0-9_]*/)*[A-Za-z_][A-Za-z0-9_]*\.py::[A-Za-z_][A-Za-z0-9_]*"
+)
 
 
 class CaseDefect(Exception):
@@ -86,15 +91,19 @@ def _names(value: Any) -> bool:
     )
 
 
-def entry_problems(entry: Any, package_function: Callable[[str], Any]) -> list[str]:
-    """Check one `verified_against` entry.
+def entry_problems(entry: Any) -> list[str]:
+    """Check the form of one `verified_against` entry. Import nothing.
 
-    A string names a skellytracker function (`path::function`):
-    `package_function(entry)` must return a callable. A mapping is one
-    `{<Exporter repo>: <file>::<function>}`.
+    A string names a skellytracker function: it must have the form of
+    `PACKAGE_ENTRY`. A mapping is one `{<Exporter repo>: <file>::<function>}`.
+    This check does not find the function. A skellytracker test checks that each
+    skellytracker entry of each vector file names a function
+    (`tools/tests/test_package_verified_against.py`).
     """
     if isinstance(entry, str):
-        return [] if callable(package_function(entry)) else [f"{entry}: not a function"]
+        if PACKAGE_ENTRY.fullmatch(entry):
+            return []
+        return [f"{entry}: not a skellytracker/<path>.py::<function> entry"]
     if not (isinstance(entry, dict) and len(entry) == 1):
         return [f"{entry!r}: not one exporter entry"]
     ((repo, reference),) = entry.items()
@@ -105,12 +114,10 @@ def entry_problems(entry: Any, package_function: Callable[[str], Any]) -> list[s
     return []
 
 
-def _verified_problems(
-    owner: Any, entries: Any, package_function: Callable[[str], Any]
-) -> list[str]:
+def _verified_problems(owner: Any, entries: Any) -> list[str]:
     if not isinstance(entries, list):
         return [f"{owner}: verified_against must be a list"]
-    return [problem for entry in entries for problem in entry_problems(entry, package_function)]
+    return [problem for entry in entries for problem in entry_problems(entry)]
 
 
 def file_problems(
@@ -118,7 +125,6 @@ def file_problems(
     rule_ids: Collection[str],
     *,
     reference: Callable[[], ModuleType],
-    package_function: Callable[[str], Any],
 ) -> list[str]:
     """Return what is wrong with the form of one vector file and its cases.
 
@@ -150,7 +156,7 @@ def file_problems(
         file_checks = []
     if "unverified" in data and not (isinstance(data["unverified"], str) and data["unverified"]):
         found.append(f"{section}: unverified must give a reason")
-    found.extend(_verified_problems(section, data.get("verified_against", []), package_function))
+    found.extend(_verified_problems(section, data.get("verified_against", [])))
     cases = data["cases"]
     if not (isinstance(cases, list) and cases):
         return [*found, f"{section}: cases must be a list of one or more cases"]
@@ -158,9 +164,7 @@ def file_problems(
     if len(ids) != len(set(ids)):
         found.append(f"{section}: the case ids repeat")
     for before, case in zip([None, *cases], cases):  # noqa: B905 (3.9 has no strict)
-        found.extend(
-            problems(case, rule_ids, reference=reference, package_function=package_function)
-        )
+        found.extend(problems(case, rule_ids, reference=reference))
         if not isinstance(case, dict):
             continue
         case_checks = case.get("checks", [])
@@ -213,16 +217,14 @@ def problems(
     rule_ids: Collection[str],
     *,
     reference: Callable[[], ModuleType],
-    package_function: Callable[[str], Any],
 ) -> list[str]:
     """Return what is wrong with the form of one case; an empty list when nothing is.
 
     `rule_ids` are the rule IDs that the section files define. `reference()`
     returns the producer module of the section of the case; it is called only
     when the case runs a function (`run` when `function` is absent, and not for
-    `function: none`). `package_function` resolves a skellytracker entry of
-    `verified_against` (see `entry_problems`). An exception of either callable
-    propagates.
+    `function: none`). `entry_problems` checks the form of each entry of
+    `verified_against`. An exception of `reference` propagates.
     """
     if not isinstance(case, dict):
         return [f"{case!r}: a case is a mapping"]
@@ -287,7 +289,7 @@ def problems(
         # The function of a case is defined in the module of its own section.
         elif function.__module__ != module.__name__:
             found.append(f"{case_id}: {name} is from another module")
-    found.extend(_verified_problems(case_id, case.get("verified_against", []), package_function))
+    found.extend(_verified_problems(case_id, case.get("verified_against", [])))
     return found
 
 

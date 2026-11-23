@@ -12,7 +12,7 @@ value of `batch_conversion` in the manifest ([Manifest](hand-over.md#manifest)).
 Run `batch` from your repo root, in the skellytracker environment of the checkout:
 
 ```sh
-uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_bundle.py batch --fields <fields file> --out <payload folder>/batch
+uv run --project ../freemocap/skellytracker --no-sync python -B ../freemocap/skellytracker/tools/intake_gate.py batch --fields <fields file> --out <payload folder>/batch
 ```
 
 - skellytracker pins `onnxruntime` 1.30 as a base dependency. On onnxruntime 1.27 for CPU, two runs of one fp16

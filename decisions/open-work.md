@@ -165,6 +165,10 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
     of `skellytracker/__main__.py`. Do it when the old detectors go.
   - No document states some kept rules of the consolidation entries of 2026-11-23, so these entries
     stay `accepted`. Write each rule in the docstring of its module, then absorb the entries.
+- **Specs move to `skellyspecs`** ([ADR-2DJ8](entries/2DJ8-spec-tools-with-no-package-import.md)). Open: the pin file and the sibling
+  checkout; the delete of the two spec folders here, in the pin commit; the split of the tests of
+  `tools/tests/` that move and still import the package; `--root` with no default (item 7); the
+  gate runner of the reference files; the made-up sample of the reference files.
 - **Frozen smoke test.** At stage 1.11, the frozen smoke test must load the sidecar files with the
   new loader ([ADR-4RWX](entries/4RWX-sessions-and-errors-consolidation.md) item 16).
 

@@ -157,9 +157,10 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
   in the producer, an error as a rule ID or `no-rule`, the check `refused` exactly in each `error`
   case, the rule IDs in `failed`, the place, `params` and `input` of each `<id>-inverse` case, NaN,
   and the entries of `verified_against`.
-- A `verified_against` entry is a skellytracker function (`path::function`), which the test
-  imports, or an exporter function (`{<Exporter repo>: <file>::<function>}`), which the test checks
-  for its form only.
+- A `verified_against` entry is a skellytracker function (`skellytracker/<path>.py::function`) or
+  an exporter function (`{<Exporter repo>: <file>::<function>}`). The vector tools check each entry
+  for its form only. `tools/tests/test_package_verified_against.py` imports the module of each
+  skellytracker entry and checks that the entry names a function.
 - A vector file must be 256 KiB or smaller. The limit applies to the file that
   `tools/make_vectors.py` writes, with the cases of each proposal for the section.
 - A content change updates the vectors of its section in the same commit.
@@ -192,7 +193,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
 
 ## Impact
 
-1. Run `uv run python tools/sidecar_trace.py impact <GIT_RANGE>` on the change of the content commit
+1. Run `uv run python tools/sidecar_trace_package.py impact <GIT_RANGE>` on the change of the content commit
    only. Before you commit it, use `HEAD` for the uncommitted changes. After you commit it, use
    `<content commit>^..<content commit>`. Do not use a range that holds other commits.
 2. Write the models, the exporters, the skellytracker functions, the tests and the vectors of the
@@ -206,7 +207,7 @@ A spec change has no class ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-
    [Re-export requests](../../../specs/model-sidecar/decisions/open-work.md#re-export-requests): the
    part 7 row is the request
    ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)).
-4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace.py matrix`. Do not edit
+4. Regenerate the traceability matrix with `uv run python tools/sidecar_trace_package.py matrix`. Do not edit
    `specs/model-sidecar/TRACEABILITY.md` by hand.
 
 The trace tool scans only `specs/model-sidecar/examples/` for sidecars.
@@ -218,8 +219,12 @@ The tool uses the discovery rule of
 `<model_id>@<source>`, because one `model_id` can have two sources, and it resolves composition with
 `resolve_sidecar_composition`. It normalizes each resolved sidecar with the spec defaults, and it
 matches the sidecar against the `selectors` of each section.
-The normalization and the selector matching are pure functions on the resolved dict. In the
-implementation stage, they move into `skellytracker/core/sidecar/` without changes.
+The normalization and the selector matching are pure functions on the resolved dict. Their lead
+copy is `specs/model-sidecar/reference/sidecar_normalize.py`, and the tool loads it. The package
+copy `skellytracker/core/model_spec/sidecar_normalize.py` must have the same code
+(`tools/tests/test_sidecar_normalize.py`). Change the lead copy first.
+The resolver is the one part that needs the package: `tools/sidecar_trace_package.py` gives
+`resolve_sidecar_composition` and the package sidecar root to the tool.
 `TRACEABILITY.md` gives: model against section; section to skellytracker functions to tests; section
 to exporter functions; and the `status` of each section. Each `implemented_by` entry that is
 `missing` is backlog of the implementation stage. `sidecar_trace.py examples` compares each example

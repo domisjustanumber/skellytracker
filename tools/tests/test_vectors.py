@@ -141,7 +141,6 @@ def case_problems(
         case,
         defined_rule_ids(),
         reference=lambda: mv.producer(section, reference_dir or reference_of(section)),
-        package_function=resolve_function,
     )
 
 
@@ -153,7 +152,6 @@ def vector_file_problems(
         data,
         defined_rule_ids(),
         reference=lambda: mv.producer(data["section"], reference_dir or reference_of(data["section"])),
-        package_function=resolve_function,
     )
 
 
@@ -279,9 +277,11 @@ def test_unverified_gives_a_reason(path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
-def test_verified_against_names_a_function_that_exists(path: Path) -> None:
-    for entry in load(path.name).get("verified_against", []):
-        assert not entry_problems(entry, resolve_function)
+def test_each_verified_against_entry_has_its_form(path: Path) -> None:
+    """`tools/tests/test_package_verified_against.py` checks that each skellytracker entry names a function."""
+    data = load(path.name)
+    for entry in [*data.get("verified_against", []), *(e for c in data["cases"] for e in c.get("verified_against", []))]:
+        assert not entry_problems(entry), entry
 
 
 @pytest.mark.parametrize("path", vector_paths(), ids=lambda p: p.name)
@@ -392,7 +392,7 @@ def test_a_data_only_validator_case_names_no_function() -> None:
     def no_producer() -> Any:
         raise AssertionError("a data-only case does not load the producer")
 
-    assert not problems(case, [], reference=no_producer, package_function=resolve_function)
+    assert not problems(case, [], reference=no_producer)
 
 
 @pytest.mark.parametrize(

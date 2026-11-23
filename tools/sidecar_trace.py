@@ -5,11 +5,17 @@ The section files of ``specs/model-sidecar/`` carry front matter. Its ``selector
 section applies to. Its ``implemented_by``, ``tests`` and ``vectors`` say what implements and checks
 the section. This tool joins that front matter with the sidecars that exist.
 
-Commands::
+Commands (through the trace entry point of the host; see "Host" below)::
 
-    python tools/sidecar_trace.py matrix [--check]
-    python tools/sidecar_trace.py impact GIT_RANGE
-    python tools/sidecar_trace.py examples --exporters-root DIR
+    matrix [--check]
+    impact GIT_RANGE
+    examples --exporters-root DIR
+
+**Host.** This module imports no package of a host, for example skellytracker, onnx or
+onnxruntime. Each command resolves sidecars, so it needs the sidecar resolver of a host. The host
+gives it to ``main`` as ``resolve``, with its package sidecar root as ``package_root``. In
+skellytracker, ``tools/sidecar_trace_package.py`` is that entry point. ``main`` without ``resolve``
+stops with status 2. The functions that scan take the same two keyword arguments.
 
 ``matrix`` writes ``specs/model-sidecar/TRACEABILITY.md``. With ``--check`` it writes nothing and exits
 with status 1 when the file is not up to date. Its Implementation status table also gives the
@@ -29,7 +35,7 @@ The tool reads the models from the working tree. It changes no file.
 
 ``examples`` compares each reference example with the exporter's copy
 (``DIR/<exporter>/<exporter_path>``, from ``specs/model-sidecar/inventory.yaml``). It resolves ``$ref``
-on both sides with the package resolver and compares the parsed YAML, so comments
+on both sides with the resolver of the host and compares the parsed YAML, so comments
 and ``$ref`` fragments do not count. When the exporter's copy does not resolve, the tool compares
 it as written and says so. It prints to stdout only. CI does not run it: CI has no exporter
 checkouts.
@@ -42,23 +48,26 @@ Normalization and interpolation have no inverse, so they have no ``inverse`` ste
 the backlog for it.
 
 **Scan.** Two roots hold sidecars: the examples (``specs/model-sidecar/examples/``, with that folder
-as the cache dir) and the package sidecars (``skellytracker/core/model_zoo/detectors/``, with
-``skellytracker/core/model_zoo`` as the cache dir). The tool does not scan the old package sidecars.
-They are deleted and replaced, not migrated (ADR-AMJ8). It does not read
-``skellytracker/core/model_zoo/landmark_schemas/``: a schema file is not a sidecar. A package
+as the cache dir) and, when the host gives ``package_root``, the package sidecars
+(``<package_root>/detectors/``, with ``package_root`` as the cache dir). In skellytracker,
+``package_root`` is ``skellytracker/core/model_zoo``. The tool does not scan the old package
+sidecars. They are deleted and replaced, not migrated (ADR-AMJ8). It does not read
+``<package_root>/landmark_schemas/``: a schema file is not a sidecar. A package
 sidecar with the key of an example must have the bytes of that example. The two files are then one
 model with the root ``example, package``, and its file is the example. Different bytes are an
 error that names the two files. A package sidecar with no example has the root ``package`` and
 must hold ``source.name``. A YAML file is a sidecar when its top level has ``schema_version`` and
 a ``model_id`` equal to its file name without the extension. The tool skips every other YAML file.
-It resolves each sidecar with the package resolver
-(``skellytracker/core/model_spec/resolution.py``), which checks each ``$ref`` hash. The key
+It resolves each sidecar with the resolver of the host, which must check each ``$ref``
+hash. In skellytracker, the resolver is ``resolve_sidecar_composition`` of
+``skellytracker/core/model_spec/resolution.py``. The key
 of a sidecar is ``<model_id>@<source>``: ``source.name`` when the sidecar has it, else the
 ``source`` of the example in ``inventory.yaml``. Every example holds
 ``source.name`` now, and no inventory entry has a ``source``, so the examples of this repo do not
 use the last fallback. The tool keeps it for an example without ``source``. Then the tool
 normalizes the resolved sidecar with ``sidecar_normalize`` and matches the section selectors
-against it.
+against it. ``sidecar_normalize`` is the lead copy
+``specs/model-sidecar/reference/sidecar_normalize.py``, which the tool loads by its path.
 
 The tool resolves and matches. It does not validate sidecars.
 """
@@ -72,20 +81,41 @@ import shutil
 import subprocess
 import sys
 from collections import Counter
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, fields, replace
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, ModuleType
 from typing import Any, ClassVar
 
 import yaml
 
-from skellytracker.core.model_spec import sidecar_normalize
 import sidecar_refs
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PACKAGE_ROOT = "skellytracker/core/model_zoo"
 SPEC_DIR_PARTS = ("specs", "model-sidecar")
+# `resolve(path, sidecar_root)` returns the resolved sidecar, or raises when the sidecar does not resolve.
+Resolver = Callable[[Path, Path], Any]
+
+
+def _load_normalizer() -> ModuleType:
+    """Load the lead copy of the selector matching, `specs/model-sidecar/reference/sidecar_normalize.py`.
+
+    The reference folder is not a Python package and its path has a hyphen, so the file loads by
+    its path. The path is fixed: it is a file of the checkout of this tool, never a file of a
+    bundle or of a record (ADR-AD33).
+    """
+    path = REPO_ROOT.joinpath(*SPEC_DIR_PARTS, "reference", "sidecar_normalize.py")
+    spec = spec_from_file_location("sidecar_normalize", path)
+    if spec is None or spec.loader is None or not path.is_file():
+        raise ImportError(f"no selector matching module at {path}")
+    module = module_from_spec(spec)
+    sys.modules[spec.name] = module  # a dataclass reads the module of its class
+    spec.loader.exec_module(module)
+    return module
+
+
+sidecar_normalize = _load_normalizer()
 SECTION_FOLDERS = ("format", "common", "pre", "post")
 NOTE = "Generated by `tools/sidecar_trace.py matrix`; do not edit."
 
@@ -498,11 +528,23 @@ class Scan:
     ]  # YAML files that are not sidecars, relative to the repository root
 
 
-def _scan_roots(repo_root: Path) -> list[tuple[str, Path, Path]]:
-    """Return `(origin, folder to scan, cache dir)` for each root."""
+def _scan_roots(repo_root: Path, package_root: Path | str | None) -> list[tuple[str, Path, Path]]:
+    """Return `(origin, folder to scan, cache dir)` for each root.
+
+    `package_root` is the package sidecar root of the host, relative to `repo_root` or absolute.
+    With None, the scan has only the examples.
+    """
     examples = spec_dir(Path(repo_root)) / "examples"
-    package = Path(repo_root) / PACKAGE_ROOT
-    return [("example", examples, examples), ("package", package / "detectors", package)]
+    roots = [("example", examples, examples)]
+    if package_root is not None:
+        package = Path(repo_root) / package_root  # an absolute `package_root` replaces `repo_root`
+        roots.append(("package", package / "detectors", package))
+    return roots
+
+
+def _shown(path: Path, repo_root: Path) -> str:
+    """Return `path` relative to `repo_root` with forward slashes, else the full path."""
+    return (path.relative_to(repo_root) if path.is_relative_to(repo_root) else path).as_posix()
 
 
 def _same_model(example: Sidecar, package: Path, shown: str, repo_root: Path) -> Sidecar:
@@ -523,16 +565,9 @@ def _is_sidecar(data: Any, path: Path) -> bool:
     )
 
 
-def resolve_sidecar(path: Path, root: Path) -> Any:
-    """Resolve a sidecar with the package resolver. Only this function imports the package."""
-    from skellytracker.core.model_spec.resolution import resolve_sidecar_composition
-
-    return resolve_sidecar_composition(path, root)
-
-
-def _resolve(path: Path, cache_dir: Path, shown: str) -> dict[str, Any]:
+def _resolve(path: Path, cache_dir: Path, shown: str, resolve: Resolver) -> dict[str, Any]:
     try:
-        return resolve_sidecar(path, cache_dir)
+        return resolve(path, cache_dir)
     except Exception as exc:  # the resolver raises its own error types
         raise TraceError(
             f"{shown}: cannot resolve the sidecar: {type(exc).__name__}: {exc}"
@@ -543,16 +578,22 @@ def _sort_key(sidecar: Sidecar) -> tuple[str, str]:
     return (sidecar.source, sidecar.model_id)
 
 
-def scan_sidecars(repo_root: Path = REPO_ROOT) -> Scan:
-    """Find, resolve and normalize every sidecar of the scan roots. See the module docstring."""
+def scan_sidecars(
+    repo_root: Path = REPO_ROOT, *, resolve: Resolver, package_root: Path | str | None = None
+) -> Scan:
+    """Find, resolve and normalize every sidecar of the scan roots. See the module docstring.
+
+    `resolve` is the sidecar resolver of the host. `package_root` is the package sidecar root of
+    the host (see `_scan_roots`).
+    """
     repo_root = Path(repo_root)
     inventory = load_inventory(repo_root)
     examples_root = spec_dir(repo_root) / "examples"
     sidecars: list[Sidecar] = []
     skipped: list[str] = []
-    for origin, folder, cache_dir in _scan_roots(repo_root):
+    for origin, folder, cache_dir in _scan_roots(repo_root, package_root):
         for path in sorted(folder.rglob("*.yaml")):
-            shown = path.relative_to(repo_root).as_posix()
+            shown = _shown(path, repo_root)
             try:
                 raw = yaml.safe_load(path.read_text(encoding="utf-8"))
             except yaml.YAMLError as exc:
@@ -560,7 +601,7 @@ def scan_sidecars(repo_root: Path = REPO_ROOT) -> Scan:
             if not _is_sidecar(raw, path):
                 skipped.append(shown)
                 continue
-            resolved = _resolve(path, cache_dir, shown)
+            resolved = _resolve(path, cache_dir, shown, resolve)
             source = _source_of(resolved, path, examples_root, inventory, shown)
             copied = [
                 index
@@ -930,10 +971,15 @@ def _backlog_lines(
     ]
 
 
-def render_traceability(repo_root: Path = REPO_ROOT) -> str:
-    """Return the text of `TRACEABILITY.md`. The text depends only on the repository files."""
+def render_traceability(
+    repo_root: Path = REPO_ROOT, *, resolve: Resolver, package_root: Path | str | None = None
+) -> str:
+    """Return the text of `TRACEABILITY.md`. The text depends only on the files that the scan reads.
+
+    `resolve` and `package_root` are those of `scan_sidecars`.
+    """
     sections = load_sections(repo_root)
-    scan = scan_sidecars(repo_root)
+    scan = scan_sidecars(repo_root, resolve=resolve, package_root=package_root)
     sidecars = list(scan.sidecars)
     applicable = applicable_models(sections, sidecars)
     out: list[str] = [
@@ -1002,21 +1048,26 @@ def render_traceability(repo_root: Path = REPO_ROOT) -> str:
     return "\n".join(out)
 
 
-def write_traceability(repo_root: Path = REPO_ROOT) -> Path:
+def write_traceability(
+    repo_root: Path = REPO_ROOT, *, resolve: Resolver, package_root: Path | str | None = None
+) -> Path:
     """Write `TRACEABILITY.md` with LF line endings and return its path."""
     path = spec_dir(repo_root) / "TRACEABILITY.md"
+    text = render_traceability(repo_root, resolve=resolve, package_root=package_root)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
-        handle.write(render_traceability(repo_root))
+        handle.write(text)
     return path
 
 
-def traceability_is_current(repo_root: Path = REPO_ROOT) -> bool:
+def traceability_is_current(
+    repo_root: Path = REPO_ROOT, *, resolve: Resolver, package_root: Path | str | None = None
+) -> bool:
     """Return True when `TRACEABILITY.md` equals a fresh generation (line endings aside)."""
     path = spec_dir(repo_root) / "TRACEABILITY.md"
     if not path.is_file():
         return False
     current = path.read_bytes().decode("utf-8").replace("\r\n", "\n")
-    return current == render_traceability(repo_root)
+    return current == render_traceability(repo_root, resolve=resolve, package_root=package_root)
 
 
 # --------------------------------------------------------------------------------------------
@@ -1170,8 +1221,13 @@ def affected_sections(
     changed: Iterable[str],
     repo_root: Path = REPO_ROOT,
     code: Mapping[str, frozenset[str] | None] | None = None,
+    *,
+    resolve: Resolver,
+    package_root: Path | str | None = None,
 ) -> list[AffectedSection]:
     """Return the sections that the changed files reach, in section-map order.
+
+    `resolve` and `package_root` are those of `scan_sidecars`.
 
     A section is reached when its own file changed, when its vector file changed, or when a
     function that it names in `implemented_by` changed. `code` says which functions changed in
@@ -1186,7 +1242,7 @@ def affected_sections(
     changed = set(changed)
     code = code or {}
     sections = load_sections(repo_root)
-    sidecars = list(scan_sidecars(repo_root).sidecars)
+    sidecars = list(scan_sidecars(repo_root, resolve=resolve, package_root=package_root).sidecars)
     applicable = applicable_models(sections, sidecars)
     inventory = load_inventory(repo_root)
     base = "/".join(SPEC_DIR_PARTS)
@@ -1235,13 +1291,19 @@ def affected_sections(
 
 
 def impact(
-    git_range: str, repo_root: Path = REPO_ROOT
+    git_range: str,
+    repo_root: Path = REPO_ROOT,
+    *,
+    resolve: Resolver,
+    package_root: Path | str | None = None,
 ) -> tuple[list[str], list[AffectedSection]]:
     """Return the changed files of a git range and the sections that the change reaches."""
     entries = diff_entries(git_range, repo_root)
     changed = sorted({entry.path for entry in entries})
     code = changed_code(entries, load_sections(repo_root), repo_root)
-    return changed, affected_sections(changed, repo_root, code)
+    return changed, affected_sections(
+        changed, repo_root, code, resolve=resolve, package_root=package_root
+    )
 
 
 def format_impact(
@@ -1446,7 +1508,7 @@ def _problem(exc: Exception) -> str:
     return f"{type(exc).__name__}: {exc}"
 
 
-def _resolved_or_plain(path: Path) -> tuple[Any, str | None]:
+def _resolved_or_plain(path: Path, resolve: Resolver) -> tuple[Any, str | None]:
     """Resolve each `$ref` of an exporter's copy; else read it as it is.
 
     Return the data and, when the copy did not resolve, the reason. Raise `yaml.YAMLError` when
@@ -1454,17 +1516,19 @@ def _resolved_or_plain(path: Path) -> tuple[Any, str | None]:
     else its own folder.
     """
     try:
-        return resolve_sidecar(path, sidecar_refs.default_root(path)), None
+        return resolve(path, sidecar_refs.default_root(path)), None
     except Exception as exc:  # the resolver raises its own error types
         reason = _problem(exc)
     return yaml.safe_load(path.read_text(encoding="utf-8")), reason
 
 
-def compare_examples(repo_root: Path, exporters_root: Path) -> list[ExampleReport]:
+def compare_examples(
+    repo_root: Path, exporters_root: Path, *, resolve: Resolver
+) -> list[ExampleReport]:
     """Compare each example of the inventory with the exporter's copy.
 
-    Both sides are resolved first, so a fragment that the example refers to with `$ref` equals
-    the same values written in the exporter's copy.
+    Both sides are resolved first with `resolve`, the sidecar resolver of the host. So a fragment
+    that the example refers to with `$ref` equals the same values written in the exporter's copy.
     """
     repo_root, exporters_root = Path(repo_root), Path(exporters_root)
     examples_root = spec_dir(repo_root) / "examples"
@@ -1480,7 +1544,7 @@ def compare_examples(repo_root: Path, exporters_root: Path) -> list[ExampleRepor
             )
             continue
         try:
-            ours_data = resolve_sidecar(examples_root / relative, examples_root)
+            ours_data = resolve(examples_root / relative, examples_root)
         except Exception as exc:  # the resolver raises its own error types
             reports.append(
                 ExampleReport(
@@ -1492,7 +1556,7 @@ def compare_examples(repo_root: Path, exporters_root: Path) -> list[ExampleRepor
             )
             continue
         try:
-            theirs_data, reason = _resolved_or_plain(theirs)
+            theirs_data, reason = _resolved_or_plain(theirs, resolve)
         except yaml.YAMLError as exc:
             reports.append(
                 ExampleReport(
@@ -1543,9 +1607,21 @@ def format_examples(reports: list[ExampleReport]) -> str:
 # --------------------------------------------------------------------------------------------
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    *,
+    resolve: Resolver | None = None,
+    package_root: Path | str | None = None,
+    prog: str = "sidecar_trace.py",
+) -> int:
+    """Run one command. Each command needs `resolve`, the sidecar resolver of the host.
+
+    This module imports no host package, so it has no resolver of its own. The entry point of the
+    host passes `resolve`, `package_root` (see `_scan_roots`) and its own `prog`. Without
+    `resolve`, each command stops with status 2.
+    """
     parser = argparse.ArgumentParser(
-        prog="sidecar_trace.py",
+        prog=prog,
         description="Trace the sections of the sidecar spec to models, code, tests and vectors.",
     )
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1562,28 +1638,36 @@ def main(argv: list[str] | None = None) -> int:
     )
     examples.add_argument("--exporters-root", type=Path, required=True, metavar="DIR")
     args = parser.parse_args(argv)
+    if resolve is None:
+        print(
+            f"error: {args.command} needs the sidecar resolver of a host; "
+            "run it through the trace entry point of the host repository",
+            file=sys.stderr,
+        )
+        return 2
+    host = {"resolve": resolve, "package_root": package_root}
 
     try:
         if args.command == "matrix":
             if args.check:
-                if traceability_is_current():
+                if traceability_is_current(**host):
                     print("TRACEABILITY.md is current")
                     return 0
                 print(
-                    "TRACEABILITY.md is not current; run: python tools/sidecar_trace.py matrix",
+                    f"TRACEABILITY.md is not current; run: python tools/{prog} matrix",
                     file=sys.stderr,
                 )
                 return 1
-            print(f"wrote {write_traceability().relative_to(REPO_ROOT).as_posix()}")
+            print(f"wrote {write_traceability(**host).relative_to(REPO_ROOT).as_posix()}")
             return 0
         if args.command == "impact":
-            changed, affected = impact(args.git_range)
+            changed, affected = impact(args.git_range, **host)
             print(format_impact(args.git_range, changed, affected), end="")
             return 0
         if not args.exporters_root.is_dir():
             print(f"not a folder: {args.exporters_root}", file=sys.stderr)
             return 2
-        print(format_examples(compare_examples(REPO_ROOT, args.exporters_root)), end="")
+        print(format_examples(compare_examples(REPO_ROOT, args.exporters_root, resolve=resolve)), end="")
         return 0
     except TraceError as exc:
         print(f"error: {exc}", file=sys.stderr)

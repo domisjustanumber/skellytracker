@@ -35,8 +35,10 @@ a tolerance for each field (`compare: {<field>: {atol: ..., period: ...}}`).
 A file has either `verified_against` (the list of independent implementations
 that produced the same results) or `unverified` (the reason that none did). An
 entry is a skellytracker function (`path::function`) or an exporter function
-(`{<Exporter repo>: <file>::<function>}`). `tools/tests/test_vectors.py` runs
-each skellytracker function through its adapter in `PACKAGE_RUNNERS`.
+(`{<Exporter repo>: <file>::<function>}`). This tool checks the form of an entry only, and
+imports no skellytracker function. `tools/tests/test_package_verified_against.py` checks that
+each skellytracker entry names a function, and `tools/tests/test_vectors.py` runs each
+skellytracker function through its adapter in `PACKAGE_RUNNERS`.
 
 Usage:
     python tools/make_vectors.py            # write the files
@@ -56,7 +58,6 @@ files and of the rule lines of `specs/pipeline/**/*.md`, except `specs/pipeline/
 from __future__ import annotations
 
 import argparse
-import importlib
 import json
 import math
 import os
@@ -445,19 +446,6 @@ def rule_ids() -> frozenset[str]:
     )
 
 
-def package_function(reference: str) -> Any:
-    """Return the skellytracker function named by `skellytracker/<path>.py::function`, else None.
-
-    The entry can come from a bundle or a record, and this checkout is on `sys.path`. So the
-    function imports only package code, never a file of `intakes/` or of a record (ADR-AD33).
-    """
-    path, _, name = reference.partition("::")
-    if not path.startswith("skellytracker/") or ".." in path or not (REPO_ROOT / path).is_file():
-        return None
-    module = importlib.import_module(Path(path).with_suffix("").as_posix().replace("/", "."))
-    return getattr(module, name, None)
-
-
 def run_file(
     data: dict[str, Any],
     folder: Path = REFERENCE_DIR,
@@ -502,7 +490,6 @@ def run_file(
         out,
         rule_ids() if rules is None else rules,
         reference=lambda: source,
-        package_function=package_function,
     )
     if found:
         defect("; ".join(found))
@@ -661,7 +648,6 @@ def land(
                 data,
                 rules,
                 reference=lambda: producer(section, folder),
-                package_function=package_function,
             )
         ]
     if found:

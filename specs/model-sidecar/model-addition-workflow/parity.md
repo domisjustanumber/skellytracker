@@ -228,4 +228,5 @@ The skellytracker session does these steps for each array file. The package runs
    the package, with the thresholds of the EP catalog.
 
 At landing, the session copies `parity/` byte for byte to
-`specs/model-sidecar/parity/<model_id>/` ([Tracked records](hand-over.md#tracked-records)).
+`skellytracker/tests/sidecar/fixtures/parity/<model_id>/` of the skellytracker repository
+([Tracked records](hand-over.md#tracked-records)).

@@ -30,7 +30,7 @@ file `intake.md` of a `model` bundle ([Hand-over bundles](hand-over.md#payload))
      gives these rules and the dynamic check (V6)
      ([ADR-JAA4](../../../decisions/entries/JAA4-one-batch-field.md);
      [ADR-ESP4](../../../decisions/entries/ESP4-one-home-for-each-workflow-rule.md)).
-   - Write input B with your writer code, and run the `batch` sub-command of the hand-over tool
+   - Write input B with your writer code, and run the `batch` sub-command of `tools/intake_gate.py`
      ([Batch-conversion check](batch-conversion-check.md#batch-conversion-check)).
    - The result is the evidence of row G6b. It fills the section "Batch conversion check" of the
      intake. Step 3 gives the verdict of row G6b.

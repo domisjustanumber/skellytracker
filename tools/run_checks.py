@@ -11,7 +11,7 @@ The tool runs these checks in this order, with the Python of the environment tha
 2. ``tools/check_decision_log.py``
 3. ``tools/make_vectors.py --check``
 4. ``tools/make_pipeline_schema.py --check``
-5. ``tools/sidecar_trace.py matrix --check``
+5. ``tools/sidecar_trace_package.py matrix --check``
 6. ``pytest tools/tests -q``. It also runs the private-data check and the camera-media check.
 7. ``pytest -m "not video" skellytracker/tests/test_mediapipe_detectors.py``
 8. ``pytest -m "not video"`` without the MediaPipe file and without ``tools/tests``
@@ -47,7 +47,7 @@ CHECKS = [
     [PY, "tools/check_decision_log.py"],
     [PY, "tools/make_vectors.py", "--check"],
     [PY, "tools/make_pipeline_schema.py", "--check"],
-    [PY, "tools/sidecar_trace.py", "matrix", "--check"],
+    [PY, "tools/sidecar_trace_package.py", "matrix", "--check"],
     [PY, "-m", "pytest", "tools/tests", "-q"],
     [PY, "-m", "pytest", "-m", "not video", MEDIAPIPE],
     [PY, "-m", "pytest", "-m", "not video", "--deselect", MEDIAPIPE, "--deselect", "tools/tests"],

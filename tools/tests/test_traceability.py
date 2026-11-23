@@ -18,6 +18,7 @@ import yaml
 
 from skellytracker.core.model_spec import sidecar_normalize as sn
 import sidecar_trace as st
+from sidecar_trace_package import HOST
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TOOLS_DIR = REPO_ROOT / "tools"
@@ -53,7 +54,7 @@ def all_sections() -> tuple[st.Section, ...]:
 
 @functools.cache
 def scan() -> st.Scan:
-    return st.scan_sidecars(REPO_ROOT)
+    return st.scan_sidecars(REPO_ROOT, **HOST)
 
 
 def section_ids() -> list[str]:
@@ -470,8 +471,8 @@ def test_traceability_equals_a_fresh_generation() -> None:
     path = SPEC_DIR / "TRACEABILITY.md"
     actual = path.read_bytes().decode("utf-8").replace("\r\n", "\n")
     assert actual == st.render_traceability(
-        REPO_ROOT
-    ), "TRACEABILITY.md is out of date; run: python tools/sidecar_trace.py matrix"
+        REPO_ROOT, **HOST
+    ), "TRACEABILITY.md is out of date; run: python tools/sidecar_trace_package.py matrix"
 
 
 def test_traceability_says_that_it_is_generated() -> None:
@@ -480,7 +481,7 @@ def test_traceability_says_that_it_is_generated() -> None:
 
 
 def test_the_matrix_has_a_row_for_each_section_and_a_column_for_each_sidecar() -> None:
-    lines = st.render_traceability(REPO_ROOT).splitlines()
+    lines = st.render_traceability(REPO_ROOT, **HOST).splitlines()
     start = next(i for i, line in enumerate(lines) if line.startswith("| Section | "))
     table = []
     for line in lines[start:]:

@@ -265,9 +265,10 @@ A `pipeline` bundle gives one pipeline file of the [pipeline spec](../../pipelin
   names, landed or in a `depends_on` bundle.
 - A pipeline file runs no code. `verify` checks it with the reference model of the pipeline spec
   and runs no file of the bundle. It refuses a duplicate key.
-- `verify` then runs the load checks of the package on the pipeline file
+- `verify` of `tools/intake_gate.py` then runs the load checks of the package on the pipeline file
   ([ADR-ZYS9](../../../decisions/entries/ZYS9-pipeline-outputs-running-sharing-inside-one-run.md)
-  item 7). These checks read only the package sidecars. They open no session and run no ONNX file.
+  item 7). `verify` of `tools/intake_bundle.py` does not run them. These checks read only the
+  package sidecars. They open no session and run no ONNX file.
   A failed check gives a finding with the rule ID. When a key has no package sidecar, `verify`
   prints a note, and the checks that need the sidecars do not run.
 - `run/` is optional. It holds the output of a reference run of the pipeline. A run gate uses it
@@ -524,7 +525,9 @@ it does this safety check ([ADR-AD33](../../../decisions/entries/AD33-bundles-ar
 
 1. Run `uv run python -B tools/intake_bundle.py list`.
 2. For each bundle that is `submitted` or marked `(new version)`, run `uv run python -B
-   tools/intake_bundle.py verify <bundle id>`. `verify` checks the manifest, the hashes, the layout,
+   tools/intake_gate.py verify <bundle id>`. It gives the findings of `verify` of
+   `tools/intake_bundle.py`, then the findings of the load checks of a pipeline file
+   ([Pipeline bundles](#pipeline-bundles)). `verify` checks the manifest, the hashes, the layout,
    each `reference/` and `vectors/` file that `proposal.md` names, the text form, ONNX files, compiled files, private data, `plans/` paths, the links from the record path with their `#anchor`, the
    bundle links, the section owner, the payload schemas, the `vectors_sha256` of each vector run, the
    form and the size (256 KiB) of each vector file, the contribution cases, the external files, the publish rule and the
@@ -774,9 +777,11 @@ links to that heading. It does not copy the rule
 - The state of a proposal is in one place: the status of its decision entry ([States](#states)).
   Each record folder has exactly one entry file with its slug.
 - A `model` bundle gets a tracked copy of its `parity/` files only, in
-  `specs/model-sidecar/parity/<model_id>/`. For the other files, the example and its `bundle` key
-  are enough. A doc test runs the check of [Reference files](parity.md#reference-files) on each
-  tracked `parity/` folder ([ADR-T41E](../../../decisions/entries/T41E-reference-files-of-a-model-bundle.md)).
+  `skellytracker/tests/sidecar/fixtures/parity/<model_id>/` of the skellytracker repository
+  ([ADR-2DJ8](../../../decisions/entries/2DJ8-spec-tools-with-no-package-import.md) item 6). For
+  the other files, the example and its `bundle` key are enough. A doc test runs the check of
+  [Reference files](parity.md#reference-files) on each tracked `parity/` folder
+  ([ADR-T41E](../../../decisions/entries/T41E-reference-files-of-a-model-bundle.md)).
 - A rejected or `resolved-otherwise` record stays. Its entry cites it.
 
 ### Redactions

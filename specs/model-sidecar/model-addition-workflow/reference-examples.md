@@ -23,9 +23,9 @@ skellytracker session does it in [phase 3](phase-3-skellytracker.md), for a mode
 - Package code does not read the examples. The tools under `tools/` read them:
   - `tools/tests/test_examples.py` checks that each example parses, resolves and has a provenance
     entry.
-  - `uv run python tools/sidecar_trace.py matrix` writes
+  - `uv run python tools/sidecar_trace_package.py matrix` writes
     [`TRACEABILITY.md`](../TRACEABILITY.md). It maps each example to the sections that it uses.
-  - `uv run python tools/sidecar_trace.py examples --exporters-root <dir>` compares each example
+  - `uv run python tools/sidecar_trace_package.py examples --exporters-root <dir>` compares each example
     with the copy of its exporter.
 - The package `SidecarModel` does not accept an example yet. It rejects `schema_version: "2.0.0"`,
   and it forbids the `source` and `sha256` keys. When the package accepts them, the examples can be
@@ -130,7 +130,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
 1. Find each example that the change makes invalid. Part 7 of the accepted proposal names each
    example, its rule ID, its impact (`forced-edit`, `needs-export` or `removed (user ruling)`) and its
    edit ([ADR-C0YD](../../../decisions/entries/C0YD-the-part-7-row-is-the-re-export-request.md)). Run
-   `uv run python tools/sidecar_trace.py impact <range>` on the range of the content commit. Compare
+   `uv run python tools/sidecar_trace_package.py impact <range>` on the range of the content commit. Compare
    its report with part 7. The report is the cross-check, not the authority. If the change makes an
    example invalid and part 7 does not list it, stop. The proposal is already `accepted`, so the
    response gives the state `needs-contributor` with a finding: send a follow-up bundle
@@ -172,7 +172,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
    bare ID of the decision entry of the change, with no `ADR-` prefix. Keep the items of earlier
    changes. Change each note of the entry that names an old value.
 8. If a doc test checks the old rule, change the test in the same content commit.
-9. If an example moves, run `uv run python tools/sidecar_trace.py matrix` in the same content commit.
+9. If an example moves, run `uv run python tools/sidecar_trace_package.py matrix` in the same content commit.
 10. Put each spec-forced edit of one change in its content commit. The message of the content commit
     names each edited example and the rule ID of each edit.
 11. Replace the example with steps 1 to 8 of
@@ -188,7 +188,7 @@ is not a correction of the example, and it is not a new copy. Steps 1, 2 and 7 o
       [introduction to the examples](../examples/README.md), because other files link its anchor.
       Replace its text with one line that tells that the example is removed and cites the ruling.
     - Repair each link to the file and each text that names the example as a current fact.
-    - Regenerate the matrix with `uv run python tools/sidecar_trace.py matrix`.
+    - Regenerate the matrix with `uv run python tools/sidecar_trace_package.py matrix`.
     - A part 7 row of the removed example has the impact `removed (user ruling)`. It is not a
       request. If an item under [Re-export requests](../decisions/open-work.md#re-export-requests)
       is open, remove the example from it.

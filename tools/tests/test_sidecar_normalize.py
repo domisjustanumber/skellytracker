@@ -363,3 +363,28 @@ def test_the_module_imports_only_the_standard_library() -> None:
     for module in _imported_modules():
         assert module.split(".")[0] in sys.stdlib_module_names, module
 
+
+
+# --------------------------------------------------------------------------------------------
+# The package copy has the code of the lead copy of the spec
+# --------------------------------------------------------------------------------------------
+
+LEAD_COPY = Path(__file__).resolve().parents[2] / "specs" / "model-sidecar" / "reference" / "sidecar_normalize.py"
+
+
+def _code(path: Path) -> str:
+    """Return the `ast` dump of a module without its module docstring."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    body = tree.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
+        body = body[1:]
+    return ast.dump(ast.Module(body=body, type_ignores=[]))
+
+
+def test_the_package_copy_has_the_code_of_the_lead_copy_of_the_spec() -> None:
+    """The lead copy is specs/model-sidecar/reference/sidecar_normalize.py. Only the docstrings differ.
+
+    The package cannot import a file of the specs, so it keeps its own copy. Change the lead copy
+    first, then copy its code to the package.
+    """
+    assert _code(MODULE_PATH) == _code(LEAD_COPY)
