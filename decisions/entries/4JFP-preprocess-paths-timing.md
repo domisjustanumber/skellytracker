@@ -1,6 +1,6 @@
 # 4JFP — Timing of each preprocess path, for each resize method, on a quiet system
 
-**Status:** evidence, 2026-11-23 (measurement of 2026-11-23; PR: pending).
+**Status:** evidence; used by [S4MT](S4MT-two-preprocess-paths.md), 2026-11-23 (PR: pending). It was `evidence` from 2026-11-23 (measurement of 2026-11-23).
 
 ## Decision
 

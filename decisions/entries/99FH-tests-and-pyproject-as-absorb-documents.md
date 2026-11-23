@@ -1,6 +1,6 @@
 # 99FH — A package test is a tool, and `pyproject.toml` is an absorb document beside a test
 
-**Status:** absorbed into [`README.md#rules`](../README.md#rules), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-17 (user, "yes to all" on question L3 of 2026-11-17; PR: pending).
+**Status:** absorbed into [`change-decision-log`: Rules](../../.claude/skills/change-decision-log/SKILL.md#rules), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-17 (user, "yes to all" on question L3 of 2026-11-17; PR: pending).
 
 ## Decision
 

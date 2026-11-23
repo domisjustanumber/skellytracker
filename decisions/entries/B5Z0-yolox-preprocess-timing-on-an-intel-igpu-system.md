@@ -1,6 +1,6 @@
 # B5Z0 — Timing of the yolox preprocess on a system with an Intel iGPU
 
-**Status:** evidence, 2026-11-21 (measurement of 2026-11-21; PR: pending).
+**Status:** evidence; replaced by [4JFP](4JFP-preprocess-paths-timing.md), 2026-11-23 (PR: pending). It was `evidence` from 2026-11-21 (measurement of 2026-11-21).
 
 ## Decision
 

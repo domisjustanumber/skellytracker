@@ -1,6 +1,6 @@
 # 5EVP — Absorb an entry across the absorb documents
 
-**Status:** absorbed into [`decisions/README.md#rules`](../README.md#rules), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-10 (user; PR: pending).
+**Status:** absorbed into [`change-decision-log`: Rules](../../.claude/skills/change-decision-log/SKILL.md#rules), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-10 (user; PR: pending).
 
 ## Decision
 

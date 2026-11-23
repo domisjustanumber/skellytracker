@@ -8,7 +8,7 @@ description: Use this skill in skellytracker before you send a reply, or write a
 This skill uses ASD-STE100 Simplified Technical English.
 
 [Section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md` holds the citation rule. The
-[Rules](../../../decisions/README.md#rules) give the places that hold the bare ID: a file name, a
+[Rules](../change-decision-log/SKILL.md#rules) give the places that hold the bare ID: a file name, a
 heading, an index row and a status line. This skill gives the steps to apply the rule when you write
 ([ADR-VCQ7](../../../decisions/entries/VCQ7-cite-entries-skill.md)).
 

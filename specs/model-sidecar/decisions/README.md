@@ -16,14 +16,6 @@ These entries are `accepted`.
 | # | Decision | Status |
 |---|----------|--------|
 
-### Evidence
-
-These entries are `evidence`: measurements. They are not in the read path. Scan these rows before
-you make a measurement ([Rules](../../../decisions/README.md#rules)).
-
-| # | Decision | Status |
-|---|----------|--------|
-
 ### Proposed
 
 These entries are spec change proposals that wait for a decision of the user. Section is the spec
@@ -34,7 +26,8 @@ proposals of a section here.
 |---|----------|---------|--------|
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
-`evidence; used by XXXX` or `done` are in [historical.md](historical.md).
+`evidence; used by XXXX`, `evidence; replaced by XXXX` or `done` are in [historical.md](historical.md).
+The entries that are `evidence` are in [evidence.md](evidence.md).
 
 ## Open work
 

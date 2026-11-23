@@ -106,6 +106,7 @@ run ([ADR-AD33](decisions/entries/AD33-bundles-are-untrusted-input.md)).
 | [`cite-entries`](.claude/skills/cite-entries/SKILL.md) | this repository | Cite decision entries in a reply, a plan, a PR body or a commit message |
 | [`ask-the-user`](.claude/skills/ask-the-user/SKILL.md) | this repository | Ask the user a question, give options or report a rule change. It is the one place for the form of a question |
 | [`brief-subagent`](.claude/skills/brief-subagent/SKILL.md) | this repository | Brief a sub-agent, and check its `path:line` claims before you use them |
+| [`change-decision-log`](.claude/skills/change-decision-log/SKILL.md) | this repository | Add a decision entry, change a status, absorb or supersede an entry, or move a row of a log |
 | [`update-docs-site`](.claude/skills/update-docs-site/SKILL.md) | this repository | Keep the pages of the docs site `skellytracker-docs/` true when the public API changes |
 
 ## 3. Install and Test
@@ -164,9 +165,9 @@ is in that module, for example `specs/model-sidecar/` for the spec log
 All other entries go in the root log, also each case that you cannot decide.
 A new module log needs the approval of the user. The PR that adds it also adds its folder to
 `LOG_DIRS` of `tools/check_decision_log.py`.
-Each log has a `README.md` with an Active table, an Evidence table, a Proposed table and `## Open work`, a
-`historical.md`, an `open-work.md` and its entry files in `entries/`
-([ADR-QPS7](decisions/entries/QPS7-decision-entries-in-an-entries-folder.md)). The Rules and `template.md` are only in the root log.
+Each log has a `README.md` with an Active table, a Proposed table and `## Open work`, an
+`evidence.md` with the Evidence table, a `historical.md`, an `open-work.md` and its entry files in
+`entries/` ([ADR-QPS7](decisions/entries/QPS7-decision-entries-in-an-entries-folder.md)). The Rules and `template.md` are only in the root log.
 All logs have one ID space. Do not add a module name to an ID.
 When the scope of a module entry grows to more than one module, a new root entry supersedes it
 ([ADR-GN3D](decisions/entries/GN3D-module-decision-logs.md)).
@@ -176,8 +177,10 @@ A script made the evidence for an entry or did its one-off job, and the entry na
 `scripts/` of the log that holds the entry. Its own tests, if any, are in `scripts/tests/`.
 A script does not change after its entry is decided. When a step starts to run it, move it to
 `tools/` and add a test ([ADR-EY8R](decisions/entries/EY8R-tools-and-scripts.md)).
-The [Rules](decisions/README.md#rules) of the index give the allowed edits, the status changes and
-the other rules that an agent needs and that no tool checks and no loaded document states. `tools/check_decision_log.py` checks the tables, the IDs and the
+The [Rules](decisions/README.md#rules) of the index give the rules for reading a log.
+Before you add or change an entry, a status or a row of a table, load the skill
+[`change-decision-log`](.claude/skills/change-decision-log/SKILL.md). It gives the allowed edits, the status changes and
+the other rules for a change that no tool checks ([ADR-FJG4](decisions/entries/FJG4-evidence-file-and-the-skill-for-log-changes.md)). `tools/check_decision_log.py` checks the tables, the IDs and the
 limits ([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md)).
 Add one entry for each new decision or measurement.
 Get its ID from `uv run python tools/check_decision_log.py --new`.
@@ -195,7 +198,7 @@ A commit message cannot hold a working link. In the commit body, write `ADR-<ID>
 Cite an entry of another repository with the repository name and `ADR-<ID>`. Also link it with a
 full-SHA permalink when the entry is on the default branch of that repository
 ([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md); see the
-[Rules](decisions/README.md#rules)).
+[Rules](.claude/skills/change-decision-log/SKILL.md#rules)).
 
 The bootstrap kit is in `agents-and-adr-process/` of the
 [freemocap/project](https://github.com/freemocap/project) repository. It is guidance, not a part

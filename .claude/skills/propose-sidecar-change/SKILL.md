@@ -196,7 +196,7 @@ A contributor writes its proposal bundle.
 
 1. Read [section 4](../../../AGENTS.md#4-sidecar-rules) and
    [section 5](../../../AGENTS.md#5-decision-log) of `AGENTS.md`.
-2. Read the [Rules](../../../decisions/README.md#rules) and the
+2. Read the [Rules](../change-decision-log/SKILL.md#rules) and the
    [entry template](../../../decisions/template.md) of the decision log.
 3. Read the index of the [spec log](../../../specs/model-sidecar/decisions/README.md). If an entry
    already records the proposal, do not add a second entry. If the contributor packed a new version
@@ -285,7 +285,7 @@ A contributor writes its proposal bundle.
    proposal ([ADR-ZXD7](../../../decisions/entries/ZXD7-bundle-process.md)).
 9. If the proposal supersedes an accepted entry on acceptance, write the superseding entry now, with
    the status `proposed`. Restate each kept rule in full or by a link, as the
-   [Rules](../../../decisions/README.md#rules) allow.
+   [Rules](../change-decision-log/SKILL.md#rules) allow.
 
 ### Step 5: Check and stop
 

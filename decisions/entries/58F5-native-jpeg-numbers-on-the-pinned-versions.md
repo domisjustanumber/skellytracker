@@ -1,6 +1,6 @@
 # 58F5 — The native JPEG numbers repeated on ONNX Runtime 1.30.0 and `cuda-cu13` 0.2.0
 
-**Status:** evidence, 2026-11-21 (measurement of 2026-11-21; PR: pending).
+**Status:** evidence; used by [889R](889R-gpu-frame-path-stays-on-cuda-for-a-call-with-no-detector-run.md), 2026-11-23 (PR: pending). It was `evidence` from 2026-11-21 (measurement of 2026-11-21).
 
 ## Decision
 

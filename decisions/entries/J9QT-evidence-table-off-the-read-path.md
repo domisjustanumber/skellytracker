@@ -1,6 +1,6 @@
 # J9QT — An Evidence table for each log, off the read path
 
-**Status:** absorbed into [`README.md#rules`](../README.md#rules), [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-17 (user, "yes to all" on question L2 of 2026-11-17; PR: pending).
+**Status:** absorbed into [`README.md#rules`](../README.md#rules), [`AGENTS.md#5-decision-log`](../../AGENTS.md#5-decision-log), [`tools/check_decision_log.py`](../../tools/check_decision_log.py), 2026-11-17 (user, "yes to all" on question L2 of 2026-11-17; PR: pending); superseded by [FJG4](FJG4-evidence-file-and-the-skill-for-log-changes.md), 2026-11-23 (PR: pending).
 
 ## Decision
 

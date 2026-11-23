@@ -1,6 +1,6 @@
 # 8ACK — A checklist of the hardware runs, off the read path
 
-**Status:** absorbed into [Rules](../README.md#rules), [Hardware runs](../hardware-runs.md#hardware-runs), 2026-11-23 (absorb at landing; PR: pending).
+**Status:** absorbed into [`change-decision-log`: Rules](../../.claude/skills/change-decision-log/SKILL.md#rules), [Hardware runs](../hardware-runs.md#hardware-runs), 2026-11-23 (absorb at landing; PR: pending).
 
 ## Decision
 

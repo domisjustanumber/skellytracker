@@ -16,15 +16,6 @@ These entries are `accepted`.
 
 | # | Decision | Status |
 |---|----------|--------|
-### Evidence
-
-These entries are `evidence`: measurements. They are not in the read path. Scan these rows before
-you make a measurement ([Rules](../../../decisions/README.md#rules)).
-
-| # | Decision | Status |
-|---|----------|--------|
-| [6JWJ](entries/6JWJ-mediapipe-video-landmarker-does-not-stick.md) | A MediaPipe VIDEO-mode landmarker finds a person again after a gap; `mediapipe_tasks` has no reset; run again on MediaPipe 1.2.2 | evidence |
-
 ### Proposed
 
 These entries are spec change proposals that wait for a decision of the user. Section is the spec
@@ -34,7 +25,8 @@ section of the change, or `none` when the change has no one section.
 |---|----------|---------|--------|
 
 The entries that are `rejected`, `superseded by XXXX`, `absorbed into <path>#<anchor>`,
-`evidence; used by XXXX` or `done` are in [historical.md](historical.md).
+`evidence; used by XXXX`, `evidence; replaced by XXXX` or `done` are in [historical.md](historical.md).
+The entries that are `evidence` are in [evidence.md](evidence.md).
 
 ## Open work
 

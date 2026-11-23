@@ -1,6 +1,6 @@
 # 1SZ9 — The GPU preprocess and the GPU JPEG decode in the pipeline run, measured end to end
 
-**Status:** evidence, 2026-11-19 (measurement of 2026-11-18, step S8 of the native JPEG input; PR: pending).
+**Status:** evidence; used by [W4NW](W4NW-gpu-preprocess-of-a-model-node-and-its-cpu-warning.md), 2026-11-23 (PR: pending). It was `evidence` from 2026-11-19 (measurement of 2026-11-18, step S8 of the native JPEG input).
 
 ## Decision
 

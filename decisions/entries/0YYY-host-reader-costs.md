@@ -1,6 +1,6 @@
 # 0YYY — Host reader costs and the Windows adapter facts of `probe_host()`
 
-**Status:** evidence, 2026-11-16 (measurement of stage 1.3 of the implementation plan; PR: pending).
+**Status:** evidence; used by [Q4BF](Q4BF-host-probe-without-losses-for-freemocap.md), 2026-11-23 (PR: pending). It was `evidence` from 2026-11-16 (measurement of stage 1.3 of the implementation plan).
 
 ## Decision
 

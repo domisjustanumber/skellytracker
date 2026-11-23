@@ -21,7 +21,8 @@ the lines ``<!-- kit:<name> -->`` and ``<!-- /kit -->``, which are in the live f
 file. The kit text of a block is the live text without its citations of single live entries, with
 the edits applied. ``--write`` writes only the text of each block and keeps the rest of the kit file.
 
-The kit takes this live text. The blocks are the Rules of ``decisions/README.md``, the sections 5, 7
+The kit takes this live text. The blocks are the Rules of ``decisions/README.md``, the Rules of the
+skill ``change-decision-log``, the sections 5, 7
 and 8 of ``AGENTS.md``, and the marker blocks ``writing-rules``, ``skills``, ``plans-folder`` and
 ``push-and-attribution`` in the other sections of ``AGENTS.md``. The copies are
 ``decisions/template.md``, ``.pre-commit-config.yaml``, ``.gitleaks.toml``,
@@ -231,6 +232,8 @@ COPIES = (
 
 AGENTS = ("AGENTS.md", f"{KIT.as_posix()}/AGENTS.md")
 INDEX = ("decisions/README.md", f"{KIT.as_posix()}/decisions/README.md")
+_SKILL = ".claude/skills/change-decision-log/SKILL.md"
+SKILL = (_SKILL, f"{KIT.as_posix()}/{_SKILL}")
 BRANCH = "`{{DEFAULT_BRANCH}}`"
 KIT_0001 = "decisions/entries/0001-decision-log-agents-md-and-private-data.md"
 
@@ -292,8 +295,8 @@ BLOCKS = (
             ),
             (
                 "\n([ADR-Z05A](decisions/entries/Z05A-essential-decision-log-rules.md); see the\n"
-                "[Rules](decisions/README.md#rules)).",
-                "\n(see the [Rules](decisions/README.md#rules)).",
+                "[Rules](.claude/skills/change-decision-log/SKILL.md#rules)).",
+                "\n(see the [Rules](.claude/skills/change-decision-log/SKILL.md#rules)).",
             ),
             (
                 "\nThe bootstrap kit is in `agents-and-adr-process/` of the\n"
@@ -342,18 +345,19 @@ BLOCKS = (
             ),
         ),
     ),
+    Block(*INDEX, "## Rules", (("only for spec work in its section", "only for work in its section"),)),
     Block(
-        *INDEX,
+        *SKILL,
         "## Rules",
         (
             ("only to an entry that is on `development`.", f"only to an entry that is on {BRANCH}."),
             (
                 "the spec (the sidecar spec and the pipeline spec), the root or a nested `AGENTS.md`, the skills, the model addition workflow, the exporter\n"
-                "  guide, the templates of `specs/model-sidecar/templates/`, the Rules of this file with\n"
-                "  [template.md](template.md), and the docstring of a tool in `tools/` for the rules that it checks.",
+                "  guide, the templates of `specs/model-sidecar/templates/`, the Rules of the index with\n"
+                "  [template.md](../../../decisions/template.md), and the docstring of a tool in `tools/` for the rules that it checks.",
                 "the root or a nested `AGENTS.md`, the skills, {{NORMATIVE_DOCS, for example the spec or the\n"
-                "  contract files}}, the Rules of this file with [template.md](template.md), and the docstring of a\n"
-                "  tool in `tools/` for the rules that it checks.",
+                "  contract files}}, the Rules of the index with [template.md](../../../decisions/template.md), and the\n"
+                "  docstring of a tool in `tools/` for the rules that it checks.",
             ),
             (
                 "\n  From the implementation stage, the docstring of a public module of the package is an absorb\n"
@@ -364,12 +368,11 @@ BLOCKS = (
             ("agree with a landed spec entry\n  cites that entry.", "agree with a landed entry\n  cites that entry."),
             ("in a decided entry, a script or a vector-file comment stays", "in a decided entry or a script stays"),
             ("its new path. A path of an exporter repo stays.", "its new path."),
-            ("only for spec work in its section", "only for work in its section"),
             ("`tools/tests/` or in\n  `skellytracker/tests/` is a tool", "`tools/tests/` or in the\n  tests of the package is a tool"),
             ("of one document, for example the workflow, with", "of one document with"),
             ("\n  The spec includes the `notes` of its vector files.", ""),
             ("`open-work.md`, `hardware-runs.md` or the implementation plan states", "`open-work.md` states"),
-            ("\n  [`hardware-runs.md`](hardware-runs.md) gives its own rules.", ""),
+            ("\n  [`hardware-runs.md`](../../../decisions/hardware-runs.md) gives its own rules.", ""),
             (" Write one at the end of the spec-build stage.", ""),
             (
                 " An older entry keeps its lower-case ID in its file name, heading and index row. Do not edit\n"

@@ -209,7 +209,7 @@ declaration of the implementation stage, [ADR-V6G2](../decisions/entries/V6G2-im
   [section 1](../AGENTS.md#1-purpose) of `AGENTS.md` and the "Stage" part of the skill
   `implement-sidecar-section`, and says which rules of [ADR-0014](../decisions/entries/0014-spec-lifecycle.md) end.
 - The end of the spec-build stage also has a consolidation entry (the
-  [Rules](../decisions/README.md#rules)).
+  [Rules](../.claude/skills/change-decision-log/SKILL.md#rules)).
 - Then the session rebuilds the spec-build work into the two PRs `dom/52-process` and `dom/53-spec`
   ([Rebuild at the gate](../.claude/skills/stack-commit/after-spec-build.md#rebuild-at-the-gate)).
   The user opens them. Each stage of phase 1 is then one stacked PR, from `dom/54-dependencies`
