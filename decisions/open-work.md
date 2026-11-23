@@ -170,7 +170,7 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   `tools/tests/` that move and still import the package; `--root` with no default (item 7); the
   gate runner of the reference files; the made-up sample of the reference files.
 - **Certify report** ([ADR-8N03](entries/8N03-certify-report-rules-of-format-1-10.md)). Open: the judging of the GPU frame path by GPU
-  model (item 8); a reliable `is_integrated` on Linux; `GpuInfo.is_integrated` in the facts of
+  model (item 8); a run of the Linux `is_integrated` reader on an AMD APU and an AMD dedicated card; `GpuInfo.is_integrated` in the facts of
   `PipelineRun.models` with `cpu_nodes`, for the metrics panel of freemocap; a real run of the level
   `full` with the new rules.
 - **Frozen smoke test.** At stage 1.11, the frozen smoke test must load the sidecar files with the

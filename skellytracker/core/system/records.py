@@ -28,8 +28,8 @@ class GpuInfo:
     `VRAM,totalMB`. It is `None` for an Apple Silicon GPU, because that GPU has unified memory.
     `shared_memory_bytes` is the shared system memory that the GPU can use: `SharedSystemMemory` of DXGI on Windows.
     It is `None` on Linux and macOS. `is_integrated` is the DXCore adapter property `IsIntegrated` on Windows, or
-    `None` when DXCore does not give it. On Linux it is a guess from the `boot_vga` file of the GPU, and on macOS it is
-    `None`.
+    `None` when DXCore does not give it. On Linux it is the fact that the kernel driver states (`amdgpu`, `i915`, `xe`),
+    and `None` for each other driver. On macOS it is `None`.
     """
 
     key: str

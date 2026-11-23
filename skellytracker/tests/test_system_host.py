@@ -157,6 +157,7 @@ def linux_root(tmp_path):
         "sys/class/drm/card0/device/device": "0x73bf\n",
         "sys/class/drm/card0/device/subsystem_device": "0x0e3a\n",
         "sys/class/drm/card0/device/boot_vga": "1\n",
+        "sys/class/drm/card0/device/board_info": "type : cem\n",  # the kernel hides this file on an APU
         "sys/class/drm/card0/device/mem_info_vram_total": "17163091968\n",
         "sys/class/drm/card0-HDMI-A-1/status": "connected\n",
         "sys/module/amdgpu/version": "6.8.5\n",
@@ -179,7 +180,7 @@ def test_linux_readers_on_fake_files(tmp_path):
     assert (physical, memory) == (2, 32768000 * 1024)
     (gpu,) = linux.gpus(root)
     assert (gpu.key, gpu.vendor, gpu.pci_device_id, gpu.driver_version) == ("0000:03:00.0", "amd", 0x73BF, "6.8.5")
-    assert gpu.vram_total_bytes == 17163091968 and gpu.is_integrated is True
+    assert gpu.vram_total_bytes == 17163091968 and gpu.is_integrated is False  # `board_info`, not the boot GPU
     virtualization = linux.virtualization(root, detect_virt=False)
     assert (virtualization.is_wsl, virtualization.is_vm, virtualization.hypervisor) == (False, True, "unknown")
     container = linux.container(root, environ={"NVIDIA_VISIBLE_DEVICES": "all", "CUDA_VERSION": "13.0"})
@@ -308,3 +309,88 @@ def test_physical_cores_reads_no_gpu_and_gives_the_value_of_a_probed_host(monkey
     monkeypatch.setattr(host_module, "_cached", dataclasses.replace(fake_host(), cpu_physical_cores=8))
     assert host_module.physical_cores() == 8
 
+
+def drm_device(tmp_path, driver, status="active"):
+    device = tmp_path / "sys/class/drm/card0/device"
+    (device / "drm/renderD128").mkdir(parents=True)
+    (device / "power").mkdir()
+    (device / "power/runtime_status").write_text(status + "\n", encoding="utf-8")
+    return device, driver
+
+
+@pytest.mark.parametrize(("flags", "expected"), [(0x1, True), (0x0, False), (None, None)])
+def test_linux_amdgpu_is_integrated_is_the_fusion_flag_of_the_kernel(tmp_path, monkeypatch, flags, expected):
+    import ctypes
+
+    monkeypatch.setattr(linux.platform, "machine", lambda: "x86_64")
+    calls = []
+
+    def ioctl(node, request, argument, keep=()):
+        calls.append((node, request, argument.query, argument.return_size))
+        if flags is None:
+            return False  # an error or a timeout
+        ctypes.memmove(argument.return_pointer + 136, flags.to_bytes(8, "little"), 8)  # `ids_flags`
+        return True
+
+    device, driver = drm_device(tmp_path, "amdgpu")
+    assert linux.integrated(device, driver, tmp_path, ioctl) is expected
+    assert calls == [(tmp_path / "dev/dri/renderD128", 0x40206445, 0x16, 144)]
+    (device / "board_info").write_text("type : cem\n", encoding="utf-8")
+    assert linux.integrated(device, driver, tmp_path, ioctl) is False and len(calls) == 1  # the file answers, with no ioctl
+
+
+def test_linux_intel_is_integrated_is_the_memory_fact_of_the_kernel(tmp_path, monkeypatch):
+    import ctypes
+
+    monkeypatch.setattr(linux.platform, "machine", lambda: "x86_64")
+    device, _ = drm_device(tmp_path, "i915")
+
+    def i915(classes):
+        answer = len(classes).to_bytes(4, "little") + bytes(12) + b"".join(c.to_bytes(2, "little") + bytes(86) for c in classes)
+
+        def ioctl(node, request, argument, keep=()):
+            assert request == 0xC0106479 and argument.num_items == 1
+            item = linux._I915Item.from_address(argument.items_ptr)
+            assert item.query_id == 4
+            if item.data_ptr:
+                ctypes.memmove(item.data_ptr, answer, len(answer))
+            item.length = len(answer)
+            return True
+        return ioctl
+
+    assert linux.integrated(device, "i915", tmp_path, i915([0])) is True  # system memory only
+    assert linux.integrated(device, "i915", tmp_path, i915([0, 1])) is False  # a region of the class `device`
+    assert linux.integrated(device, "i915", tmp_path, i915([])) is None
+
+    def xe(flags, params=2):
+        answer = params.to_bytes(4, "little") + bytes(12) + flags.to_bytes(8, "little")
+
+        def ioctl(node, request, argument, keep=()):
+            assert request == 0xC0286440 and argument.query == 2
+            if argument.data:
+                ctypes.memmove(argument.data, answer, len(answer))
+            argument.size = len(answer)
+            return True
+        return ioctl
+
+    assert linux.integrated(device, "xe", tmp_path, xe(0)) is True
+    assert linux.integrated(device, "xe", tmp_path, xe(1)) is False  # `HAS_VRAM`
+    assert linux.integrated(device, "xe", tmp_path, xe(1, params=1)) is None
+
+
+def test_linux_is_integrated_is_none_when_no_driver_states_it(tmp_path, monkeypatch):
+    def never(*_args, **_kwargs):
+        raise AssertionError("no ioctl")
+
+    monkeypatch.setattr(linux.platform, "machine", lambda: "x86_64")
+    device, _ = drm_device(tmp_path, "amdgpu", status="suspended")
+    assert linux.integrated(device, "amdgpu", tmp_path, never) is None  # an open resumes a GPU that sleeps
+    (device / "power/runtime_status").write_text("active\n", encoding="utf-8")
+    for driver in ("nvidia", "nouveau", "radeon", None):
+        assert linux.integrated(device, driver, tmp_path, never) is None
+    monkeypatch.setattr(linux.platform, "machine", lambda: "ppc64le")
+    assert linux.integrated(device, "amdgpu", tmp_path, never) is None  # an other ioctl encoding
+    monkeypatch.setattr(linux.platform, "machine", lambda: "x86_64")
+    (device / "drm/renderD129").mkdir()
+    assert linux.integrated(device, "amdgpu", tmp_path, never) is None  # not one render node
+    assert linux._drm_ioctl(tmp_path / "dev/dri/renderD128", linux.AMDGPU_INFO, linux._AmdgpuInfo()) is False  # no such node
