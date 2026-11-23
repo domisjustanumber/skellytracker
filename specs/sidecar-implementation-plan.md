@@ -1088,14 +1088,13 @@ Done:
 
 Open:
 
-- **Golden tests and the `parity/` folder.** The two golden tests ran in
-  `decisions/scripts/gpw6_first_models_gate.py`. They are not in the test suite. A tracked fixture
-  needs a file with a clear license. The user decides. No bundle has a `parity/` folder. The gate
-  used the worker files of the exporter in its local hand-over folder, checked by the SHA-256
-  values of the intake. The
-  [acceptance gate](../.claude/skills/implement-sidecar-section/proposal-gate.md) (step 5) gives
-  `needs-contributor` to a bundle with no reference output. The user decides if the check by the
-  hashes is sufficient.
+- **The `parity/` folder.** [Reference files](model-sidecar/model-addition-workflow/parity.md#reference-files)
+  gives the format and the gate ([ADR-T41E](../decisions/entries/T41E-reference-files-of-a-model-bundle.md)).
+  No bundle has a `parity/` folder yet. Two items are open before the pre-release of 1.11:
+  OpenMMLab-Exporter writes `parity/` for `yolox-person` and `rtmw-wholebody133` in a new bundle
+  version, and a tool in `tools/` runs the gate on the reference files, with tests. The tool
+  counts the rows that only one side keeps. The image list is a stop-gap until freemocap makes
+  its recording.
 - **Operating systems and CI.** The gate ran only on Windows. CI holds no ONNX file, so no CI job
   runs a real export.
 - **Export error on `trt-rtx`.** The raw SimCC difference from the upstream output is larger on

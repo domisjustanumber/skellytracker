@@ -17,7 +17,10 @@ Usage::
 reads YAML and the producers of this checkout, so it runs in the environment of this repository.
 It reads each Python file of a bundle as text and never runs it (ADR-AD33). It runs the load checks
 of the package on the pipeline file of a `pipeline` bundle, and it runs no ONNX file (ADR-271H). `pack` and `verify` read
-a proposal patch `skellytracker.patch` as text, never apply it, and check its scope (ADR-6J8E). `pack --dry-run` packs
+a proposal patch `skellytracker.patch` as text, never apply it, and check its scope (ADR-6J8E). `verify` checks the
+reference files `parity/` of a `model` bundle with `parity_problems`: the keys of `parity.yaml`, and for each
+array file its name `<size>.<precision>.npz`, its SHA-256, the limit of 256 KiB and that it holds only numeric
+arrays. It loads no array (ADR-T41E). `pack --dry-run` packs
 in a temporary folder, takes the external files from the real `--root`, runs `verify` on the result
 and writes nothing, so it runs where `verify` runs. `record` copies the bytes of the current version
 of a proposal bundle to its tracked record and checks each hash. It never imports or runs a file of
@@ -1334,6 +1337,73 @@ def _payload_problems(version_dir: Path, rel: str, yaml, repo: Path = REPO_ROOT)
     return problems
 
 
+PARITY_LIMIT = 256 * 1024
+PARITY_ARRAY_FILE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.(fp32|fp16)\.npz$")
+PARITY_KEYS = {"parity_format", "exporter", "commit", "script", "upstream", "onnx_runtime", "seed", "images", "files"}
+PARITY_FILE_KEYS = {"path", "sha256", "raw_limit", "final_limit", "inputs"}
+PARITY_IMAGE_KEYS = ({"key", "source", "id", "sha256", "stop_gap"}, {"key", "made", "pixels_sha256", "stop_gap"})
+
+
+def _npz_problems(path: Path) -> list[str]:
+    """Return why the array file `path` is not a zip of plain `.npy` arrays. It loads no array."""
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(path) as archive:
+            for member in archive.namelist():
+                with archive.open(member) as handle:
+                    head = handle.read(12)
+                    size = int.from_bytes(head[8:10] if head[6:7] == b"\x01" else head[8:12], "little")
+                    text = (head[10:] if head[6:7] == b"\x01" else b"") + handle.read(size)
+                descr = ast.literal_eval(text[:size].decode("latin-1")).get("descr")
+                if not member.endswith(".npy") or head[:6] != b"\x93NUMPY" or not isinstance(descr, str) or "O" in descr:
+                    return [f"{member} is not a plain array: an array file holds only numeric .npy arrays"]
+    except (zipfile.BadZipFile, ValueError, SyntaxError, AttributeError, OSError):
+        return ["not a readable .npz file"]
+    return []
+
+
+def parity_problems(folder: Path, yaml) -> list[str]:  # noqa: ANN001
+    """Return the findings of the reference files in `folder`: a `parity/` folder or its tracked copy (ADR-T41E).
+
+    The folder holds `parity.yaml` and one `<size>.<precision>.npz` for each item of `files`. Each
+    array file has the SHA-256 of its item, is 256 KiB or smaller and holds only numeric arrays.
+    The function uses only the standard library and YAML. It loads no array and runs no code.
+    """
+    names = sorted(path.relative_to(folder).as_posix() for path in folder.rglob("*") if path.is_file())
+    data, problem = _load_yaml(folder, "parity.yaml", yaml) if "parity.yaml" in names else (None, "parity.yaml is missing")
+    if problem:
+        return [problem]
+    if not isinstance(data, dict) or set(data) != PARITY_KEYS or data["parity_format"] != 1:
+        return [f"parity.yaml must have exactly the keys {sorted(PARITY_KEYS)}, with parity_format 1"]
+    problems = [] if SHA40.match(str(data["commit"])) else ["parity.yaml commit must be 40 hex digits"]
+    if not isinstance(data["images"], list) or not isinstance(data["files"], list):
+        return [*problems, "parity.yaml images and files must be lists"]
+    for number, image in enumerate(data["images"], 1):
+        if not isinstance(image, dict) or set(image) not in PARITY_IMAGE_KEYS:
+            problems.append(f"parity.yaml images[{number}] must have the keys of a dataset image or of a made image")
+        elif not SHA64.match(str(image.get("sha256", image.get("pixels_sha256")))):
+            problems.append(f"parity.yaml images[{number}] must have a SHA-256 of 64 hex digits")
+    listed = set()
+    for number, item in enumerate(data["files"], 1):
+        if not isinstance(item, dict) or set(item) != PARITY_FILE_KEYS or not PARITY_ARRAY_FILE.match(str(item["path"])):
+            problems.append(f"parity.yaml files[{number}] must have exactly the keys {sorted(PARITY_FILE_KEYS)}, with the path <size>.<precision>.npz")
+            continue
+        listed.add(item["path"])
+        path = folder / item["path"]
+        if not path.is_file():
+            problems.append(f"{item['path']}: named in parity.yaml, not in the folder")
+            continue
+        content = path.read_bytes()
+        if sha256(content) != item["sha256"]:
+            problems.append(f"{item['path']}: does not have the sha256 of parity.yaml")
+        if len(content) > PARITY_LIMIT:
+            problems.append(f"{item['path']}: an array file must be 256 KiB or smaller")
+        problems += [f"{item['path']}: {p}" for p in _npz_problems(path)]
+    problems += [f"{name}: not parity.yaml and not an array file of parity.yaml" for name in names if name not in listed | {"parity.yaml"}]
+    return problems
+
+
 def _publish_problems(version_dir: Path, listed: dict, manifest: dict, yaml) -> list[str]:  # noqa: ANN001
     """Return the findings of the publish rule (every verdict) and of the dynamic check (ADR-JB5J)."""
     findings: list[str] = []
@@ -1709,6 +1779,8 @@ def verify(name: str, root: Path = DEFAULT_ROOT, repo: Path = REPO_ROOT, overlay
     for rel in ("vector-runs.yaml", "example/provenance.yaml"):
         if rel in listed and manifest["kind"] == "model":
             findings.extend(_payload_problems(version_dir, rel, yaml, repo))
+    if manifest["kind"] == "model" and any(rel.startswith("parity/") for rel in listed):
+        findings += [f"parity/{p}" for p in parity_problems(version_dir / "parity", yaml)]
 
     # Links between bundles, ownership and contribution cases.
     others = list(manifest["related"])

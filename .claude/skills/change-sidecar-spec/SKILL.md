@@ -79,6 +79,8 @@ Do this procedure for step 1 of phase 3.
    for byte to `skellytracker/core/model_zoo/landmark_schemas/`. The example needs a registered
    schema (`V-post.keypoint.schema-10`). `tools/tests/test_landmark_schemas.py` checks the file
    ([ADR-23F5](../../../decisions/entries/23F5-landmark-schema-registry.md)).
+   When the bundle has `parity/`, copy it byte for byte to `specs/model-sidecar/parity/<model_id>/`
+   ([Reference files](../../../specs/model-sidecar/model-addition-workflow/parity.md#reference-files)).
 5. If the procedure finds that the sidecar breaks a spec rule, stop. Do not correct the example by
    hand. Tell the user that the exporter must change, or that the spec needs a proposal.
 6. Add the new guidance of the intake to the "Authoring guidance" heading of each section that it is
@@ -104,7 +106,7 @@ Do this procedure for step 1 of phase 3.
    the model to the list in the same commit
    ([ADR-6GE2](../../../decisions/entries/6GE2-spec-version-follows-skellytracker.md)).
 9. Run the [checks](#checks).
-10. Put the example, the schema file, its provenance record, the guidance, the vector entries and the list change in
+10. Put the example, the schema file, its provenance record, the reference files, the guidance, the vector entries and the list change in
     one non-spec commit.
 
 ## Procedure B: land an accepted proposal

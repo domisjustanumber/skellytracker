@@ -1876,3 +1876,46 @@ def test_a_node_proposal_link_resolves_from_the_pipeline_record_path(tmp_path: P
     ib.pack(payload(tmp_path, {"proposal.md": text}), proposal_fields(name="gate-x", sections=["node.gate"]), root, cwd=tmp_path)
     with pytest.raises(ib.BundleError, match="links that fail"):
         ib.pack(payload(tmp_path / "s", {"proposal.md": text}), proposal_fields(name="gate-y"), root, cwd=tmp_path)
+
+
+def parity_folder(tmp_path: Path, **arrays: np.ndarray) -> Path:
+    folder = tmp_path / "parity"
+    folder.mkdir()
+    np.savez_compressed(folder / "m.fp32.npz", **(arrays or {"a__raw_rows": np.arange(3, dtype=np.int32)}))
+    manifest = {
+        "parity_format": 1, "exporter": "OpenMMLab-Exporter", "commit": SOURCE, "script": "decisions/scripts/p.py",
+        "upstream": {"library": "mmdet", "version": "3.3.0"}, "onnx_runtime": "1.31.1", "seed": 7,
+        "images": [{"key": "a", "source": "coco-val2017", "id": 87038, "sha256": "b" * 64, "stop_gap": True},
+                   {"key": "b", "made": {"op": "crop", "from": ["a"], "box": [0, 0, 2, 2]}, "pixels_sha256": "c" * 64, "stop_gap": True}],
+        "files": [{"path": "m.fp32.npz", "sha256": ib.sha256((folder / "m.fp32.npz").read_bytes()),
+                   "raw_limit": {"boxes": 0.05}, "final_limit": {"box": 1.8, "score": 0.02}, "inputs": {"a": "d" * 64}}],
+    }
+    (folder / "parity.yaml").write_text(yaml.safe_dump(manifest), encoding="utf-8")
+    return folder
+
+
+def test_the_parity_check_reads_the_manifest_and_each_array_file(tmp_path: Path) -> None:
+    folder = parity_folder(tmp_path)
+    assert ib.parity_problems(folder, yaml) == []
+    (folder / "frame.png").write_bytes(b"x")
+    (folder / "m.fp32.npz").write_bytes((folder / "m.fp32.npz").read_bytes() + b"\0" * ib.PARITY_LIMIT)
+    assert ib.parity_problems(folder, yaml) == [
+        "m.fp32.npz: does not have the sha256 of parity.yaml",
+        "m.fp32.npz: an array file must be 256 KiB or smaller",
+        "m.fp32.npz: not a readable .npz file",
+        "frame.png: not parity.yaml and not an array file of parity.yaml",
+    ]
+
+
+def test_the_parity_check_refuses_an_object_array_and_a_bad_manifest(tmp_path: Path) -> None:
+    folder = parity_folder(tmp_path, a=np.array([{"x": 1}], dtype=object))
+    assert ib.parity_problems(folder, yaml) == ["m.fp32.npz: a.npy is not a plain array: an array file holds only numeric .npy arrays"]
+    (folder / "m.fp32.npz").write_bytes(b"not a zip")
+    assert "m.fp32.npz: not a readable .npz file" in ib.parity_problems(folder, yaml)
+    (folder / "parity.yaml").write_text("parity_format: 2\n", encoding="utf-8")
+    assert ib.parity_problems(folder, yaml)[0].startswith("parity.yaml must have exactly the keys")
+
+
+def test_each_tracked_parity_folder_passes_the_parity_check() -> None:
+    for folder in sorted((REPO_ROOT / "specs" / "model-sidecar" / "parity").glob("*/")):
+        assert ib.parity_problems(folder, yaml) == [], folder.name

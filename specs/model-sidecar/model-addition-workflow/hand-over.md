@@ -49,7 +49,7 @@ intakes/
 
 | Kind | Required files | Optional files |
 |---|---|---|
-| `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)); `landmark_schemas/<name>.yaml` (row K11 is `new`) |
+| `model` | `intake.md` | `example/detectors/...` and `example/provenance.yaml` (verdict `describes`); `reference/<section_module>.py`; `vector-runs.yaml`; `batch/` (the files of the [batch-conversion check](batch-conversion-check.md#batch-conversion-check)); `landmark_schemas/<name>.yaml` (row K11 is `new`); `parity/` (the [reference files](parity.md#reference-files)) |
 | `proposal` | `proposal.md` | `reference/<section_module>.py` and `vectors/<section ID>.yaml` for each changed section that has an algorithm; `evidence.md`; `example/`; `skellytracker.patch` (from the 2.0.0 pre-release, [Patches](#patches)) |
 | `proposal` with `contributes_to` | `evidence.md`, one or more `vectors/<section ID>.yaml` | `parity/` |
 | `pipeline` | `pipeline.md`, `<pipeline_id>.pipeline.yaml` | `run/` (a reference run output) |
@@ -773,7 +773,10 @@ links to that heading. It does not copy the rule
   makes a separate contract unit as its own item. The user decides a split at the decision turn.
 - The state of a proposal is in one place: the status of its decision entry ([States](#states)).
   Each record folder has exactly one entry file with its slug.
-- A `model` bundle gets no tracked copy. The example and its `bundle` key are enough.
+- A `model` bundle gets a tracked copy of its `parity/` files only, in
+  `specs/model-sidecar/parity/<model_id>/`. For the other files, the example and its `bundle` key
+  are enough. A doc test runs the check of [Reference files](parity.md#reference-files) on each
+  tracked `parity/` folder ([ADR-T41E](../../../decisions/entries/T41E-reference-files-of-a-model-bundle.md)).
 - A rejected or `resolved-otherwise` record stays. Its entry cites it.
 
 ### Redactions

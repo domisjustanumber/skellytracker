@@ -28,10 +28,11 @@ proposal (6J8E item 6).
    and its `note` names the spec rule that it tests
    ([ADR-JJ7E](../../../decisions/entries/JJ7E-no-upstream-case-verified-by-skellytracker.md)).
 5. **Model gate.** The package loads the sidecar with no V- rule failure. Get each `external` ONNX
-   file and check its SHA-256. The run on the reference image matches the `parity/` output of the
-   bundle within the tolerances of
-   [Parity](../../../specs/model-sidecar/model-addition-workflow/parity.md), for at least one size.
-   A bundle with no reference output gets `needs-contributor`. On a host with an NVIDIA GPU, run
+   file and check its SHA-256. Run
+   [the gate on the reference files](../../../specs/model-sidecar/model-addition-workflow/parity.md#the-gate-on-the-reference-files)
+   of the bundle, for each array file
+   ([ADR-T41E](../../../decisions/entries/T41E-reference-files-of-a-model-bundle.md)).
+   A bundle with no `parity/` folder gets `needs-contributor`. On a host with an NVIDIA GPU, run
    each fp16 file on the EP packs `cuda` and `trt-rtx`, at each published batch form. Read the count
    of the nodes of each session on the CPU EP. A count above 0 gives `needs-contributor`, with the op
    types. With no NVIDIA GPU host, write `to run` for this check in the response
