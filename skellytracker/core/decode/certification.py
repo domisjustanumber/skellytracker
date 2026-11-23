@@ -1,8 +1,10 @@
-"""`run_jpeg_certification`: the JPEG decode and frame preprocess checks of one machine, for a certify suite.
+"""`run_jpeg_certification`: the JPEG decode and frame preprocess checks of one system, for a certify suite.
 
 A certify suite calls the function in a child process and reads its JSON-able result. Each check
-name is stable: a later release adds names and never renames or removes one. A check that needs an
-EP that is not present gives `not-run`, so each platform gets the full list. Each input is a
+name is stable: a later release adds names and never renames or removes one. `CHECK_NAMES` is the
+list. With no `names`, the function gives each name of the list: a check that needs an EP that is not
+present gives `not-run`, so each platform gets the full list. `skellytracker.certify()` gives `names`:
+only the names that the EP of its label can have (`certify_names()`). Each input is a
 synthetic image that the function makes and encodes in memory. The function writes no file. No text
 of the result holds an absolute path, a host name, a user name, a serial number or an environment
 dump.
@@ -18,7 +20,7 @@ from __future__ import annotations
 import platform
 import re
 import statistics
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from typing import Any
 
 SCHEMA = 1
@@ -60,6 +62,59 @@ PIPELINE_SPANS = ("frame.decode", "person.preprocess", "wholebody.preprocess")
 PIPELINE_WARNINGS = ("preprocessed_on_cpu", "jpeg_decoded_on_cpu")
 QUICK_CHECKS = {"gpu_decode.baseline_422": "jpeg-decode", "preprocess_graph_ep.yolox_person": "jpeg-preprocess"}  # the checks of `run_jpeg_quick_checks` and their names there
 _PATH = re.compile(r"(?<![\w.])(?:[A-Za-z]:[\\/]|\\\\|~[\\/]|/(?=\w))[^\s'\",;)]*")
+_SOURCES = ("baseline_420", "baseline_422", "baseline_444", "progressive", "grayscale")
+_GRAPHS = tuple(f"{name}{mixed}" for name in SIDECARS for mixed in ("", "_mixed_sizes"))
+# Each check name of `run_jpeg_certification()`, in the order of the run. `_certify()` refuses a check list that differs.
+CHECK_NAMES = (
+    *(f"cpu_decode.{n}" for n in _SOURCES), "cpu_decode.no_dht", *(f"cpu_decode.rotation_{r}" for r in ROTATIONS),
+    *(f"cpu_decode.size_{w}x{h}" for w, h in SIZES), "cpu_decode.no_soi_refused", "cpu_decode.truncated",
+    *(f"gpu_decode.{n}" for n in _SOURCES), *(f"gpu_decode.rotation_{r}" for r in ROTATIONS),
+    *(f"gpu_decode.size_{w}x{h}" for w, h in SIZES), *(f"gpu_decode.batch_{c}" for c in (1, 3, 6)),
+    "gpu_decode.no_dht_refused", "gpu_decode.no_soi_refused", "gpu_decode.truncated_420", "gpu_decode.truncated_422",
+    *(f"preprocess_graph.{n}" for n in _GRAPHS), *(f"preprocess_graph_ep.{n}" for n in _GRAPHS),
+    "preprocess_graph_ep.node_placement", "preprocess_graph_ep.device_handover",
+    "pipeline.cpu_preprocess_no_frame_warning", "pipeline.cpu_ep_auto_no_frame_warning", "pipeline.gpu_auto_vs_cpu", "pipeline.repeat_equal",
+    *(f"preprocess_graph_amd_ep.{n}" for n in _GRAPHS), "preprocess_graph_amd_ep.rtmw_wholebody133_far_corner_roi",
+    "preprocess_graph_amd_ep.node_placement", "preprocess_graph_amd_ep.frame_upload", "preprocess_graph_amd_ep.device_handover",
+    "preprocess_graph_amd_ep.output_binding_forms", "preprocess_graph_amd_ep.device_mapping",
+    "pipeline_amd_ep.gpu_preprocess_no_frame_warning", "pipeline_amd_ep.gpu_vs_cpu_preprocess",
+    "pipeline_amd_ep.auto_cpu_preprocess_no_warning", "pipeline_amd_ep.repeat_equal",
+)
+# The check groups of `certify_names()`: a name starts with one of these prefixes, or it is one of these names.
+CPU_ONLY = ("cpu_decode.", "preprocess_graph.", "pipeline.cpu_ep_auto_no_frame_warning")  # their EP is always the CPU EP
+GPU_FRAME_ONLY = ("gpu_decode.", "preprocess_graph_ep.", "pipeline.gpu_auto_vs_cpu")  # only `GPU_FRAME_EPS`
+AMD_ONLY = ("preprocess_graph_amd_ep.", "pipeline_amd_ep.")  # only `AMD_EPS`
+# the checks that run only on a dedicated GPU (rule 8 of section 5.8 of the format of `skellycertify`): their question is
+# "Can DirectML keep a decoded or preprocessed frame on the GPU, with no copy between the CPU and the GPU?"
+DEDICATED_ONLY = ("preprocess_graph_amd_ep.frame_upload", "preprocess_graph_amd_ep.output_binding_forms")
+
+
+def certify_names(ep_key: str | None, integrated: bool | None = None) -> tuple[str, ...]:
+    """The names of `CHECK_NAMES` that `skellytracker.certify()` asks for on `ep_key`: each name that the EP can have.
+
+    With None or `cpu` (the label `cpu`): the checks of `CPU_ONLY`, and each check that runs on the EP of the label
+    (`pipeline.cpu_preprocess_no_frame_warning`, `pipeline.repeat_equal`). With an EP of `GPU_FRAME_EPS`: the checks of
+    `GPU_FRAME_ONLY` and the checks of the EP. With an EP of `AMD_EPS`: the checks of `AMD_ONLY` and the checks of the
+    EP. A check of `CPU_ONLY` gives the same result on each label of a run, so it runs one time, under the label `cpu`.
+    `integrated` is `GpuInfo.is_integrated` of the GPU of the label. With True on `directml`, the checks of `DEDICATED_ONLY` are not
+    in the list. With None (not known) or False, they are.
+    """
+    cpu = ep_key in (None, "cpu")
+    found = []
+    for name in CHECK_NAMES:
+        if integrated is True and ep_key == "directml" and name in DEDICATED_ONLY:  # only DXCore states the flag; Linux guesses it
+            keep = False
+        elif name.startswith(CPU_ONLY):
+            keep = cpu
+        elif name.startswith(GPU_FRAME_ONLY):
+            keep = ep_key in GPU_FRAME_EPS
+        elif name.startswith(AMD_ONLY):
+            keep = ep_key in AMD_EPS
+        else:  # a check on the EP of the label
+            keep = True
+        if keep:
+            found.append(name)
+    return tuple(found)
 
 
 class _Stop(Exception):
@@ -71,8 +126,11 @@ class _Stop(Exception):
 
 
 def run_jpeg_certification(ep_key: str | None = None, *, device_key: str | None = None,
-                           progress: Callable[[str], None] | None = None) -> dict:
-    """Run each check on this machine and return `{"schema", "ep_key", "facts", "checks"}`: JSON-able data only.
+                           progress: Callable[[str], None] | None = None, names: Collection[str] | None = None) -> dict:
+    """Run each check on this system and return `{"schema", "ep_key", "facts", "checks"}`: JSON-able data only.
+
+    `names` selects the checks: only the checks of `CHECK_NAMES` that are in `names` run, in the order of
+    `CHECK_NAMES`. With None, each check runs. A name that is not in `CHECK_NAMES` raises `ValueError`.
 
     `device_key` selects the GPU of each session and pipeline run on `ep_key`, as in `build_session()`.
     With None, the run uses the default GPU of the EP. A GPU that the EP cannot use gives `not-run`
@@ -90,15 +148,22 @@ def run_jpeg_certification(ep_key: str | None = None, *, device_key: str | None 
     `ep_not_present` for each other case. `progress(name)` is called before each check.
 
     Each item of `checks` has `name`, `result` (a value of `RESULTS`), `reason` (a value of
-    `REASONS`), `numbers` (str to int or float), `warnings` (`{code, reason}` of each warning of the
-    run) and `detail` (short text; for `raised`, the exception type and its message with no path).
+    `REASONS`), `numbers` (str to an int, a float, a boolean for a flag, or None for no value),
+    `warnings` (`{code, reason}` of each warning of the run) and `detail` (short text; for `raised`, the
+    exception type and its message with no path). A check that catches an exception also writes
+    `error_numbers()` of `core/errors.py` in `numbers`: `error`, the class name, and the error number
+    (`hresult`, `errno` or `code`) when the exception has one. A key of a binding form has the prefix of
+    the form, for example `bind_ortvalue_output.error`.
     A check that fails or raises does not stop the next check. A timing number is always
     `record-only`.
     """
     from skellytracker.core.eps import gate
 
+    unknown = sorted(set(names or ()) - set(CHECK_NAMES))
+    if unknown:
+        raise ValueError(f"not a check of the JPEG certification: {', '.join(unknown)}")
     with gate.certification_run():  # the certification runs an EP before the EP has a result (ADR-ER5X)
-        return _certify(ep_key, device_key, progress)
+        return _certify(ep_key, device_key, progress, names=names)
 
 
 def run_jpeg_quick_checks(ep_key: str, *, device_key: str | None = None, progress: Callable[[str], None] | None = None) -> list[dict]:
@@ -117,8 +182,10 @@ def run_jpeg_quick_checks(ep_key: str, *, device_key: str | None = None, progres
         return _certify(ep_key, device_key, progress, quick=True)["checks"]
 
 
-def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str], None] | None, quick: bool = False) -> dict:
-    """The checks of both entry points. With `quick`, only the checks of `QUICK_CHECKS`, with their new names, and no facts."""
+def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str], None] | None, quick: bool = False,
+             names: Collection[str] | None = None) -> dict:
+    """The checks of both entry points. With `quick`, only the checks of `QUICK_CHECKS`, with their new names, and no facts.
+    With `names`, only the checks of `names`."""
     import cv2
     import numpy as np
 
@@ -219,8 +286,8 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         try:
             found = cpu.decode_jpeg(data[:len(data) // 2])
         except ValueError:
-            return {"result": "record-only", "reason": "recorded", "numbers": {"decoded": 0, "kept_ratio": 0.5}, "detail": "refused: ValueError"}
-        numbers = {"decoded": 1, "kept_ratio": 0.5, "max_abs_diff_to_full": int(diff(found, full).max())}
+            return {"result": "record-only", "reason": "recorded", "numbers": {"decoded": False, "kept_ratio": 0.5}, "detail": "refused: ValueError"}
+        numbers = {"decoded": True, "kept_ratio": 0.5, "max_abs_diff_to_full": int(diff(found, full).max())}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers, "detail": "decoded with no error"}
 
     # --- GPU decode ---
@@ -302,8 +369,8 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         _, data = source(f"truncated_{sampling}")
         (frame,) = decoder().decode([data[:len(data) // 2]], [0])
         if frame is None:
-            return {"result": "record-only", "reason": "recorded", "numbers": {"decoded": 0, "kept_ratio": 0.5}, "detail": "refused"}
-        numbers = {"decoded": 1, "kept_ratio": 0.5, "max_abs_diff_to_full": int(diff(frame.host, cpu.decode_jpeg(data)).max())}
+            return {"result": "record-only", "reason": "recorded", "numbers": {"decoded": False, "kept_ratio": 0.5}, "detail": "refused"}
+        numbers = {"decoded": True, "kept_ratio": 0.5, "max_abs_diff_to_full": int(diff(frame.host, cpu.decode_jpeg(data)).max())}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers, "detail": "decoded with no error"}
 
     # --- preprocess graph ---
@@ -432,7 +499,7 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
             except _Stop:
                 raise
             except Exception as error:  # noqa: BLE001 - an EP that is not scored records each exception
-                return {"result": "record-only", "reason": "raised", "detail": _error_text(error)}
+                return {"result": "record-only", "reason": "raised", "numbers": _error_numbers(error), "detail": _error_text(error)}
             return {**found, "result": "record-only"} if found["result"] in ("pass", "fail") else found
         return run
 
@@ -489,14 +556,16 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
                 value = upload_frame(changed, device_id, device_type)
                 times.append(time.perf_counter_ns() - start)
             except Exception as error:  # noqa: BLE001 - a refused upload is a recorded fact
-                return {"result": "record-only", "reason": "recorded", "numbers": {"uploaded": 0}, "detail": _error_text(error)}
+                return {"result": "record-only", "reason": "recorded",
+                        "numbers": {"uploaded": False, "failed_repeat": i, **_error_numbers(error)}, "detail": _error_text(error)}
             try:
                 found = run_preprocess(session, [value], slots, None, "cpu", 0).numpy()  # the graph output in host memory
             except Exception as error:  # noqa: BLE001 - a graph that cannot read the uploaded frame is a recorded fact (Intel UHD 770: device removed)
-                return {"result": "record-only", "reason": "recorded", "numbers": {"uploaded": 1, "repeats": i, "unequal": unequal, "read_raised": 1},
+                return {"result": "record-only", "reason": "recorded",
+                        "numbers": {"uploaded": True, "failed_repeat": i, "unequal": unequal, "read_raised": True, **_error_numbers(error)},
                         "detail": _error_text(error)}
             unequal += found.shape != expected.shape or not np.array_equal(found, expected)
-        numbers = {"uploaded": 1, "repeats": UPLOAD_REPEATS, "unequal": unequal, "median_upload_ms": round(statistics.median(times) / 1e6, 3)}
+        numbers = {"uploaded": True, "repeats": UPLOAD_REPEATS, "unequal": unequal, "median_upload_ms": round(statistics.median(times) / 1e6, 3)}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers,
                 "detail": f"device {value.device_name()}; the graph reads the uploaded frame in {UPLOAD_REPEATS - unequal} of {UPLOAD_REPEATS} repeats (rough time)"}
 
@@ -504,14 +573,14 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         from skellytracker.core.eps.session import run_bound
 
         session, device_type, device_id, slots, second, image, _ = amd_one_slot()
-        wrong, first = 0, -1
+        wrong, first = 0, None  # `first_unequal`: the index of the first repeat that differs, or None
         for i in range(AMD_HANDOVER_REPEATS):
             changed = np.roll(image, 7 * i, axis=1)  # new content in each repeat
             (host_tensor,) = session.run(["tensor"], {"frame_0": changed, "index": slots})
             (expected,) = second.run(["y"], {"x": host_tensor})
             (found,) = run_bound(second, "x", ["y"], bound_tensor(session, changed, slots, device_type, device_id))
             if found.tobytes() != expected.tobytes():
-                wrong, first = wrong + 1, i if first < 0 else first
+                wrong, first = wrong + 1, i if first is None else first
         return _passed(wrong == 0, {"repeats": AMD_HANDOVER_REPEATS, "unequal": wrong, "first_unequal": first}, "mismatch")
 
     def amd_binding_forms() -> dict:
@@ -522,9 +591,10 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         for form, preallocated in (("bind_output", False), ("bind_ortvalue_output", True)):
             try:
                 (found,) = run_bound(second, "x", ["y"], bound_tensor(session, image, slots, device_type, device_id, preallocated))
-                numbers |= {f"{form}.works": 1, f"{form}.equal_host": int(found.tobytes() == expected.tobytes())}
+                numbers |= {f"{form}.works": True, f"{form}.equal_host": found.tobytes() == expected.tobytes()}
             except Exception as error:  # noqa: BLE001 - a form that does not work is a recorded fact
-                numbers |= {f"{form}.works": 0, f"{form}.equal_host": 0}
+                numbers |= {f"{form}.works": False, f"{form}.equal_host": None,
+                            **{f"{form}.{key}": value for key, value in _error_numbers(error).items()}}
                 failures.append(f"{form}: {_error_text(error)[:120]}")
         return {"result": "record-only", "reason": "recorded", "numbers": numbers, "detail": f"device type {device_type}; " + "; ".join(failures)}
 
@@ -541,8 +611,8 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
                 run_bound(second, "x", ["y"], bound_tensor(session, image, slots, device_type, other))
             except Exception:  # noqa: BLE001 - the expected refusal
                 raised += 1
-        numbers = {"bound_device_id": device_id, "bound_equal_host": int(equal), "other_ids": len(others), "other_ids_raise": raised,
-                   "same_adapter": int(equal and raised == len(others))}
+        numbers = {"bound_device_id": device_id, "bound_equal_host": equal, "other_ids": len(others), "other_ids_raise": raised,
+                   "same_adapter": equal and raised == len(others)}
         return {"result": "record-only", "reason": "recorded", "numbers": numbers,
                 "detail": f"adapter {amd_report().device_name}; the session selects the adapter by its ONNX Runtime EP device"}
 
@@ -674,8 +744,12 @@ def _certify(ep_key: str | None, device_key: str | None, progress: Callable[[str
         ("pipeline_amd_ep.auto_cpu_preprocess_no_warning", amd_scored(lambda: amd_preprocess_place("auto"))),
         ("pipeline_amd_ep.repeat_equal", amd_scored(amd_repeat_equal)),
     ]
+    if [name for name, _ in checks] != list(CHECK_NAMES):  # a new check adds its name to `CHECK_NAMES` and `certify_checks.yaml`
+        raise RuntimeError("the checks of the JPEG certification differ from CHECK_NAMES")
     if quick:
         checks = [(QUICK_CHECKS[name], check) for name, check in checks if name in QUICK_CHECKS]
+    elif names is not None:
+        checks = [(name, check) for name, check in checks if name in names]
     try:
         facts = None if quick else _facts(ep_key)
         results = [_run_check(name, check, progress) for name, check in checks]
@@ -699,6 +773,13 @@ def _error_text(error: BaseException) -> str:
     return _PATH.sub("<path>", sanitize_text(f"{type(error).__name__}: {error}"))[:300]
 
 
+def _error_numbers(error: BaseException) -> dict:
+    """`error_numbers()` of `core/errors.py`: the class name and the error number, with no message text."""
+    from skellytracker.core.errors import error_numbers
+
+    return error_numbers(error)
+
+
 def _run_check(name: str, check: Callable[[], dict], progress: Callable[[str], None] | None) -> dict:
     if progress is not None:
         progress(name)
@@ -707,13 +788,13 @@ def _run_check(name: str, check: Callable[[], dict], progress: Callable[[str], N
     except _Stop as stop:
         found = {"result": stop.result, "reason": stop.reason, "detail": stop.detail}
     except Exception as error:  # noqa: BLE001 - one check that raises must not stop the others
-        found = {"result": "fail", "reason": "raised", "detail": _error_text(error)}
+        found = {"result": "fail", "reason": "raised", "numbers": _error_numbers(error), "detail": _error_text(error)}
     return {"name": name, "result": found["result"], "reason": found["reason"], "numbers": found.get("numbers", {}),
             "warnings": found.get("warnings", []), "detail": found.get("detail", "")}
 
 
 def _facts(ep_key: str | None) -> dict:
-    """The machine facts of the run, with no path, host name, user name or serial number. A fact that raises is None."""
+    """The system facts of the run, with no path, host name, user name or serial number. A fact that raises is None."""
     import importlib.metadata
 
     def get(read: Callable[[], Any]) -> Any:

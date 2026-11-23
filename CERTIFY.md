@@ -119,7 +119,7 @@ write your name, contact details or other personal details. Press Enter to skip.
 | 1. Checkout and versions | Records the tag, the commit, whether the clone is clean, the Python version and the package versions. |
 | 2. Hardware probe | Records the CPU, the memory, the GPUs and the OS. It compares skellytracker with the OS tools. |
 | 3. EP packs: install and verify | Installs each EP pack that your GPU can use. Tests each EP with a probe session. Tests DirectML on each GPU on Windows. |
-| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU, first the EPs that the project has not reviewed on your largest GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, the 30 test frames of the package) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. |
+| 4. Full level of certify() | Downloads the model files of the test pipeline. Then runs `skellytracker.certify("full")` on each EP and each GPU, first the EPs that the project has not reviewed on your largest GPU: the probe, a post-hoc session of the real pipeline (running mode `video`, the 30 test frames of the package) against the CPU EP, a realtime session (running mode `live`), the pipeline for 1, 3 and 6 cameras, also on the CPU EP, and the JPEG checks. Records the time and the GPU memory. GPU decode of JPEG frames is for `cuda` and `trt-rtx` only. Each EP gets only the JPEG checks that it can have, and the checks of the CPU paths run one time, on the CPU EP. |
 
 The suite runs each section in its own process. If a section crashes or runs too long, the
 suite records that and goes on. If a section wrote its complete result before it crashed or
@@ -130,7 +130,7 @@ stopped it.
 
 ## Read the report
 
-The report file has the format `skellycertify.report/1.9.0` of the repository `skellycertify`. It
+The report file has the format `skellycertify.report/1.10.0` of the repository `skellycertify`. It
 has these parts:
 
 - One line with the package, its version, the time of the run and if the report is valid as evidence.
@@ -139,9 +139,10 @@ has these parts:
 - A table with one row for each EP that ran on each GPU, and one row for GPU decode of JPEG frames.
   The result `record` means that the check only recorded facts. A GPU that no EP ran on has the
   result `not checked`.
-- A benchmark table with one row for each timing of the pipeline: the GPU, the EP, the stage
-  (`pipeline-1`, `pipeline-3` or `pipeline-6`, for 1, 3 or 6 cameras), the time of one frame of each
-  camera in milliseconds and the frames in each second.
+- A benchmark table `| GPU | Module | Stage | ms/frame set | Frame sets/s |` with one row for each
+  timing of the pipeline: the GPU, the EP, the stage (`pipeline-1`, `pipeline-3` or `pipeline-6`, for
+  1, 3 or 6 cameras), the time of one frame set (one frame of each camera) in milliseconds and the
+  frame sets in each second.
 - A component table `| Module | Result |`, only when the report has a `component` item. It has one row
   for each component, for example `MediaPipe`. The full level has no MediaPipe check, so the report
   of this suite has no component table.
@@ -149,7 +150,9 @@ has these parts:
 - The line `Checks that did not pass:` and a table with one row for each check that failed. A check
   that did not run (`not run`) also has a row when its EP failed. A report with no such check has
   no such table.
-- The heading `## Data` and a JSON block. It holds each check and each fact of the run. Its list
+- The heading `## Data` and a JSON block. It holds each check and each fact of the run. Each check
+  and each summary item is on one line. The value `seconds` is the length of the sections of the run. A value that
+  is the same in each check, for example a limit, is in `details` one time. Its list
   `test_media` names the test frames file that the checks used, `quick_frames.zip`, with its
   SHA-256, its size and its source: `bundled` (the file of the package) or `shared` (the file of the
   test media folder). Each GPU item also has `shared_memory_bytes` on Windows.
@@ -205,11 +208,13 @@ Each EP result counts on each GPU, also DirectML on a GPU that is not an AMD GPU
   suite.
 - The first run of `trt-rtx` in section 4 builds an engine. It takes longer than the next runs.
   The report records the start time.
-- On an Intel GPU, section 4 can print two error lines of DirectML with the words `device-lost`
-  and the code `0x887A0005`. They come from two checks that only record facts:
-  `preprocess_graph_amd_ep.frame_upload` and `preprocess_graph_amd_ep.output_binding_forms`. Each
-  one tries a form of DirectML memory that does not work on each GPU. The checks after them run.
-  One system with an Intel UHD Graphics 770 showed this.
+- Two checks that only record facts, `preprocess_graph_amd_ep.frame_upload` and
+  `preprocess_graph_amd_ep.output_binding_forms`, run only on a dedicated GPU. On Windows, the
+  DXCore property `IsIntegrated` tells the kind of the GPU. An integrated GPU, for example an Intel
+  UHD Graphics 770, has no row of them. When the system does not tell the kind of a GPU, they run.
+  Then section 4 can print two error lines of DirectML with the words `device-lost` and the code
+  `0x887A0005`, because each check tries a form of DirectML memory that does not work on each GPU.
+  The checks after them run.
 - The suite prints progress lines such as `Section 3: EP packs: install and verify ...` and
   `section 4: cuda@10de-2484-0:pipeline-3` to the terminal. Wait for the line `Report written to`.
 

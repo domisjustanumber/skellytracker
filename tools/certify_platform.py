@@ -103,7 +103,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = Path(__file__).resolve()
 WORK_DIR = REPO_ROOT / ".certify-work"
 MODEL_ROOT = REPO_ROOT / "skellytracker" / "core" / "model_zoo"
-REPORT_SCHEMA = "skellycertify.report/1.9.0"  # `SCHEMA` of `skellytracker/certification.py`
+REPORT_SCHEMA = "skellycertify.report/1.10.0"  # `SCHEMA` of `skellytracker/certification.py`
 SKIPPED_SHOWN = {"reviewed": "already reviewed", "not-installed": "not installed"}  # section 4.2: the display of a `skipped` reason
 # rule 20 of section 6 of the contract: an IPv4 address; the Markdown part prints each match with spaces for the dots
 IPV4 = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b")
@@ -650,7 +650,11 @@ def module_report(results: list[dict], selected: set[int], interrupted: bool, cr
     suite = {"version": SUITE_VERSION, "selected": [r["slug"] for r in results if r["number"] in selected],
              "sections": {r["slug"]: {"summary": r["summary"], "seconds": r["seconds"], "details": r["details"]} for r in results},
              "telemetry_database": telemetry, "answers": answers}
-    return {**base, "kind": "full", "created_utc": created, "checks": [*suite_checks(results, report), *base.get("checks", [])],
+    # section 3.1 of the contract: the length of the whole run, the sections one after the other; no field when no section has a time
+    times = [r["seconds"] for r in results if isinstance(r.get("seconds"), int | float)]
+    base = {key: value for key, value in base.items() if key != "seconds"}
+    return {**base, "kind": "full", "created_utc": created, **({"seconds": round(sum(times), 1)} if times else {}),
+            "checks": [*suite_checks(results, report), *base.get("checks", [])],
             "cleanup": [*base.get("cleanup", []), *({"name": c["name"], "result": c["result"],
                                                     "reason": reason_code(c["reason_code"], c["result"])} for c in cleanup)],
             "details": {**base.get("details", {}), "suite": suite}, "evidence": {"valid": not reasons, "reasons": reasons}}
@@ -723,16 +727,33 @@ def render(data: dict) -> str:
                    for c in m["checks"] if c["result"] == "fail" or (c["result"] == "not-run" and c.get("module") in weak)]
     gpus += [f"| {gpu_cell(gpu)} | | not checked |" for key, gpu in unchecked.items() if key not in checked]
     for part in (system, gpus and ["| GPU | Module | Result |", "|---|---|---|", *gpus],
-                 benchmarks and ["| GPU | Module | Stage | ms/frame | FPS |", "|---|---|---|---|---|", *benchmarks],
+                 benchmarks and ["| GPU | Module | Stage | ms/frame set | Frame sets/s |", "|---|---|---|---|---|", *benchmarks],
                  components and ["| Module | Result |", "|---|---|", *components],
                  ["| Camera | Result |", "|---|---|", *cameras] if cameras else ["Cameras: not checked on this system."],
                  failed and ["Checks that did not pass:", "", "| Package | Module | Test | Result | Reason |", "|---|---|---|---|---|", *failed],
                  data["note"] and ["Note of the person:", "", *(f"> {cell(line)}" for line in data["note"].splitlines())]):
         if part:
             lines += ["", *part]
-    text = json.dumps(data, indent=1)
+    text = data_block(data)
     fence = "`" * max(3, 1 + max((len(run) for run in re.findall(r"`+", text)), default=0))
     return "\n".join([*lines, "", "## Data", "", fence + "json", text, fence, ""])
+
+
+ROW_LISTS = ("checks", "summary")  # the lists whose items `data_block()` prints on one line each
+
+
+def data_block(value, depth: int = 0, rows: bool = False) -> str:
+    """The JSON of the data block ("The lines of the data block" of section 4.2 of the contract): the frame with one
+    field on each line and an indent of one space for each level, and each item of a list `checks` or `summary` on
+    one line. `report_data()` reads it as any JSON."""
+    if not isinstance(value, dict | list) or not value:
+        return json.dumps(value)
+    inner = "\n" + " " * (depth + 1)
+    if isinstance(value, list):
+        parts = [json.dumps(item) if rows and isinstance(item, dict) else data_block(item, depth + 1) for item in value]
+        return "[" + inner + ("," + inner).join(parts) + "\n" + " " * depth + "]"
+    parts = [f"{json.dumps(key)}: {data_block(item, depth + 1, key in ROW_LISTS and isinstance(item, list))}" for key, item in value.items()]
+    return "{" + inner + ("," + inner).join(parts) + "\n" + " " * depth + "}"
 
 
 def report_data(markdown: str) -> dict:

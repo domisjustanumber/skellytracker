@@ -57,6 +57,32 @@ def test_merge_keeps_the_os_facts_and_other_vendors(monkeypatch):
     assert other.vendor == "amd" and other.driver_version == "32.0.16.1088" and other.nvidia is None
 
 
+def test_merge_keeps_is_integrated_of_the_os_gpu(monkeypatch):
+    install_nvml(monkeypatch, FakeNvml([nvml_gpu()]))
+    dedicated = dataclasses.replace(adapter("0000:01:00.0", luid=5), is_integrated=False)  # DXCore `IsIntegrated` on Windows
+    intel = dataclasses.replace(adapter("0000:00:02.0", 0x8086, 0xA780, luid=2, name="UHD 770"), is_integrated=True)
+    merged = {gpu.key: gpu.is_integrated for gpu in host_module.merge_gpus(nvml.read_gpus(), [dedicated, intel])}
+    assert merged == {"0000:01:00.0": False, "0000:00:02.0": True}
+    assert host_module.merge_gpus(nvml.read_gpus(), [])[0].is_integrated is None  # no OS fact: not known
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="the Windows readers")
+def test_with_no_dxcore_is_integrated_stays_none(monkeypatch):
+    from skellytracker.core._hardware import windows
+
+    real = windows.ctypes.WinDLL
+
+    def no_dxcore(name, *args, **kwargs):
+        if name == "dxcore":
+            raise OSError("dxcore.dll is not on this system")
+        return real(name, *args, **kwargs)
+
+    monkeypatch.setattr(windows.ctypes, "WinDLL", no_dxcore)
+    assert windows.dxcore_factory() is None
+    assert windows.is_integrated(None, windows._Luid(1, 0)) is None  # no heuristic
+    assert {gpu.is_integrated for gpu in windows.dxgi_adapters()} <= {None}  # DXGI still gives each adapter
+
+
 def test_two_identical_gpus_get_two_device_keys(monkeypatch):
     fake = FakeNvml([nvml_gpu(bus="00000000:02:00.0", uuid="GPU-b"), nvml_gpu(bus="00000000:01:00.0", uuid="GPU-a")])
     install_nvml(monkeypatch, fake)
@@ -281,3 +307,4 @@ def test_physical_cores_reads_no_gpu_and_gives_the_value_of_a_probed_host(monkey
     assert found is None or found >= 1
     monkeypatch.setattr(host_module, "_cached", dataclasses.replace(fake_host(), cpu_physical_cores=8))
     assert host_module.physical_cores() == 8
+

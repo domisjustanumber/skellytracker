@@ -89,7 +89,7 @@ def test_the_markdown_ends_with_a_json_block_equal_to_the_data(tmp_path):
     text = out.read_text(encoding="utf-8")
     data = cp.report_data(text)
     assert text.startswith("# Certify report\n") and text.endswith("```\n")
-    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.9.0", None, None)
+    assert (data["schema"], data["app"], data["note"]) == ("skellycertify.report/1.10.0", None, None)
     assert data["modules"][0]["details"]["suite"]["version"] == cp.SUITE_VERSION and data["modules"][0]["kind"] == "full"
     assert cp.render(data) == text
     assert "Checks that did not pass:" not in text and "## Sections" not in text  # no failed check: no table
@@ -122,7 +122,7 @@ skellytracker 2.0.0 · full run · 2026-11-19 10:00 UTC · incomplete · not val
 | NVIDIA RTX 3070 8 GB | TensorRT RTX | skipped (already reviewed) |
 | NVIDIA RTX 3070 8 GB | DirectML | fail |
 
-| GPU | Module | Stage | ms/frame | FPS |
+| GPU | Module | Stage | ms/frame set | Frame sets/s |
 |---|---|---|---|---|
 | - | CPU | pipeline-1 | 20.0 | 50.0 |
 | NVIDIA RTX 3070 8 GB | DirectML | pipeline-3 | 12.4 | 80.4 |
@@ -179,7 +179,7 @@ def test_the_component_table_follows_the_benchmark_table_with_the_display_words(
                           {"group": "component", "name": "Other", "device": None, "result": "pass"},
                           {"group": "component", "name": "Blender", "device": None, "result": "skipped", "reason": "not-installed"}]}
     text = cp.render({"schema": "s", "app": None, "modules": [report], "note": None}).split("\n\n## Data")[0]
-    assert text.split("\n\n", 2)[2] == """| GPU | Module | Stage | ms/frame | FPS |
+    assert text.split("\n\n", 2)[2] == """| GPU | Module | Stage | ms/frame set | Frame sets/s |
 |---|---|---|---|---|
 | - | CPU | pipeline-1 | 20.0 | 50.0 |
 
@@ -213,6 +213,23 @@ def test_a_backtick_run_in_the_data_does_not_break_the_json_fence():
               "evidence": {"valid": False, "reasons": ["x"]}, "checks": [], "details": {}}
     data = {"schema": "s", "app": None, "modules": [report], "note": "a ```` note"}
     assert cp.report_data(cp.render(data)) == data
+
+
+def test_the_data_block_has_each_check_and_each_summary_item_on_one_line():
+    """Section 4.2 of the format 1.10.0, "The lines of the data block": the frame indented, each row on one line."""
+    checks = [{"name": "cpu:video", "result": "pass", "reason": None, "numbers": {"cpu_ms": 16.1, "seconds": 5.0}},
+              {"name": "cpu:live", "result": "fail", "reason": "not-finite", "numbers": {"failed_frame": 3}}]
+    summary = [{"group": "ep", "name": "CPU", "device": None, "result": "record-only"}]
+    report = {"created_utc": "2026-11-19T10:00:05Z", "kind": "full", "package": {"name": "skellytracker", "version": "2.0.0"},
+              "evidence": {"valid": True, "reasons": []}, "checks": checks, "summary": summary, "details": {"eps": {}, "full": {"timed_calls": 100}}}
+    data = {"schema": "s", "app": None, "modules": [report], "note": None}
+    text = cp.render(data)
+    block = text.split("```json\n")[1].rsplit("\n```", 1)[0]
+    lines = block.splitlines()
+    for item in [*checks, *summary]:
+        assert sum(line.strip().rstrip(",") == json.dumps(item) for line in lines) == 1  # the whole item and nothing else
+    assert '   "kind": "full",' in lines and '    "eps": {},' in lines and '     "timed_calls": 100' in lines  # one space for each level
+    assert cp.report_data(text) == data and json.loads(block) == data
 
 
 def test_only_runs_the_selected_sections(tmp_path):

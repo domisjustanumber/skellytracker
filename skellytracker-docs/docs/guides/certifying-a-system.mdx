@@ -40,7 +40,8 @@ print(plan["total"], plan["seconds_estimate"])
 print(plan["details"]["checks"], plan["details"]["not_run"], plan["details"]["os_known"])
 ```
 
-- `total` is the count of the checks that will run. `seconds_estimate` is the time estimate.
+- `total` is the count of the rows that the run writes in `checks`, also the rows `not-run` of an EP
+  that cannot run. It is 0 when no check will run. `seconds_estimate` is the time estimate.
 - `details.checks` names each EP check, one for each EP and GPU.
 - `details.not_run` gives each EP that will not run, with its reason code, for example
   `ep-not-installed`.
@@ -119,9 +120,14 @@ lists the codes.
 
 ## The report
 
-The report has the format `skellycertify.report/1.9.0`. It holds:
+The report has the format `skellycertify.report/1.10.0`. It holds:
 
 - `checks`: each check, with `name`, `result`, `reason` and `module` (the EP, for example `CUDA`).
+  An EP on a GPU has only the checks that the EP and the GPU can have. For example, two DirectML
+  checks of GPU memory run only on a dedicated GPU, not on an integrated GPU. A check that caught an error has the class name of
+  the error in `numbers.error`, and its error number when it has one, never the text of the error.
+  A check that failed on one frame gives the index of the frame in `numbers.failed_frame`.
+- `seconds`: the length of the run.
 - `evidence`: `valid` and `reasons`.
 - `summary`: one item for each EP that ran on a GPU. The level `full` adds `benchmark` items with
   `ms_per_frame` and `fps`. The check `mediapipe:smoke` has a `component` item with the name
@@ -131,8 +137,13 @@ The report has the format `skellycertify.report/1.9.0`. It holds:
   size and its source. The source is `shared` for the file of `test_media_dir` and `bundled` for the
   file of the package. When `test_media_dir` does not hold the file, the run uses the file of the package.
 - `host.gpus`: each GPU, with `vram_bytes` and `shared_memory_bytes`. `shared_memory_bytes` is the
-  shared system memory that the GPU can use. It is `null` on Linux and macOS.
-- `details`: the EPs, the versions and the skipped pairs.
+  shared system memory that the GPU can use. It is `null` on Linux and macOS. Each memory value is in
+  bytes, rounded down to a whole MiB.
+- `details`: the EPs, the models, the versions (also of Python), the pass thresholds and the skipped
+  pairs. A value that is the same in each check, for example a limit, is in `details` one time.
+
+`skellytracker/core/eps/certify_checks.yaml` lists each check name of the report with its level, its
+rule and its numbers.
 
 The report holds no path, no host name, no user name, no serial number and no bus address. Read the
 report before you send it to anyone.

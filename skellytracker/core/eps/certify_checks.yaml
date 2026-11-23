@@ -1,0 +1,570 @@
+# The list of the check names of skellytracker: section 5.7 of the format `skellycertify.report/1.10.0`.
+#
+# A person writes this file. No code writes it. A new check goes into this list before its code, or in the same commit.
+# The tests of `skellytracker/tests/test_certify.py` check two rules of section 5.7: each check name that a run writes
+# matches an entry, and each entry is known to the code or has `built: false`. A test also checks that the table of the
+# JPEG checks of `skellytracker/REASON_CODES.md` agrees with this list.
+#
+# The fields of an entry:
+# - `name`: the check name, in its template form. `<label>` is the label of a pair (`check_label()`), for example
+#   `cuda@10de-2484-0`, or `cpu` for a check of the CPU EP. `<n>` is a camera count. `<check>` is the name of an other
+#   check. `<slug>` and `<name>` are the section and the check of the certify suite `tools/certify_platform.py`.
+#   A JPEG check has one entry for each name of `CHECK_NAMES` of `core/decode/certification.py`.
+# - `level`: `quick`, `full`, or both.
+# - `rule`: the pass rule, or `record-only`.
+# - `numbers`: each field of `numbers` with its unit. The units: `ms`, `s`, `MiB`, `count`, `index` (from 0),
+#   `ratio`, `flag` (true or false), `pixel value` (a difference of 8-bit pixel values), `px`, `box fraction` (a part of
+#   the diagonal of the person box), `word` (a fixed word), `class name` (an exception class in the form of a reason
+#   code), `integer`. A value can be null when the entry says so.
+#   Each check that catches an exception also writes `error` (class name) and, when the error has one, `hresult`
+#   (integer: the unsigned 32-bit value on Windows), `errno` (integer) or `code` (integer: the return code of the
+#   library): `error_numbers()` of `core/errors.py`. A check of a child that crashed writes `exit_code` (integer).
+#   These are not repeated in each entry.
+# - `details`: the fields of `details` of the report that hold the values that are the same in each row.
+# - `runs_on`: the EP keys of the labels that the check runs on, or `cpu` for the CPU EP, or `mediapipe`, or `suite`.
+# - `device_classes`: only for an experimental check (rule 8 of section 5.8 of the format), with `device_filter`: the
+#   field of the host probe that selects the class. `DEDICATED_ONLY` of `core/decode/certification.py` holds the checks
+#   of `dedicated GPU`.
+# - `question` and `end`: only for a `record-only` check (rule 8 of section 5.6 of the format): the question that the
+#   check answers, and what turns it into a judged check or removes it. `not stated` means that no document of this
+#   repository states it yet. `source` names the text that states the question.
+# - `built: false`: the check is in the list, but the code does not write it yet.
+
+checks:
+  # --- the checks of `skellytracker.certify()` -------------------------------------------------------------------
+  - name: "cpu:video"
+    level: [quick, full]
+    rule: "pass when the CPU EP finds a person on each test frame; else fail with no-person-on-cpu"
+    numbers: {cpu_ms: ms, seconds: s, failed_frame: index}
+    details: [frames]
+    runs_on: [cpu]
+  - name: "cpu:live"
+    level: [quick, full]
+    rule: "pass when each box of a person and each point with a score is finite on each frame; else fail with not-finite"
+    numbers: {failed_frame: index}
+    runs_on: [cpu]
+  - name: "<label>:probe"
+    level: [quick, full]
+    rule: "pass when the L3 probe of verify() passes on the GPU; else fail with probe-l2-failed or probe-l3-failed"
+    numbers: {seconds: s, max_abs_diff: "absolute difference against the CPU EP"}
+    runs_on: [trt-rtx, cuda, directml, coreml, amdgpu, migraphx]
+  - name: "<label>:video"
+    level: [quick, full]
+    rule: >-
+      pass when frame 0 is within each threshold of details.thresholds against frame 0 of cpu:video, each later frame
+      has the same people, finite outputs and a box IoU of at least box_iou_min, and no node of the pipeline runs on
+      the CPU EP; else fail with the reason of the first frame that failed, or with partial-placement
+    numbers: {failed_frame: index, people_cpu: count, people_ep: count, box_iou_min: ratio, points_compared: count,
+              keypoint_px_max: px, keypoint_box_fraction_max: box fraction, keypoint_box_fraction_median: box fraction,
+              keypoint_box_fraction_p99: box fraction, later_keypoint_box_fraction_max: "box fraction, or null",
+              ep_ms: ms, cpu_nodes: count, speed_against_cpu: "word (faster, slower or similar), level quick only", seconds: s}
+    details: [thresholds, frames]
+    runs_on: [trt-rtx, cuda, directml, coreml, amdgpu, migraphx]
+  - name: "<label>:live"
+    level: [quick, full]
+    rule: "pass when each frame has finite outputs and a person; else fail with not-finite or no-person"
+    numbers: {ep_ms: ms, failed_frame: index, seconds: s}
+    details: [frames]
+    runs_on: [trt-rtx, cuda, directml, coreml, amdgpu, migraphx]
+  - name: "<label>"
+    level: [quick, full]
+    rule: "roll-up check: pass only when <label>:probe, <label>:video and <label>:live pass"
+    numbers: {}
+    runs_on: [trt-rtx, cuda, directml, coreml, amdgpu, migraphx]
+  - name: "<label>:jpeg-decode"
+    level: [quick]
+    rule: "the pass rule of <label>:jpeg:gpu_decode.baseline_422"
+    numbers: {max_abs_diff: pixel value, refused: count, seconds: s}
+    details: [jpeg.limit, jpeg.buffers]
+    runs_on: [cuda, trt-rtx]
+  - name: "<label>:jpeg-preprocess"
+    level: [quick]
+    rule: "the pass rule of <label>:jpeg:preprocess_graph_ep.yolox_person"
+    numbers: {max_difference: pixel value, cpu_nodes: count}
+    details: [jpeg.items]
+    runs_on: [cuda, trt-rtx]
+  - name: "<label>:pipeline-<n>"
+    level: [full]
+    rule: record-only
+    numbers: {start_seconds: s, first_call_ms: ms, median_ms: ms, p95_ms: ms, peak_vram_mib: "MiB, or null on the CPU EP and with no reading",
+              against_cpu: "ratio, on a pair only", seconds: s}
+    details: [full.camera_counts, full.warmup_calls, full.timed_calls, full.running_mode]
+    runs_on: [cpu, trt-rtx, cuda, directml, coreml, amdgpu, migraphx]
+    question: "How long does one call of the pipeline take at <n> cameras on this EP and GPU, and how much VRAM does it use?"
+    source: "the row <ep>:pipeline-<n> of REASON_CODES.md; ADR-X7WD: \"Full is for benchmarking 1) unknown things and 2) this system\""
+    end: "none: a timing has no pass rule (section 5.6 of the format)"
+  - name: "<label>:jpeg"
+    level: [full]
+    rule: "fail when a check <label>:jpeg:<name> failed, else pass when one passed, else not-run with no-check"
+    numbers: {seconds: s}
+    runs_on: [cpu, cuda, trt-rtx, directml, amdgpu, migraphx]
+  - name: "mediapipe:smoke"
+    level: [quick]
+    rule: "pass when each frame has a present row and each point that MediaPipe found has finite values; else fail with not-finite or no-person"
+    numbers: {failed_frame: index, seconds: s}
+    details: [frames]
+    runs_on: [mediapipe]
+  - name: "<check>:exit"
+    level: [quick, full]
+    rule: record-only
+    numbers: {}
+    runs_on: [cpu, trt-rtx, cuda, directml, coreml, amdgpu, migraphx, mediapipe]
+    question: "Did the child of <check> end cleanly after it gave its result (section 2.5 of the format, Crashes)?"
+    source: "the docstring of _add_exit() of skellytracker/certification.py"
+    end: "The exit hang of the CUDA EP plugin (ADR-C6A5) has a fix or a workaround. An unclean exit then fails the check."
+
+  # --- the checks of the JPEG certification: `<label>:jpeg:<name>` (`run_jpeg_certification()`) ----------------
+  - name: "<label>:jpeg:cpu_decode.baseline_420"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.baseline_422"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.baseline_444"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.progressive"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.grayscale"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.no_dht"
+    level: [full]
+    rule: "pass when the CPU decode of a JPEG with no DHT segment is within jpeg.limit_mean of the source image; else fail with over_limit"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.rotation_0"
+    level: [full]
+    rule: "pass when the turned CPU decode equals the turn of the decode; else fail with mismatch"
+    numbers: {height: px, width: px}
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.rotation_90"
+    level: [full]
+    rule: "pass when the turned CPU decode equals the turn of the decode; else fail with mismatch"
+    numbers: {height: px, width: px}
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.rotation_180"
+    level: [full]
+    rule: "pass when the turned CPU decode equals the turn of the decode; else fail with mismatch"
+    numbers: {height: px, width: px}
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.rotation_270"
+    level: [full]
+    rule: "pass when the turned CPU decode equals the turn of the decode; else fail with mismatch"
+    numbers: {height: px, width: px}
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.size_320x240"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.size_640x480"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.size_1280x720"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.size_1920x1080"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.size_720x1280"
+    level: [full]
+    rule: "pass when the mean abs difference of the CPU decode against the source image is at most jpeg.limit_mean; else fail with over_limit or mismatch"
+    numbers: {mean_abs_diff: pixel value, max_abs_diff: pixel value}
+    details: [jpeg.limit_mean]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.no_soi_refused"
+    level: [full]
+    rule: "pass when the CPU decoder refuses a buffer with no SOI marker; else fail with not_refused"
+    numbers: {}
+    runs_on: [cpu]
+  - name: "<label>:jpeg:cpu_decode.truncated"
+    level: [full]
+    rule: record-only
+    numbers: {decoded: flag, max_abs_diff_to_full: pixel value}
+    details: [jpeg.kept_ratio]
+    runs_on: [cpu]
+    question: "Does the decoder refuse a JPEG that is cut at half, or return a frame?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "The pipeline spec states what a run must do with a cut JPEG. The check then passes when the decoder does that."
+  - name: "<label>:jpeg:gpu_decode.baseline_420"
+    level: [full]
+    rule: &gpu_compare "pass when the GPU decoder decodes each buffer and the max abs difference against the CPU decode is at most jpeg.limit; else fail with refused, over_limit, mismatch or decoder_not_opened"
+    numbers: &gpu_numbers {max_abs_diff: pixel value, refused: count}
+    details: &gpu_details [jpeg.limit, jpeg.buffers]
+    runs_on: &nvidia [cuda, trt-rtx]
+  - name: "<label>:jpeg:gpu_decode.baseline_422"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.baseline_444"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.progressive"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.grayscale"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.rotation_0"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.rotation_90"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.rotation_180"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.rotation_270"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.size_320x240"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.size_640x480"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.size_1280x720"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.size_1920x1080"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.size_720x1280"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.batch_1"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.batch_3"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.batch_6"
+    level: [full]
+    rule: *gpu_compare
+    numbers: *gpu_numbers
+    details: *gpu_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.no_dht_refused"
+    level: [full]
+    rule: "pass when the GPU decoder refuses a JPEG with no DHT segment; else fail with not_refused"
+    numbers: {}
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.no_soi_refused"
+    level: [full]
+    rule: "pass when the GPU decoder refuses a buffer with no SOI marker; else fail with not_refused"
+    numbers: {}
+    runs_on: *nvidia
+  - name: "<label>:jpeg:gpu_decode.truncated_420"
+    level: [full]
+    rule: record-only
+    numbers: {decoded: flag, max_abs_diff_to_full: pixel value}
+    details: [jpeg.kept_ratio]
+    runs_on: *nvidia
+    question: "Does the decoder refuse a JPEG that is cut at half, or return a frame?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "The pipeline spec states what a run must do with a cut JPEG. The check then passes when the decoder does that."
+  - name: "<label>:jpeg:gpu_decode.truncated_422"
+    level: [full]
+    rule: record-only
+    numbers: {decoded: flag, max_abs_diff_to_full: pixel value}
+    details: [jpeg.kept_ratio]
+    runs_on: *nvidia
+    question: "Does the decoder refuse a JPEG that is cut at half, or return a frame?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "The pipeline spec states what a run must do with a cut JPEG. The check then passes when the decoder does that."
+  - name: "<label>:jpeg:preprocess_graph.yolox_person"
+    level: [full]
+    rule: &graph_rule "pass when the pixels of the preprocess graph are within the resize limit of the CPU resize and the tensor has the shape and the dtype of the CPU preprocess; else fail with over_limit or mismatch"
+    numbers: &graph_numbers {max_difference: pixel value, cpu_nodes: count}
+    details: &graph_details [jpeg.items]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:preprocess_graph.yolox_person_mixed_sizes"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: [cpu]
+  - name: "<label>:jpeg:preprocess_graph.rtmw_wholebody133"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: [cpu]
+  - name: "<label>:jpeg:preprocess_graph.rtmw_wholebody133_mixed_sizes"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: [cpu]
+  - name: "<label>:jpeg:preprocess_graph_ep.yolox_person"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:preprocess_graph_ep.yolox_person_mixed_sizes"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:preprocess_graph_ep.rtmw_wholebody133"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:preprocess_graph_ep.rtmw_wholebody133_mixed_sizes"
+    level: [full]
+    rule: *graph_rule
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *nvidia
+  - name: "<label>:jpeg:preprocess_graph_ep.node_placement"
+    level: [full]
+    rule: record-only
+    numbers: &placement {"<model>.nodes.<EP name>": count, "<model>.cpu_nodes": count}
+    runs_on: *nvidia
+    question: "Which nodes of the preprocess graph does this EP run on the CPU?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "A reviewed report for the EP shows 0 CPU nodes. The check then passes only with 0."
+  - name: "<label>:jpeg:preprocess_graph_ep.device_handover"
+    level: [full]
+    rule: "pass when each repeat of the graph output, bound into a second session in GPU memory, equals the host route bit for bit; else fail with mismatch"
+    numbers: {unequal: count}
+    details: [jpeg.repeats]
+    runs_on: *nvidia
+  - name: "<label>:jpeg:pipeline.cpu_preprocess_no_frame_warning"
+    level: [full]
+    rule: "pass when the built-in pipeline with the preprocess place cpu on the EP of the label gives no warning preprocessed_on_cpu or jpeg_decoded_on_cpu; else fail with warning_given"
+    numbers: {}
+    details: [jpeg.frames]
+    runs_on: &each_jpeg_ep [cpu, cuda, trt-rtx, directml, amdgpu, migraphx]
+  - name: "<label>:jpeg:pipeline.cpu_ep_auto_no_frame_warning"
+    level: [full]
+    rule: "pass when the built-in pipeline with the preprocess place auto on the CPU EP gives no warning preprocessed_on_cpu or jpeg_decoded_on_cpu; else fail with warning_given"
+    numbers: {}
+    details: [jpeg.frames]
+    runs_on: [cpu]
+  - name: "<label>:jpeg:pipeline.gpu_auto_vs_cpu"
+    level: [full]
+    rule: record-only
+    numbers: {"auto.<span>_ms": ms, "cpu.<span>_ms": ms}
+    runs_on: *nvidia
+    question: "Is the pipeline faster with the GPU preprocess than with the CPU preprocess on this GPU?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "none: a timing has no pass rule (section 5.6 of the format)"
+  - name: "<label>:jpeg:pipeline.repeat_equal"
+    level: [full]
+    rule: "pass when two runs of the built-in pipeline with the preprocess place auto on the EP of the label give equal outputs bit for bit; else fail with mismatch"
+    numbers: {unequal: count}
+    details: [jpeg.frames]
+    runs_on: *each_jpeg_ep
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.yolox_person"
+    level: [full]
+    rule: &amd_graph "the pass rule of preprocess_graph.* on directml; record-only on amdgpu and migraphx (SCORED_AMD_EPS)"
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: &amd [directml, amdgpu, migraphx]
+    question: &amd_question "On amdgpu and migraphx: do the rules that hold on directml also hold on this EP?"
+    end: &amd_end "On amdgpu and migraphx: a reviewed pass row of ep_evidence.yaml for this EP and this GPU model on Linux. The check is then judged there."
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.yolox_person_mixed_sizes"
+    level: [full]
+    rule: *amd_graph
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.rtmw_wholebody133"
+    level: [full]
+    rule: *amd_graph
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.rtmw_wholebody133_mixed_sizes"
+    level: [full]
+    rule: *amd_graph
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.rtmw_wholebody133_far_corner_roi"
+    level: [full]
+    rule: "the pass rule of preprocess_graph.* for ROIs at the far corner of a 3840x2160 frame, on directml; record-only on amdgpu and migraphx"
+    numbers: *graph_numbers
+    details: *graph_details
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.node_placement"
+    level: [full]
+    rule: record-only
+    numbers: *placement
+    runs_on: *amd
+    question: "Which nodes of the preprocess graph does this EP run on the CPU?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "A reviewed report for the EP shows 0 CPU nodes. The check then passes only with 0."
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.frame_upload"
+    level: [full]
+    rule: record-only
+    numbers: {uploaded: flag, unequal: count, median_upload_ms: ms, read_raised: flag, failed_repeat: index}
+    details: [jpeg.repeats]
+    runs_on: *amd
+    device_classes: [dedicated GPU]
+    device_filter: "GpuInfo.is_integrated (DXCore IsIntegrated on Windows): no row on a directml GPU with true; the check runs with false
+      and with null (not known)"
+    question: "Can this EP keep a decoded or preprocessed frame on the GPU, with no copy between the CPU and the GPU?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "A reviewed pass row of ep_evidence.yaml for this EP, this OS and this GPU model. Until then, the result on a GPU model with no row is a record. The EP joins the default EPs of the GPU preprocess only on a GPU model with a row."
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.device_handover"
+    level: [full]
+    rule: "on directml, pass when each repeat of the graph output, bound into a second session, equals the host route bit for bit, else fail with mismatch; record-only on amdgpu and migraphx"
+    numbers: {unequal: count, first_unequal: "index, or null"}
+    details: [jpeg.repeats]
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.output_binding_forms"
+    level: [full]
+    rule: record-only
+    numbers: {"<form>.works": flag, "<form>.equal_host": "flag, or null when the form raised", "<form>.error": class name,
+              "<form>.hresult": integer, "<form>.errno": integer, "<form>.code": integer}
+    runs_on: *amd
+    device_classes: [dedicated GPU]
+    device_filter: "GpuInfo.is_integrated (DXCore IsIntegrated on Windows): no row on a directml GPU with true; the check runs with false
+      and with null (not known)"
+    question: "Can this EP keep a decoded or preprocessed frame on the GPU, with no copy between the CPU and the GPU?"
+    source: "the rulings of the user of 2026-11-23 (ADR-8N03)"
+    end: "A reviewed pass row of ep_evidence.yaml for this EP, this OS and this GPU model. Until then, the result on a GPU model with no row is a record. The EP joins the default EPs of the GPU preprocess only on a GPU model with a row."
+  - name: "<label>:jpeg:preprocess_graph_amd_ep.device_mapping"
+    level: [full]
+    rule: record-only
+    numbers: {bound_device_id: integer, bound_equal_host: flag, other_ids_raise: count, same_adapter: flag}
+    details: [jpeg.other_ids]
+    runs_on: *amd
+    question: "Does a binding to an other device id raise, so that a run never reads an other adapter?"
+    source: "a comment of amd_device_mapping() of core/decode/certification.py; ADR-W4NW, Evidence: the binding of the device ids 1 and 2 is not recorded"
+    end: "A reviewed pass row of ep_evidence.yaml for this EP, this OS and this GPU model. Until then, the result on a GPU model with no row is a record. The EP joins the default EPs of the GPU preprocess only on a GPU model with a row."
+  - name: "<label>:jpeg:pipeline_amd_ep.gpu_preprocess_no_frame_warning"
+    level: [full]
+    rule: "on directml, pass when the preprocess place gpu runs the graph of each node on the EP and the run gives no frame warning, else fail with warning_given or mismatch; record-only on amdgpu and migraphx"
+    numbers: {nodes_on_graph: count}
+    details: [jpeg.frames, jpeg.nodes]
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:pipeline_amd_ep.gpu_vs_cpu_preprocess"
+    level: [full]
+    rule: record-only
+    numbers: {max_box_px_diff: px, max_box_score_diff: ratio, max_point_px_diff: px, max_point_score_diff: ratio,
+              presence_changes: count, box_scores_present: count, point_scores_present: count,
+              "gpu.<span>_ms": ms, "cpu.<span>_ms": ms}
+    details: [jpeg.frames]
+    runs_on: *amd
+    question: "Is the preprocess graph faster than the CPU preprocess on this GPU with DirectML?"
+    source: "ADR-S4MT, Reason: the user wants a certify run on an AMD system to show if the graph is faster there with DirectML"
+    end: "none: a timing has no pass rule (section 5.6 of the format)"
+  - name: "<label>:jpeg:pipeline_amd_ep.auto_cpu_preprocess_no_warning"
+    level: [full]
+    rule: "on directml, pass when the preprocess place auto uses the CPU preprocess on each node and the run gives no frame warning, else fail with warning_given or mismatch; record-only on amdgpu and migraphx"
+    numbers: {nodes_on_graph: count}
+    details: [jpeg.frames, jpeg.nodes]
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+  - name: "<label>:jpeg:pipeline_amd_ep.repeat_equal"
+    level: [full]
+    rule: "on directml, pass when two runs with the preprocess place gpu give equal outputs bit for bit, else fail with mismatch; record-only on amdgpu and migraphx"
+    numbers: {unequal: count}
+    details: [jpeg.frames]
+    runs_on: *amd
+    question: *amd_question
+    end: *amd_end
+
+  # --- the checks of the certify suite `tools/certify_platform.py` ----------------------------------------------
+  - name: "suite:<slug>"
+    level: [full]
+    rule: "the result of the section: fail when a check of it failed or the child of the section crashed, timed out or gave bad output"
+    numbers: {seconds: s, exit_code: integer}
+    runs_on: [suite]
+  - name: "suite:<slug>:<name>"
+    level: [full]
+    rule: "the rule of the check of the section; see the section of the certify suite in REASON_CODES.md"
+    numbers: {}
+    runs_on: [suite]

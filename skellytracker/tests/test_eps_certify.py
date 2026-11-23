@@ -113,7 +113,7 @@ def test_session_frames_run_each_test_frame_in_order_with_a_rising_time_in_live(
                         starts.append((running_mode, execution_provider, device)) or FakeRun(execution_provider, []))
     found = certification.session_frames("p", "trt-rtx", ["image"] * 3, "live", "gpu:10de:2484:0")
     assert frames == [(0, 0.0), (1, 33.0), (2, 66.0)] and starts == [("live", "trt-rtx", "gpu:10de:2484:0")]
-    assert len(found["frames"]) == 3 and found["ms"] >= 0 and found["warnings"] == []
+    assert len(found["frames"]) == 3 and found["ms"] >= 0 and found["warnings"] == [] and found["cpu_nodes"] == 0
     assert found["models"][0]["precision"] == "fp16" and certification.compare_results(found["frames"][0], result(), THRESHOLDS)["ok"]
     assert pickle.loads(pickle.dumps(found))["frames"][2]["wholebody"].score.tolist() == [[0.9, 0.8, 0.1]]  # noqa: S301 - a child sends it; the test made the bytes
     frames.clear()
@@ -132,9 +132,11 @@ def test_a_session_child_keeps_the_error_of_each_mode(monkeypatch):
     monkeypatch.setattr(verification, "spawn_child", in_process)
     steps = []
     found, _, _ = certification.session_run("cpu", {"pipeline": "p"}, ("video", "live"), progress=steps.append)
-    assert found == {"video": {"frames": [], "image": "image"}, "live": {"error": "RuntimeError"}} and steps == ["video", "live"]
+    assert found == {"video": {"frames": [], "image": "image"}, "live": {"error": "RuntimeError", "numbers": {"error": "RuntimeError"}}}
+    assert steps == ["video", "live"]  # `failed()`: the class name and no text
     monkeypatch.setattr(certification, "quick_frames", lambda settings: (_ for _ in ()).throw(certification.FramesUnavailableError("absent")))
-    assert certification.session_run("cpu", {"pipeline": "p"}, ("video",), progress=steps.append)[0] == {"error": "FramesUnavailableError"}
+    assert certification.session_run("cpu", {"pipeline": "p"}, ("video",), progress=steps.append)[0] == {
+        "error": "FramesUnavailableError", "numbers": {"error": "FramesUnavailableError"}}
 
 
 def test_the_mediapipe_child_runs_the_frames_in_live_with_no_ep_and_downloads_no_model_file(monkeypatch, tmp_path):
@@ -159,7 +161,7 @@ def test_the_mediapipe_child_runs_the_frames_in_live_with_no_ep_and_downloads_no
     assert frames == [(0, 0.0), (1, 33.0), (2, 66.0)] and len(found["live"]["frames"]) == 3
     assert found["live"]["frames"][0].xy.shape == (1, 2, 2)
     run.process = lambda frame: (_ for _ in ()).throw(RuntimeError("the folder secretdir"))
-    assert certification.mediapipe_run({})[0] == {"live": {"error": "RuntimeError"}}
+    assert certification.mediapipe_run({})[0] == {"live": {"error": "RuntimeError", "numbers": {"error": "RuntimeError"}}}
 
 
 def test_ask_needs_a_terminal_on_stdin_and_on_stdout(monkeypatch):

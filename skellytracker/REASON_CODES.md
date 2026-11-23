@@ -39,7 +39,7 @@ The certify suite writes `bad-output`, `not-selected` and `partial-run`.
 | `cpu-reference-missing` | check `<ep>:video`, `<ep>` | The check did not start, because `cpu:video` did not pass. The comparison needs the frames of the CPU EP. |
 | `reviewed` | `summary`, `details.skipped` | Level `quick`: the EP on the GPU has a reviewed pass for the version set of this release, so the run has no check for it. The summary item has the result `skipped`. It is a reason of the format for a summary item, not a reason of a check. The key `mediapipe:smoke` of `details.skipped` has it when a row of the list `mediapipe` of `ep_evidence.yaml` records a pass for this MediaPipe version, Python version and OS key. The `component` summary item `MediaPipe` then has the result `skipped` and this reason. |
 | `not-installed` | `summary` | Level `quick`: MediaPipe is not installed. The check `mediapipe:smoke` is `not-run` with `models-missing`, and the `component` summary item `MediaPipe` has the result `skipped` and this reason. It is a reason of the format (format 1.6.0) for a `component` item only, not a reason of a check. |
-| a code of `REASONS` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess`, `<ep>:jpeg`, `<ep>:jpeg:<name>` | A reason code of the JPEG certification, for example `component_not_installed` or `over_limit`. The tuple `REASONS` of `core/decode/certification.py` is the list. |
+| a code of `REASONS` | check `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess`, `<ep>:jpeg`, `<ep>:jpeg:<name>` | A reason code of the JPEG certification, for example `component_not_installed` or `over_limit`. The tuple `REASONS` of `core/decode/certification.py` is the list. [Reason codes of the JPEG certification](#reason-codes-of-the-jpeg-certification) gives each code. |
 | `gpu-not-usable` | check | The caller named the EP and a GPU with the option `device`, and the EP cannot use that GPU. |
 | `ep-<code>` | check | The EP cannot run on this host. `<code>` is the reason code of the EP state, or the state: `ep-os`, `ep-no-device`, `ep-cc-too-low`, `ep-driver-too-old`, `ep-rocm-missing`, `ep-rocm-version`, `ep-not-installed`, `ep-stale`. The quick check installs nothing. |
 | `probe-l2-failed` | check `<ep>:probe` | The EP did not register, or it lists no device for the GPU. |
@@ -56,13 +56,22 @@ The certify suite writes `bad-output`, `not-selected` and `partial-run`.
 | `keypoints-differ` | check `<ep>:video` | Frame 0 only: a keypoint is farther than `keypoint_box_fraction_max` of the box diagonal from the CPU EP result. On a later frame, the keypoint difference is a record only. |
 | `not-finite` | check `<ep>:video`, `<ep>:live`, `cpu:live`, `mediapipe:smoke` | On `<ep>:video`: a value of the EP result is not finite where the CPU EP result is finite. On `<ep>:live` and `cpu:live`: a box of a person, or a point with a score, is not finite. On `mediapipe:smoke`: a point that MediaPipe found has a value that is not finite, or a score is not finite. A missing point has NaN values: that is normal. |
 | `partial-placement` | check `<ep>:video` | Some nodes of the pipeline ran on the CPU EP, not on the EP. |
-| `<ExceptionClass>` | check, `cleanup` | A setup step, a cleanup step or a pipeline run raised this exception class, for example `EpUnavailableError` or `DownloadError`. A setup step gives `not-run`. A pipeline run of `cpu:video`, `cpu:live`, `<ep>:video`, `<ep>:live` or `mediapipe:smoke` gives `fail`. The report never holds the message. |
+| `<ExceptionClass>` | check, `cleanup` | A setup step, a cleanup step or a pipeline run raised this exception class, for example `EpUnavailableError` or `DownloadError`. A setup step gives `not-run`. A pipeline run of `cpu:video`, `cpu:live`, `<ep>:video`, `<ep>:live` or `mediapipe:smoke` gives `fail`. The class name has no module path. A check also writes it as `numbers.error`, with the error number when the exception has one (see [Fixed values in `numbers`](#fixed-values-in-numbers)). The report never holds the message. |
 
 ## Fixed values in `numbers`
 
 | Field | Values | Meaning |
 |---|---|---|
-| `speed_against_cpu` | `faster`, `slower`, `similar` | The warm call of the pipeline on the EP against the warm call on the CPU EP, in the check `<ep>:video` (`ep_ms`, `cpu_ms`: the fastest call after the first). `similar` is within 20 %. It is a record only. A check `<ep>:pipeline-<n>` gives the same value from its median against the median of the CPU EP (`against_cpu` is the ratio). |
+| `speed_against_cpu` | `faster`, `slower`, `similar` | Level `quick` only: the warm call of the pipeline on the EP against the warm call on the CPU EP, in the check `<ep>:video` (`ep_ms` of the check, `cpu_ms` of `cpu:video`: the fastest call after the first). `similar` is within 20 %. It is a record only. At the level `full`, a check `<ep>:pipeline-<n>` gives `against_cpu`: its median over the median of the CPU EP. |
+| `error`, `<form>.error` | the class name of an exception | A check that caught an exception: the class name with no module path, in the form of a reason code (`error_numbers()` of `core/errors.py`). The same check writes the error number as an integer when the exception has one: `hresult` on Windows (the unsigned 32-bit value, for example `2289696773` for `0x887A0005`), `errno` of an `OSError` on Linux and macOS, or `code`, the return code of the library. It never writes the message text. |
+
+A number that is the same in each row of a run is in `details` one time, not in `numbers` (rule 6 of section 5.8 of
+the contract): `details.frames` (the count of the test frames of each session check), `details.thresholds` (the
+thresholds of `<ep>:video`), `details.full` (the camera counts and the calls of the timings) and `details.jpeg` (the
+limits and the constants of the JPEG checks: `limit`, `limit_mean`, `frames`, `kept_ratio` and `other_ids` as one
+value, and `buffers`, `items`, `repeats` and `nodes` by the name of the check when the checks have different values).
+A flag is a boolean, and "no value" is null. A failure on one frame or one repeat writes its index from 0, for example
+`failed_frame` or `failed_repeat`, with the numbers of that item.
 
 ## Check names
 
@@ -74,17 +83,121 @@ an EP check has no `:`. `details.eps.<ep>.device` gives the device key.
 |---|---|
 | `cpu:video`, `cpu:live` | The CPU reference, one time for the run, in one child process: the pipeline on the CPU EP on the 30 test frames of the package in the running mode `video`, then in the running mode `live`. `cpu:video` passes when each frame has a person. `cpu:live` passes when its outputs are finite. They run first, at the two levels. The CPU EP has no EP check. |
 | `<ep>:probe` | The L3 probe of the EP (`verify()`) on the GPU, in a child process. |
-| `<ep>:video` | The pipeline on the EP on the test frames in the running mode `video`, in a child process. Frame 0 is compared with frame 0 of `cpu:video` with each threshold. A later frame fails only on `people-differ`, `not-finite` or `box-differs`. The first frame that fails gives the reason. `numbers` holds the numbers of frame 0, and `later_keypoint_box_fraction_max`: the worst keypoint difference of the later frames, a record only. |
-| `<ep>:live` | The pipeline on the EP on the test frames in the running mode `live`, in a child process. It passes when each frame has finite outputs and a person. |
+| `<ep>:video` | The pipeline on the EP on the test frames in the running mode `video`, in a child process. Frame 0 is compared with frame 0 of `cpu:video` with each threshold. A later frame fails only on `people-differ`, `not-finite` or `box-differs`. The first frame that fails gives the reason. `numbers` holds the numbers of frame 0, or of the first frame that failed with its index `failed_frame`, and `later_keypoint_box_fraction_max`: the worst keypoint difference of the later frames, a record only. A failure `partial-placement` adds `cpu_nodes`. |
+| `<ep>:live` | The pipeline on the EP on the test frames in the running mode `live`, in a child process. It passes when each frame has finite outputs and a person. A failure `not-finite` or `no-person` writes `failed_frame`. |
 | `<ep>:jpeg-decode`, `<ep>:jpeg-preprocess` | Only on `cuda` and `trt-rtx`: the two quick checks of the GPU frame path (`run_jpeg_quick_checks()` of `core/decode/certification.py`), in one child process. They never change `<ep>`. |
 | `<ep>` | The roll-up check of the EP on one GPU: it runs no test. It passes only when `<ep>:probe`, `<ep>:video` and `<ep>:live` pass. Else it has the result and the reason of the first of them that failed, or else of the first that did not run. |
 | `<ep>:probe:exit`, `<ep>:video:exit`, `<ep>:live:exit`, `cpu:live:exit`, `mediapipe:smoke:exit` | The check `exit` of the contract for a child that gave its result and did not end cleanly. |
-| `<ep>:pipeline-1`, `<ep>:pipeline-3`, `<ep>:pipeline-6` | Level `full`: the timing of the pipeline on the EP at 1, 3 and 6 cameras, each in a child process. It is `record-only`, and `numbers` holds the times and the VRAM of the child. A run that raises is `not-run` with the exception class. |
+| `<ep>:pipeline-1`, `<ep>:pipeline-3`, `<ep>:pipeline-6` | Level `full`: the timing of the pipeline on the EP at 1, 3 and 6 cameras, each in a child process. It is `record-only`, and `numbers` holds the times, the peak VRAM of the child (null on the CPU EP and with no reading), `seconds`, and on a pair `against_cpu`. A run that raises is `not-run` with the exception class. |
 | `<ep>:jpeg` | Level `full`: the outcome of the JPEG certification (`run_jpeg_certification()` of `core/decode/certification.py`) on the EP, in one child process. It is `fail` when a check failed, else `pass` when a check passed. It never changes `<ep>`. |
-| `<ep>:jpeg:<name>` | Level `full`: one check of the JPEG certification, with the name, the result, the reason code and the numbers of that check. |
+| `<ep>:jpeg:<name>` | Level `full`: one check of the JPEG certification that the EP can have, with the name, the result, the reason code and the numbers of that check. [Checks of the JPEG certification](#checks-of-the-jpeg-certification) gives the labels of each name. |
 | `cpu:pipeline-<n>`, `cpu:jpeg`, `cpu:jpeg:<name>` | Level `full`: the same checks of the CPU EP. They run after `cpu:video` and `cpu:live`, and before the checks of each EP. |
 | `mediapipe:smoke` | Level `quick` with the default selection only: the pipeline `mediapipe-holistic-tasks@skellytracker` on the 30 test frames in the running mode `live`, in a child process, after each EP check. It runs only when no row of the list `mediapipe` of `ep_evidence.yaml` records a pass for this MediaPipe version, Python version and OS key. It passes when each frame has a present row with finite values. Its `module` is `MediaPipe`. It is not an EP check: it stores nothing. Its summary item has the group `component`, the name `MediaPipe` and the result of the check. A check that is `not-run` has no summary item. The one exception: with no MediaPipe installed, the item is `skipped` with `not-installed`. |
 | cleanup `field-test-opt-in` | The removal of the opt-in that a check that did not pass wrote. |
+
+## Checks of the JPEG certification
+
+`core/eps/certify_checks.yaml` is the list of the check names of this package (section 5.7 of the contract). It
+gives each check with its level, its rule, its numbers with their units and its labels. A test checks that this
+table agrees with the list. The name of a row of the report is `<label>:jpeg:<name>`, for example
+`cuda@10de-2484-0:jpeg:gpu_decode.baseline_420`. `Runs on` gives the EP keys of the labels that have the row. The
+label `cpu` is the CPU EP. A label has no row of a check that its EP can never have (rule 1 of section 5.8 of the
+contract). A check of the CPU paths only is under the label `cpu` only, one time for the run (rule 2).
+`judged` means a pass rule: `pass` or `fail`. The YAML list gives the rule.
+`preprocess_graph_amd_ep.frame_upload` and `preprocess_graph_amd_ep.output_binding_forms` run only on a dedicated GPU
+(`DEDICATED_ONLY`, rule 8 of section 5.8 of the contract). A `directml` label whose GPU has `GpuInfo.is_integrated` true (DXCore
+`IsIntegrated` on Windows) has no row of them. With false or null (not known), the label has the rows.
+
+| Check | Runs on | Result |
+|---|---|---|
+| `cpu_decode.baseline_420` | `cpu` | judged |
+| `cpu_decode.baseline_422` | `cpu` | judged |
+| `cpu_decode.baseline_444` | `cpu` | judged |
+| `cpu_decode.progressive` | `cpu` | judged |
+| `cpu_decode.grayscale` | `cpu` | judged |
+| `cpu_decode.no_dht` | `cpu` | judged |
+| `cpu_decode.rotation_0` | `cpu` | judged |
+| `cpu_decode.rotation_90` | `cpu` | judged |
+| `cpu_decode.rotation_180` | `cpu` | judged |
+| `cpu_decode.rotation_270` | `cpu` | judged |
+| `cpu_decode.size_320x240` | `cpu` | judged |
+| `cpu_decode.size_640x480` | `cpu` | judged |
+| `cpu_decode.size_1280x720` | `cpu` | judged |
+| `cpu_decode.size_1920x1080` | `cpu` | judged |
+| `cpu_decode.size_720x1280` | `cpu` | judged |
+| `cpu_decode.no_soi_refused` | `cpu` | judged |
+| `cpu_decode.truncated` | `cpu` | record-only |
+| `gpu_decode.baseline_420` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.baseline_422` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.baseline_444` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.progressive` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.grayscale` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.rotation_0` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.rotation_90` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.rotation_180` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.rotation_270` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.size_320x240` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.size_640x480` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.size_1280x720` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.size_1920x1080` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.size_720x1280` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.batch_1` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.batch_3` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.batch_6` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.no_dht_refused` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.no_soi_refused` | `cuda`, `trt-rtx` | judged |
+| `gpu_decode.truncated_420` | `cuda`, `trt-rtx` | record-only |
+| `gpu_decode.truncated_422` | `cuda`, `trt-rtx` | record-only |
+| `preprocess_graph.yolox_person` | `cpu` | judged |
+| `preprocess_graph.yolox_person_mixed_sizes` | `cpu` | judged |
+| `preprocess_graph.rtmw_wholebody133` | `cpu` | judged |
+| `preprocess_graph.rtmw_wholebody133_mixed_sizes` | `cpu` | judged |
+| `preprocess_graph_ep.yolox_person` | `cuda`, `trt-rtx` | judged |
+| `preprocess_graph_ep.yolox_person_mixed_sizes` | `cuda`, `trt-rtx` | judged |
+| `preprocess_graph_ep.rtmw_wholebody133` | `cuda`, `trt-rtx` | judged |
+| `preprocess_graph_ep.rtmw_wholebody133_mixed_sizes` | `cuda`, `trt-rtx` | judged |
+| `preprocess_graph_ep.node_placement` | `cuda`, `trt-rtx` | record-only |
+| `preprocess_graph_ep.device_handover` | `cuda`, `trt-rtx` | judged |
+| `pipeline.cpu_preprocess_no_frame_warning` | `cpu`, `cuda`, `trt-rtx`, `directml`, `amdgpu`, `migraphx` | judged |
+| `pipeline.cpu_ep_auto_no_frame_warning` | `cpu` | judged |
+| `pipeline.gpu_auto_vs_cpu` | `cuda`, `trt-rtx` | record-only |
+| `pipeline.repeat_equal` | `cpu`, `cuda`, `trt-rtx`, `directml`, `amdgpu`, `migraphx` | judged |
+| `preprocess_graph_amd_ep.yolox_person` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.yolox_person_mixed_sizes` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.rtmw_wholebody133` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.rtmw_wholebody133_mixed_sizes` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.rtmw_wholebody133_far_corner_roi` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.node_placement` | `directml`, `amdgpu`, `migraphx` | record-only |
+| `preprocess_graph_amd_ep.frame_upload` | `directml`, `amdgpu`, `migraphx` | record-only |
+| `preprocess_graph_amd_ep.device_handover` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `preprocess_graph_amd_ep.output_binding_forms` | `directml`, `amdgpu`, `migraphx` | record-only |
+| `preprocess_graph_amd_ep.device_mapping` | `directml`, `amdgpu`, `migraphx` | record-only |
+| `pipeline_amd_ep.gpu_preprocess_no_frame_warning` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `pipeline_amd_ep.gpu_vs_cpu_preprocess` | `directml`, `amdgpu`, `migraphx` | record-only |
+| `pipeline_amd_ep.auto_cpu_preprocess_no_warning` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+| `pipeline_amd_ep.repeat_equal` | `directml`, `amdgpu`, `migraphx` | judged on `directml`, record-only on `amdgpu` and `migraphx` |
+
+## Reason codes of the JPEG certification
+
+The tuple `REASONS` of `core/decode/certification.py` holds these codes. They are the reasons of the rows
+`<label>:jpeg:<name>`, `<label>:jpeg`, `<label>:jpeg-decode` and `<label>:jpeg-preprocess`.
+
+| Code | Meaning |
+|---|---|
+| `ok` | The check passed. |
+| `over_limit` | A difference is more than the limit of the check. |
+| `mismatch` | A shape, a dtype or a bitwise comparison is not equal. |
+| `refused` | The GPU decoder refused a buffer that it must decode. |
+| `not_refused` | The decoder decoded a buffer that it must refuse. |
+| `warning_given` | The pipeline run gave a warning that the check does not allow. |
+| `decoder_not_opened` | The GPU JPEG decoder is installed, but it did not open. |
+| `ep_not_present` | The EP of the label can have the check, but the EP did not open: it is not installed, or it cannot use the GPU. |
+| `no_gpu_decode_on_ep` | A `gpu_decode` check on an EP with no GPU JPEG decode. `certify()` never writes it, because a label of such an EP has no `gpu_decode` row. `run_jpeg_certification()` with no `names` gives it. |
+| `component_not_installed` | The GPU JPEG decoder component of the EP is not installed. |
+| `sidecar_not_available` | A package sidecar does not load. |
+| `models_not_available` | The ONNX files of the built-in pipeline are not on this system. |
+| `raised` | The check raised an exception. `numbers.error` holds its class name. |
+| `recorded` | A record-only check recorded its numbers. |
 
 ## The certify suite
 

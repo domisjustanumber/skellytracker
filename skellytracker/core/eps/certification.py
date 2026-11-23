@@ -170,8 +170,10 @@ def time_run(pipeline, execution_provider: str, cameras: int, image, device: str
     """Start the pipeline on `cameras` cameras in the running mode `video`, and time `TIMED_CALLS` calls after `WARMUP_CALLS` calls.
 
     `pipeline` is a key of the pipeline catalog or the mapping of a config. The times are of the span
-    `pipeline.run`. `start_seconds` holds the start of the sessions, with an engine build. The VRAM values are
-    of this process, in MiB, from a sample after each call. They are None when no reader gives the value.
+    `pipeline.run`. `start_seconds` holds the start of the sessions, with an engine build. `peak_vram_mib` is the
+    VRAM of this process, in MiB, from a sample after each call. It is None on the CPU EP, and when no reader gives
+    the value. The camera count and the count of timed calls are not in the result: the caller knows them
+    (`details.full` of the report).
     """
     from skellytracker.core import pipelines
     from skellytracker.core.metrics import LiveSampler
@@ -183,8 +185,7 @@ def time_run(pipeline, execution_provider: str, cameras: int, image, device: str
     config = pipelines.load_pipeline(pipeline)
     config.instrumentation.timing_spans = ["pipeline.run"]
     events, sampler, pid, ids = [], LiveSampler(), os.getpid(), list(range(cameras))
-    before = _process_vram(sampler, pid)
-    peak = before
+    peak = _process_vram(sampler, pid)
     started = time.perf_counter()
     with pipelines.start_pipeline(config, camera_ids=ids, running_mode="video", execution_provider=execution_provider,
                                   timing_sink=events.append, device=device) as run:
@@ -196,19 +197,30 @@ def time_run(pipeline, execution_provider: str, cameras: int, image, device: str
             peak = now if peak is None else max(peak, now or 0)
     calls = [duration_ms(event) for event in events if event.get("node_id") == "pipeline"]
     timed = sorted(calls[WARMUP_CALLS:])
-    return {"cameras": cameras, "start_seconds": round(start_seconds, 2), "first_call_ms": round(calls[0], 1),
-            "calls": len(timed), "median_ms": round(statistics.median(timed), 2),
+    return {"start_seconds": round(start_seconds, 2), "first_call_ms": round(calls[0], 1),
+            "median_ms": round(statistics.median(timed), 2),
             "p95_ms": round(timed[min(len(timed) - 1, round(0.95 * (len(timed) - 1)))], 2),
-            "vram_before_mib": mib(before), "peak_vram_mib": mib(peak)}
+            "peak_vram_mib": None if execution_provider == "cpu" else mib(peak)}
+
+
+def failed(error: BaseException) -> dict:
+    """The result of a child for a caught exception: `{"error": <class name>, "numbers": <error_numbers()>}`.
+
+    `error_numbers()` of `core/errors.py` gives the class name and the error number. An error text can hold a path,
+    so the result holds no text.
+    """
+    from skellytracker.core.errors import error_code, error_numbers
+
+    return {"error": error_code(error), "numbers": error_numbers(error)}
 
 
 def _timing_child(key: str, settings: dict, cameras: int, device_key: str | None, connection) -> None:
-    """The child of `timing_run()`: it sends the result of `time_run()`, or `{"error": <exception class name>}`."""
+    """The child of `timing_run()`: it sends the result of `time_run()`, or `failed()` of the exception."""
     try:
         with gate.certification_run():  # the level `full` times an EP that can have no result yet
             result = time_run(settings["pipeline"], key, cameras, quick_frames(settings)[0], device_key)
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
-        result = {"error": type(error).__name__}
+        result = failed(error)
     connection.send(result)
     connection.close()
 
@@ -224,7 +236,7 @@ def session_frames(pipeline, execution_provider: str, images: list, running_mode
 
     `images` are the decoded test frames (`quick_frames()`). A frame of `live` has a rising `timestamp_ms`. `frames` holds, for each frame, the outputs that `compare_results()`
     reads, as plain arrays, so that a child can send them. `ms` is the fastest call after the first: a rough figure,
-    a record only.
+    a record only. `cpu_nodes` is the count of the nodes on the CPU EP of each warning `ep_partial_placement`.
     """
     import numpy as np
 
@@ -242,7 +254,9 @@ def session_frames(pipeline, execution_provider: str, images: list, running_mode
             frames.append({"boxes": SimpleNamespace(present=np.array(boxes.present), xyxy=np.array(boxes.xyxy)),
                            "wholebody": SimpleNamespace(present=np.array(body.present), score=np.array(body.score), xy=np.array(body.xy))})
         models, warnings = run.models, sorted({warning.code for warning in run.warnings})
-    return {"frames": frames, "ms": round(min(times[1:]), 1), "warnings": warnings,
+        cpu_nodes = sum(int(((getattr(warning, "details", None) or {}).get("nodes_by_ep") or {}).get("CPUExecutionProvider", 0))
+                        for warning in run.warnings if warning.code == PARTIAL_PLACEMENT)
+    return {"frames": frames, "ms": round(min(times[1:]), 1), "warnings": warnings, "cpu_nodes": cpu_nodes,
             "models": [{field: model[field] for field in ("key", "version", "size", "precision", "execution_provider", "device")}
                        for _, model in sorted(models.items())]}
 
@@ -250,7 +264,7 @@ def session_frames(pipeline, execution_provider: str, images: list, running_mode
 def _session_child(key: str, settings: dict, device_key: str | None, modes: tuple, connection) -> None:
     """The child of `session_run()`: it sends each running mode as a step, then `{mode: <session_frames()>}`.
 
-    An error in one mode gives `{"error": <exception class name>}` for that mode. An error before the first mode, for
+    An error in one mode gives `failed()` of the exception for that mode. An error before the first mode, for
     example a test frames file that is not valid, gives it for the whole result.
     """
     try:
@@ -261,9 +275,9 @@ def _session_child(key: str, settings: dict, device_key: str | None, modes: tupl
                 try:
                     result[mode] = session_frames(settings["pipeline"], key, images, mode, device_key)
                 except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
-                    result[mode] = {"error": type(error).__name__}
+                    result[mode] = failed(error)
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
-        result = {"error": type(error).__name__}
+        result = failed(error)
     connection.send(result)
     connection.close()
 
@@ -301,9 +315,9 @@ def _mediapipe_child(settings: dict, connection) -> None:
             try:
                 result = {"live": mediapipe_frames(images)}
             except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
-                result = {"live": {"error": type(error).__name__}}
+                result = {"live": failed(error)}
     except Exception as error:  # noqa: BLE001 - a fixed code: an error text can hold a path
-        result = {"error": type(error).__name__}
+        result = failed(error)
     connection.send(result)
     connection.close()
 

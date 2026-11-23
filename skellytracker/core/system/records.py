@@ -27,7 +27,9 @@ class GpuInfo:
     `None` when no file holds the ids. On macOS, `vram_total_bytes` is the IOKit value
     `VRAM,totalMB`. It is `None` for an Apple Silicon GPU, because that GPU has unified memory.
     `shared_memory_bytes` is the shared system memory that the GPU can use: `SharedSystemMemory` of DXGI on Windows.
-    It is `None` on Linux and macOS.
+    It is `None` on Linux and macOS. `is_integrated` is the DXCore adapter property `IsIntegrated` on Windows, or
+    `None` when DXCore does not give it. On Linux it is a guess from the `boot_vga` file of the GPU, and on macOS it is
+    `None`.
     """
 
     key: str

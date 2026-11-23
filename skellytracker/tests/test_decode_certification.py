@@ -68,7 +68,9 @@ def test_the_result_is_json_with_the_schema_keys_and_the_frozen_names(run_withou
     for check in result["checks"]:
         assert set(check) == {"name", "result", "reason", "numbers", "warnings", "detail"}
         assert check["result"] in RESULTS and check["reason"] in REASONS, check
-        assert all(isinstance(value, int | float) and not isinstance(value, bool) for value in check["numbers"].values()), check
+        # a number, a boolean for a flag, None for no value, or the class name of an exception in `error`
+        assert all(value is None or isinstance(value, int | float) or (name.endswith("error") and isinstance(value, str))
+                   for name, value in check["numbers"].items()), check
         assert all(set(warning) == {"code", "reason"} for warning in check["warnings"]), check
         assert isinstance(check["detail"], str)
 
@@ -105,7 +107,39 @@ def test_a_check_that_raises_fails_with_no_path_and_the_next_checks_run(monkeypa
     failed = by_name["cpu_decode.baseline_420"]
     assert (failed["result"], failed["reason"]) == ("fail", "raised")
     assert failed["detail"] == "OSError: cannot read <path> or <path>"
+    assert failed["numbers"]["error"] == "OSError"  # the class name in `numbers`; `certify()` drops `detail`
     assert by_name["preprocess_graph.yolox_person"]["result"] == "pass"
+
+
+def test_the_check_names_are_the_frozen_names_and_certify_asks_only_for_the_groups_of_the_ep() -> None:
+    assert list(certification.CHECK_NAMES) == NAMES
+    cpu_only = [name for name in NAMES if name.startswith(certification.CPU_ONLY)]
+    on_the_ep = ["pipeline.cpu_preprocess_no_frame_warning", "pipeline.repeat_equal"]
+    nvidia = [name for name in NAMES if name.startswith(certification.GPU_FRAME_ONLY)]
+    amd = [name for name in NAMES if name.startswith(certification.AMD_ONLY)]
+    assert len(cpu_only) + len(on_the_ep) + len(nvidia) + len(amd) == len(NAMES) == 66
+    assert set(certification.certify_names(None)) == set(certification.certify_names("cpu")) == {*cpu_only, *on_the_ep}
+    for key in ("cuda", "trt-rtx"):
+        assert set(certification.certify_names(key)) == {*nvidia, *on_the_ep}
+    for key in ("directml", "amdgpu", "migraphx"):
+        assert set(certification.certify_names(key)) == {*amd, *on_the_ep}
+    assert [len(certification.certify_names(key)) for key in (None, "cuda", "directml")] == [24, 30, 16]
+    assert set(certification.QUICK_CHECKS) <= set(certification.certify_names("cuda"))
+    # the checks of a dedicated GPU: not on an integrated GPU; with False or None (not known) they run
+    assert certification.DEDICATED_ONLY == ("preprocess_graph_amd_ep.frame_upload", "preprocess_graph_amd_ep.output_binding_forms")
+    key = "directml"
+    assert certification.certify_names(key, True) == tuple(name for name in certification.certify_names(key) if name not in certification.DEDICATED_ONLY)
+    assert certification.certify_names(key, False) == certification.certify_names(key, None) == certification.certify_names(key)
+    for key in ("amdgpu", "migraphx"):  # Linux: `is_integrated` is a guess there, so it filters nothing
+        assert certification.certify_names(key, True) == certification.certify_names(key)
+    assert certification.certify_names("cuda", True) == certification.certify_names("cuda")  # no check of `DEDICATED_ONLY` there
+
+
+def test_names_selects_the_checks_and_an_unknown_name_raises() -> None:
+    with pytest.raises(ValueError, match="no-such-check"):
+        run_jpeg_certification(names=["no-such-check"])
+    result = run_jpeg_certification(names=())  # the list of the run equals `CHECK_NAMES`, else `_certify()` raises
+    assert result["checks"] == []
 
 
 def test_the_reasons_are_a_closed_set() -> None:

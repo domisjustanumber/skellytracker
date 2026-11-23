@@ -3,6 +3,9 @@
 The old `core/sessions/session_errors.py` is a different module. The old run code uses it.
 """
 
+import re
+import sys
+
 EXIT_OK = 0
 EXIT_FAILURE = 1
 EXIT_USAGE = 2
@@ -120,3 +123,45 @@ class RunClosedError(RuntimeError):
 def exit_code_of(error: BaseException) -> int:
     """The CLI exit code of `error`: its `exit_code`, else `EXIT_FAILURE`."""
     return getattr(error, "exit_code", EXIT_FAILURE)
+
+
+# An HRESULT of a failure in an error text: `0x` and 8 hex digits, or 8 upper-case hex digits that start with 8 to F, as
+# DirectML writes it (for example `887A0005`). A 64-bit address has 16 digits, so it does not match.
+_HRESULT = re.compile(r"(?<![0-9A-Za-z])(?:0[xX]([0-9A-Fa-f]{8})|([89A-F][0-9A-F]{7}))(?![0-9A-Za-z])")
+
+
+def error_code(error: BaseException) -> str:
+    """The class name of `error` with no module path, as a reason code: `-` for each character that a reason code cannot
+    hold, no `_` or `-` at the start, at most 80 characters, for example `RuntimeError`."""
+    return re.sub(r"[^A-Za-z0-9_-]", "-", type(error).__name__).lstrip("_-")[:80] or "Exception"
+
+
+def error_numbers(error: BaseException) -> dict:
+    """The facts of a caught exception that a certify report can hold: never its message text, a path or an address.
+
+    `error` is the class name of the exception with no module path, in the form of a reason code (rule 3 of
+    section 5.8 of the format of `skellycertify`): `error_code()`. The error number is an integer, when the
+    exception has one: `hresult` on Windows (the attribute `hresult`, `winerror` of an `OSError` as
+    `HRESULT_FROM_WIN32`, or the first HRESULT of a failure in the text, as the unsigned 32-bit value, for example
+    2289696773 for `0x887A0005`), `errno` of an `OSError` on Linux and macOS, and `code`, the return code of the
+    library (an integer attribute `returncode` or `code`). With no number, only `error`.
+    """
+    found: dict = {"error": error_code(error)}
+    if sys.platform == "win32":
+        hresult = getattr(error, "hresult", None)
+        winerror = getattr(error, "winerror", None) if isinstance(error, OSError) else None
+        if isinstance(hresult, int) and not isinstance(hresult, bool):
+            found["hresult"] = hresult & 0xFFFFFFFF
+        elif isinstance(winerror, int) and winerror:
+            found["hresult"] = winerror & 0xFFFFFFFF if winerror < 0 else 0x80070000 | (winerror & 0xFFFF)
+        elif match := _HRESULT.search(str(error)):
+            value = int(match.group(1) or match.group(2), 16)
+            if value & 0x80000000:  # a failure; a success code is no error number
+                found["hresult"] = value
+    elif isinstance(error, OSError) and isinstance(error.errno, int):
+        found["errno"] = error.errno
+    code = next((value for value in (getattr(error, name, None) for name in ("returncode", "code"))
+                 if isinstance(value, int) and not isinstance(value, bool)), None)
+    if code is not None:
+        found["code"] = code
+    return found
