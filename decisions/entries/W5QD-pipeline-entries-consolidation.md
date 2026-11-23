@@ -1,6 +1,6 @@
 # W5QD — Consolidation of the pipeline entries
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [J4SH](J4SH-pipeline-api-second-consolidation.md), 2026-11-23 (consolidation; PR: pending). It was `accepted` from 2026-11-12 (user).
 
 ## Decision
 

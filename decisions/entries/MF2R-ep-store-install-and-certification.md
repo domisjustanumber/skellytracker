@@ -1,6 +1,6 @@
 # MF2R — The EP catalog data, the EP store, the pack install and the EP certification
 
-**Status:** accepted, 2026-11-18 (user).
+**Status:** superseded by [1N9Y](1N9Y-ep-store-install-and-certification-consolidation.md), 2026-11-23 (consolidation; PR: pending). It was `accepted` from 2026-11-18 (user).
 
 ## Decision
 

@@ -1,6 +1,6 @@
 # D8DH — `core/errors.py`, one exit-code table, the "ready" rule and the session build
 
-**Status:** accepted, 2026-11-12 (user).
+**Status:** superseded by [4RWX](4RWX-sessions-and-errors-consolidation.md), 2026-11-23 (consolidation; PR: pending). It was `accepted` from 2026-11-12 (user).
 
 ## Decision
 

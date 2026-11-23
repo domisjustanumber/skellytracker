@@ -1,6 +1,6 @@
 # Z5X7 — The field-test state of the EP catalog, and DirectML on Windows
 
-**Status:** accepted, 2026-11-18 (user).
+**Status:** superseded by [6A1Y](6A1Y-field-test-and-amd-eps-consolidation.md), 2026-11-23 (consolidation; PR: pending). It was `accepted` from 2026-11-18 (user).
 
 ## Decision
 

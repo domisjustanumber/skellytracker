@@ -148,6 +148,16 @@ The implementation-stage work is in the stages of phase 1 and phase 2 of the
   ([ADR-P3NK](entries/P3NK-bootstrap-kit-in-freemocap-project.md)). The link repairs in 0031, NB91,
   QPS7 and Z05A pin the commit `0d88941` of that branch. When the PR merges with a different SHA,
   pin the merged commit.
+- **Rulings of 2026-11-23**
+  ([ADR-4JAW](entries/4JAW-rulings-of-2026-11-23-on-sessions-the-certify-prompt-and-linux.md)):
+  - Item 3 is not built: set `enable_cuda_graph` to `1` in the defaults of `trt-rtx` in the EP
+    catalog. First measure the default and the cost of `0` on the pinned pack.
+  - Item 5: the built-in `mediapipe-holistic-tasks` must replace the two old MediaPipe demo builders
+    of `skellytracker/__main__.py`. Do it when the old detectors go.
+  - No document states some kept rules of the consolidation entries of 2026-11-23, so these entries
+    stay `accepted`. Write each rule in the docstring of its module, then absorb the entries.
+- **Frozen smoke test.** At stage 1.11, the frozen smoke test must load the sidecar files with the
+  new loader ([ADR-4RWX](entries/4RWX-sessions-and-errors-consolidation.md) item 16).
 
 ## Certification build list
 

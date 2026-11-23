@@ -1,6 +1,6 @@
 # Y14H — The certify suite: one command, seven sections, one report
 
-**Status:** accepted, 2026-11-18 (user).
+**Status:** superseded by [0Q48](0Q48-certify-suite-consolidation.md), 2026-11-23 (consolidation; PR: pending). It was `accepted` from 2026-11-18 (user).
 
 ## Decision
 

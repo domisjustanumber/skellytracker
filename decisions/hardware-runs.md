@@ -60,9 +60,11 @@ and changes the note of its hardware class (`amd-windows` or `amd-linux`).
 ## Linux with an NVIDIA GPU
 
 - [ ] **Linux gate of ONNX Runtime 1.30.0.** [ADR-N6E8](entries/N6E8-onnxruntime-1-30-on-each-os.md)
-  item 9: run the certify suite `tools/certify_platform.py` on bare-metal Ubuntu 24.04 with an
-  NVIDIA driver of 590.48.01 or later. It replaces `decisions/scripts/n6e8_ort_1_30/linux_ep_gate.sh`
-  ([ADR-Y14H](entries/Y14H-certify-suite.md) item 16). The change of the items 2 and 3 of N6E8 lands
+  item 9: run the level `full` of certify in a freemocap build on bare-metal Ubuntu 24.04 with an
+  NVIDIA driver of 590.48.01 or later. Linux is tested only through the certify process, not with a
+  run of the certify suite in a clone
+  ([ADR-4JAW](entries/4JAW-rulings-of-2026-11-23-on-sessions-the-certify-prompt-and-linux.md) item 4).
+  The change of the items 2 and 3 of N6E8 lands
   only after this run passes. Then write the result in the Evidence section of N6E8.
 - [ ] **EP certification** ([ADR-MF2R](entries/MF2R-ep-store-install-and-certification.md)): write
   the `maintainer` rows of `ep_evidence.yaml` for the current set hash on Linux. The two Windows rows

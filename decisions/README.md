@@ -27,15 +27,15 @@ These entries are `accepted`.
 | [AMJ8](entries/AMJ8-replace-package-onnx-detectors.md) | Replace the package ONNX detectors with exporter models; no legacy layer; shipped sidecars in `core/model_zoo/`; RTMPose replacements block v2.0.0 | accepted |
 | [0XW9](entries/0XW9-entry-points-layout-guard-test-and-session-code.md) | Entry points `detectors` and `pipelines`; `system/`, `metrics/`, `eps/` under an eager `core`; one `eps` guard test; new session code in `core/eps/` | accepted |
 | [NHM3](entries/NHM3-phases-to-the-exporter-checkpoint.md) | Phase 0 and phase 1 to the exporter checkpoint; pre-release at the checkpoint; new code beside old; supersedes EM74 | accepted |
-| [W5QD](entries/W5QD-pipeline-entries-consolidation.md) | Consolidation of the pipeline entries 7NY2, ZYS9, V7GZ and 0WTV: links to the pipeline spec, and the Python API names that it does not state | accepted |
-| [MF2R](entries/MF2R-ep-store-install-and-certification.md) | EP catalog, lock and store; download after the user accepts; the app prompts; `certify()` with a local report; `ep_evidence.yaml`; supersedes 246B | accepted |
-| [D8DH](entries/D8DH-sessions-errors-and-the-ready-rule.md) | `core/errors.py`; one exit-code table; an EP pack is ready when installed, current, registered and with a device; no EP variables | accepted |
 | [P1F3](entries/P1F3-hardware-probe-devices-and-multi-gpu.md) | Hardware probe fields; `free_vram`; `device_key`; default GPU by VRAM; a run splits its cameras across GPUs; no pre-Turing GPUs | accepted |
-| [Y14H](entries/Y14H-certify-suite.md) | Certify suite: one command from a clone at a tag, seven sections in child processes, one private Markdown report; AMD EPs; Linux gate of N6E8 | accepted |
-| [Z5X7](entries/Z5X7-field-test-state-and-directml.md) | Field-test EP state: opt-in in the EP store, refused without it, never recommended; `directml` built in on Windows, GPU by ORT device | accepted |
-| [XSE7](entries/XSE7-amd-eps-in-the-field-test.md) | AMD EPs in the field test: `migraphx` ROCm packs on Linux, Windows ML `amdgpu` and `migraphx`; field-test packs not in the set hash; ORT 1.29 fallback | accepted |
 | [P0JZ](entries/P0JZ-certify-contract-in-each-package.md) | `certify(level)` in each package; reports to `skellycertify`; any recorded build is evidence; OS and EP layers | accepted |
 | [21BK](entries/21BK-quick-check-local-pass-and-hand-in.md) | Quick check in a child process on the user's pipeline; local pass; hard failures; passive record; hand-in | accepted |
+| [1N9Y](entries/1N9Y-ep-store-install-and-certification-consolidation.md) | Consolidation of MF2R: EP catalog, lock and store; download after the user accepts; the evidence file; the pass rule; links to the documents that state them | accepted |
+| [0Q48](entries/0Q48-certify-suite-consolidation.md) | Consolidation of Y14H: the certify suite command, its sections in child processes, consent, privacy and the model files; the replaced items are listed | accepted |
+| [6A1Y](entries/6A1Y-field-test-and-amd-eps-consolidation.md) | Consolidation of Z5X7 and XSE7: the field-test state and its opt-in, built-in `directml`, the `migraphx` ROCm packs and the Windows ML EPs | accepted |
+| [4RWX](entries/4RWX-sessions-and-errors-consolidation.md) | Consolidation of D8DH: `core/errors.py`, the exit-code table, the ready rule, `build_session()` and no EP variables | accepted |
+| [J4SH](entries/J4SH-pipeline-api-second-consolidation.md) | Second consolidation of the pipeline entries: links to the pipeline spec and the package docstrings, and the Python API text that they do not state | accepted |
+| [4JAW](entries/4JAW-rulings-of-2026-11-23-on-sessions-the-certify-prompt-and-linux.md) | Thread counts and optimization level as session attributes; freemocap stores "do not ask again"; catalog sets `enable_cuda_graph`; Linux only through certify | accepted |
 
 ### Proposed
 
