@@ -429,8 +429,7 @@ Items ([ADR-0WTV](../decisions/entries/0WTV-system-metrics-and-pipeline-timing-h
   |---|---|---|---|---|---|---|---|
   | Meaning | ok | failure | usage, refused key or option | EP not available | session not created | GPU memory exhausted | cancelled |
 - **`build_session(model, *, execution_provider, ep_options=None, device_key=None, model_ref=None)`**
-  returns the session and its `SessionReport`. `model` is bytes or a path; the NMS session of
-  stage 1.10 passes its bytes with `cpu`. The steps: refuse a reserved or unknown key and each
+  returns the session and its `SessionReport`. `model` is bytes or a path. The steps: refuse a reserved or unknown key and each
   option that the catalog does not list, before ORT; check the core and the pack state; register;
   set `intra_op_num_threads=1` and `inter_op_num_threads=1` for a GPU EP;
   `session.record_ep_graph_assignment_info=1`; add a plugin EP with `add_provider_for_devices`,
@@ -1147,10 +1146,6 @@ Open:
   [ADR-AMF7](../decisions/entries/AMF7-camera-split-by-vram.md) is built and has tests on fake
   GPUs. No run on a host with two GPUs verified it. The timing header does not record the cameras
   of each GPU.
-- **NMS.** The decode of stage 1.5 does NMS in NumPy. The node has no ONNX `NonMaxSuppression`
-  session, so the text of the item "`onnx_model` node" and of
-  [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7 does not describe
-  the code.
 - **Timing names.** [Timing](pipeline/timing.md#fields) does not fix the form of `batching`, and
   the rules of the aggregator for `images_per_second` and for two model nodes.
 - **Run gate of a pipeline bundle.** `verify` runs the load checks. The run gate and its tolerance
@@ -1231,9 +1226,9 @@ This stage implements the node types of the pipeline spec. Use the skill
 - **`onnx_model` node.** The node type `onnx_model` was `detector` ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 1). It wraps the generic detectors of stage 1.7. A node with a top-down keypoint model
   has a `rois` input. A node with a `bottom_up` model or an object detector has no `rois` input
   ([ADR-GKD1](../decisions/entries/GKD1-estimator-type-says-the-crop.md) item 4). Its decode param
-  is `object_decode` ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). NMS is an
-  ONNX `NonMaxSuppression` graph on the CPU provider, with `max_output_boxes_per_class` `2**31-1`,
-  in the new `processing/post/` decode of stage 1.5. `post_nms_top_k` applies to the final rows
+  is `object_decode` ([ADR-88WQ](../decisions/entries/88WQ-sidecar-vocabulary.md) item 7). NMS runs in
+  NumPy on the CPU, in the `processing/post/` decode of stage 1.5
+  ([ADR-8F6E](../decisions/entries/8F6E-nms-runs-in-numpy-on-the-cpu.md)). `post_nms_top_k` applies to the final rows
   ([ADR-7NY2](../decisions/entries/7NY2-pipeline-form-graph-and-nodes.md) item 9). The gate is
   [`post.object.selection.nms`](model-sidecar/vectors/post.object.selection.nms.yaml).
 - **Class and instance score.** A `detections` value has `class_index` `(I,)`, with -1 for a
@@ -1297,8 +1292,7 @@ This stage implements the node types of the pipeline spec. Use the skill
     ([ADR-RA0E](../decisions/entries/RA0E-built-in-box-behaviour-of-sfn26.md) item 5).
 - **Sessions.** Build each ONNX session with `eps.build_session()`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 5). `start_pipeline` takes `execution_provider=None`, `ep_options`, `device` and `vram_reserve_bytes`, and checks `V-pipeline.running-8` and `V-pipeline.running-9` ([ADR-9PDQ](../decisions/entries/9PDQ-pipeline-renames-and-the-run-ep.md) item 4). An `onnx_model` node takes
-  `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The NMS session
-  requests `cpu` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 7). The timing `execution` block gives `cpu_nodes` and
+  `execution_provider` and `ep_options` ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) item 1; [ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 2). The timing `execution` block gives `cpu_nodes` and
   `cpu_op_types` ([ADR-9NW0](../decisions/entries/9NW0-ep-keys-options-and-failures.md) item 5).
 - **Warnings.** `PipelineWarning`, `PipelineRun.warnings`, `on_warning` and `MissingDependencyError`
   ([ADR-V7GZ](../decisions/entries/V7GZ-pipeline-api-device-and-vram-reserve.md) items 6 and 7). The warning `ep_partial_placement` fires one time for each session
